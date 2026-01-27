@@ -43,5 +43,5 @@ gl-iam-cookbook/
 
 ## Documentation
 
-- [GL-IAM Documentation](https://gdplabs.gitbook.io/sdk/gl-iam)
-- [GL SDK Documentation](https://gdplabs.gitbook.io/sdk)
+- [GL-IAM Gitbook](https://gdplabs.gitbook.io/sdk/gl-iam)
+- [GL SDK Gitbook](https://gdplabs.gitbook.io/sdk)
