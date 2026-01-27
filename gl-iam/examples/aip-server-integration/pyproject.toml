@@ -1,0 +1,16 @@
+[project]
+name = "aip-server-integration"
+version = "0.0.0"
+description = "GL-IAM integration example for AIP server with unified authentication"
+requires-python = ">=3.11,<3.14"
+readme = "README.md"
+dependencies = [
+    "fastapi>=0.115.0,<0.116.0",
+    "uvicorn>=0.34.0,<0.35.0",
+    "python-dotenv>=1.0.0,<2.0.0",
+    "pydantic-settings>=2.0.0,<3.0.0",
+    "gl-iam[fastapi,postgresql]",
+]
+
+[tool.uv.sources]
+gl-iam = { git = "https://github.com/GDP-ADMIN/gl-sdk.git", subdirectory = "libs/gl-iam", branch = "feature/gl-iam-sdk" }
