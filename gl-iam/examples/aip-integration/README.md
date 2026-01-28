@@ -26,7 +26,7 @@ Additionally, you need:
    cd gl-iam-cookbook/gl-iam/examples/aip-integration/
    ```
 
-2. **Set UV authentication and install dependencies**
+2. **Install dependencies**
 
    **For Unix-based systems (Linux, macOS):**
    ```bash
@@ -37,6 +37,8 @@ Additionally, you need:
    ```cmd
    setup.bat
    ```
+
+   Or manually: `uv sync`
 
 3. **Configure environment**
 

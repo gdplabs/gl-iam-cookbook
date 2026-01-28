@@ -18,7 +18,7 @@ Additionally, you need:
    cd gl-iam-cookbook/gl-iam/examples/fastapi-postgresql/
    ```
 
-2. **Set UV authentication and install dependencies**
+2. **Install dependencies**
 
    **For Unix-based systems (Linux, macOS):**
    ```bash
@@ -30,13 +30,7 @@ Additionally, you need:
    setup.bat
    ```
 
-   > Alternatively, set the following env vars manually:
-   > ```bash
-   > export UV_INDEX_GEN_AI_INTERNAL_USERNAME=oauth2accesstoken
-   > export UV_INDEX_GEN_AI_INTERNAL_PASSWORD="$(gcloud auth print-access-token)"
-   > uv lock
-   > uv sync
-   > ```
+   Or manually: `uv sync`
 
 3. **Configure environment**
 

@@ -6,8 +6,7 @@ Welcome to the **GL-IAM Examples** - sample code for integrating GL-IAM authenti
 
 1. **Python 3.11+** - Can be [installed via UV](https://docs.astral.sh/uv/guides/install-python/).
 2. **UV** - Please check https://docs.astral.sh/uv/ on how to install it.
-3. **gcloud CLI** - Please see https://cloud.google.com/sdk/docs/install on how to install it.
-   - Once installed, please login using `gcloud auth login`.
+3. **Docker** - Required for running PostgreSQL/Keycloak containers.
 
 ## Getting Started
 
