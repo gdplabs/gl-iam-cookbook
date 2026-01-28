@@ -24,6 +24,7 @@ from pydantic import BaseModel
 # GL-IAM Imports - Authentication & Authorization
 # =============================================================================
 from gl_iam import IAMGateway, StandardRole, User
+from gl_iam.core.types import PasswordCredentials, UserCreateInput
 from gl_iam.fastapi import (
     get_current_user,  # Dependency: Get authenticated user
     get_iam_gateway,
@@ -215,11 +216,13 @@ async def register(request: RegisterRequest):
     gateway = get_iam_gateway()
     org_id = os.getenv("DEFAULT_ORGANIZATION_ID")
 
-    user = await gateway.user_store.create_user({
-        "email": request.email,
-        "display_name": request.display_name or request.email.split("@")[0],
-        "organization_id": org_id,
-    })
+    user = await gateway.user_store.create_user(
+        UserCreateInput(
+            email=request.email,
+            display_name=request.display_name or request.email.split("@")[0],
+        ),
+        organization_id=org_id,
+    )
     await gateway.user_store.set_user_password(user.id, request.password, org_id)
     await gateway.user_store.assign_role(user.id, StandardRole.ORG_MEMBER.value, org_id)
 
@@ -234,7 +237,7 @@ async def login(request: LoginRequest):
 
     try:
         result = await gateway.authenticate(
-            credentials={"email": request.email, "password": request.password},
+            credentials=PasswordCredentials(email=request.email, password=request.password),
             organization_id=org_id,
         )
         return TokenResponse(
