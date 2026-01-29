@@ -110,7 +110,7 @@ async def get_unified_identity(
     if bearer_token and settings.gliam_enabled:
         try:
             gateway = get_iam_gateway()
-            user = await gateway.validate_token(
+            user = await gateway.validate_session(
                 bearer_token.credentials,
                 organization_id=settings.gliam_organization_id,
             )
@@ -160,32 +160,86 @@ def get_account_id_from_identity(identity: User | UUID | None) -> UUID | None:
 # Role-Based Dependencies
 # =============================================================================
 def require_org_member():
-    """Require ORG_MEMBER role or valid API key."""
-    if settings.gliam_enabled:
-        return gliam_require_org_member()
+    """Require ORG_MEMBER role (GL-IAM) or valid API key (legacy).
+    
+    This unified dependency supports both:
+    - GL-IAM Bearer token authentication with role checking
+    - Legacy X-API-Key authentication (any valid API key)
+    """
+    async def unified_check(
+        bearer_token: HTTPAuthorizationCredentials | None = Security(bearer_scheme),
+        api_key: str | None = Security(api_key_scheme),
+    ):
+        # If Bearer token provided and GL-IAM enabled, check GL-IAM roles
+        if bearer_token and settings.gliam_enabled:
+            try:
+                gateway = get_iam_gateway()
+                user = await gateway.validate_session(
+                    bearer_token.credentials,
+                    organization_id=settings.gliam_organization_id,
+                )
+                if user and user.has_standard_role(StandardRole.ORG_MEMBER):
+                    return  # GL-IAM auth successful
+                elif user:
+                    raise HTTPException(status_code=403, detail="ORG_MEMBER role required")
+            except HTTPException:
+                raise
+            except Exception:
+                pass  # Fall through to API key check
 
-    # Fallback: just require any valid API key
-    async def legacy_check(api_key: str | None = Security(api_key_scheme)):
-        if not api_key:
-            raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="API key required")
-        await verify_api_key(api_key)
+        # Fall back to legacy API key
+        if api_key:
+            await verify_api_key(api_key)  # Any valid API key is OK for member
+            return
 
-    return legacy_check
+        raise HTTPException(
+            status_code=HTTP_401_UNAUTHORIZED,
+            detail="Authentication required. Provide Bearer token or X-API-Key.",
+        )
+
+    return unified_check
 
 
 def require_org_admin():
-    """Require ORG_ADMIN role or master API key."""
-    if settings.gliam_enabled:
-        return gliam_require_org_admin()
+    """Require ORG_ADMIN role (GL-IAM) or master API key (legacy).
+    
+    This unified dependency supports both:
+    - GL-IAM Bearer token authentication with ORG_ADMIN role checking
+    - Legacy X-API-Key authentication (master API key only)
+    """
+    async def unified_check(
+        bearer_token: HTTPAuthorizationCredentials | None = Security(bearer_scheme),
+        api_key: str | None = Security(api_key_scheme),
+    ):
+        # If Bearer token provided and GL-IAM enabled, check GL-IAM roles
+        if bearer_token and settings.gliam_enabled:
+            try:
+                gateway = get_iam_gateway()
+                user = await gateway.validate_session(
+                    bearer_token.credentials,
+                    organization_id=settings.gliam_organization_id,
+                )
+                if user and user.has_standard_role(StandardRole.ORG_ADMIN):
+                    return  # GL-IAM admin auth successful
+                elif user:
+                    raise HTTPException(status_code=403, detail="ORG_ADMIN role required")
+            except HTTPException:
+                raise
+            except Exception:
+                pass  # Fall through to API key check
 
-    # Fallback: require master API key
-    async def legacy_check(api_key: str | None = Security(api_key_scheme)):
-        if not api_key:
-            raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="API key required")
-        if api_key != settings.aip_master_api_key:
-            raise HTTPException(status_code=403, detail="Admin access required")
+        # Fall back to legacy API key - require master key for admin
+        if api_key:
+            if api_key == settings.aip_master_api_key:
+                return  # Master key = admin access
+            raise HTTPException(status_code=403, detail="Admin access requires master API key")
 
-    return legacy_check
+        raise HTTPException(
+            status_code=HTTP_401_UNAUTHORIZED,
+            detail="Authentication required. Provide Bearer token or X-API-Key.",
+        )
+
+    return unified_check
 
 
 # =============================================================================
