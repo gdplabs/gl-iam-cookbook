@@ -13,8 +13,8 @@ BOSA Migration Mapping:
 
 from typing import Annotated
 
-from fastapi import Depends, HTTPException, Header, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi import Depends, HTTPException, status
+from fastapi.security import APIKeyHeader, HTTPAuthorizationCredentials, HTTPBearer
 
 from gl_iam import User
 from gl_iam.core.types.api_key import ApiKeyIdentity, ApiKeyTier
@@ -60,29 +60,21 @@ if settings.encryption_key:
 async def ensure_all_tables() -> None:
     """Ensure all database tables are created.
 
-    This function creates the api_keys and third_party_integrations tables
-    that are not created by the main provider's auto_create_tables.
+    This function creates ALL tables including base tables (organizations, users, etc.)
+    and additional tables (api_keys, third_party_integrations).
+    Using Base.metadata.create_all() without specifying tables ensures proper
+    ordering based on foreign key dependencies.
     """
     from sqlalchemy import text
-    from gl_iam.providers.postgresql.models import Base, ApiKeyModel, ThirdPartyIntegrationModel
+    from gl_iam.providers.postgresql.models import Base
 
     async with provider._engine.begin() as conn:
         # Create schema if it doesn't exist
         if _config.db_schema:
             await conn.execute(text(f"CREATE SCHEMA IF NOT EXISTS {_config.db_schema}"))
 
-        # Create API key table
-        await conn.run_sync(
-            Base.metadata.create_all,
-            tables=[ApiKeyModel.__table__],
-        )
-
-        # Create third-party integration table if provider is configured
-        if third_party_provider:
-            await conn.run_sync(
-                Base.metadata.create_all,
-                tables=[ThirdPartyIntegrationModel.__table__],
-            )
+        # Create ALL tables - this handles foreign key dependencies automatically
+        await conn.run_sync(Base.metadata.create_all)
 
 
 # =============================================================================
@@ -90,6 +82,7 @@ async def ensure_all_tables() -> None:
 # =============================================================================
 
 bearer_scheme = HTTPBearer(auto_error=False)
+api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False, description="API Key for machine-to-machine authentication")
 
 
 # =============================================================================
@@ -98,7 +91,7 @@ bearer_scheme = HTTPBearer(auto_error=False)
 
 
 async def get_api_key_identity(
-    x_api_key: Annotated[str | None, Header(alias="X-API-Key")] = None,
+    x_api_key: Annotated[str | None, Depends(api_key_header)] = None,
 ) -> ApiKeyIdentity:
     """Validate API key and return identity.
 
