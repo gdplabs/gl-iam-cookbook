@@ -16,7 +16,7 @@ from typing import Annotated
 from fastapi import Depends, HTTPException, status
 from fastapi.security import APIKeyHeader, HTTPAuthorizationCredentials, HTTPBearer
 
-from gl_iam import User
+from gl_iam import User, StandardRole
 from gl_iam.core.types.api_key import ApiKeyIdentity, ApiKeyTier
 from gl_iam.providers.postgresql import (
     PostgreSQLApiKeyProvider,
@@ -262,6 +262,53 @@ def require_tier(tier: ApiKeyTier):
             )
 
     return _check_tier
+
+
+# =============================================================================
+# Standard Role-Based Authorization (User RBAC)
+# =============================================================================
+
+
+def require_standard_role(role: StandardRole):
+    """Require user to have a standard role (respects hierarchy).
+
+    Role Hierarchy:
+        PLATFORM_ADMIN → ORG_ADMIN → ORG_MEMBER
+
+    Usage:
+        @router.get("/admin", dependencies=[Depends(require_standard_role(StandardRole.ORG_ADMIN))])
+        async def admin_endpoint(): ...
+
+    Args:
+        role: The required standard role.
+
+    Returns:
+        Dependency function that validates the role.
+    """
+
+    async def _check_role(user: CurrentUserDep) -> None:
+        if not user.has_standard_role(role):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Requires {role.value} role or higher",
+            )
+
+    return _check_role
+
+
+def require_org_admin():
+    """Require ORG_ADMIN or PLATFORM_ADMIN role."""
+    return require_standard_role(StandardRole.ORG_ADMIN)
+
+
+def require_org_member():
+    """Require ORG_MEMBER or higher role."""
+    return require_standard_role(StandardRole.ORG_MEMBER)
+
+
+def require_platform_admin():
+    """Require PLATFORM_ADMIN role (highest privilege)."""
+    return require_standard_role(StandardRole.PLATFORM_ADMIN)
 
 
 # =============================================================================
