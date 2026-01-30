@@ -71,12 +71,24 @@ class ApiKeyCreateRequest(BaseModel):
     )
     user_id: str | None = Field(
         None,
-        description="User ID (required for personal tier)",
+        description="User ID (required for personal tier, must be null for organization tier)",
     )
     expires_in_days: int | None = Field(
         None,
         description="Expiration in days (None = no expiry)",
     )
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "name": "My Organization Key",
+                    "tier": "organization",
+                    "scopes": ["api:read", "api:write"],
+                }
+            ]
+        }
+    }
 
 
 class ApiKeyResponse(BaseModel):

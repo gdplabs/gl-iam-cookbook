@@ -78,9 +78,27 @@ async def lifespan(app: FastAPI):
         await third_party_provider.close()
 
 
+# OpenAPI security schemes
+api_key_scheme = {
+    "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-API-Key",
+        "description": "API Key for machine-to-machine authentication",
+    }
+}
+
 # Create FastAPI app
 app = FastAPI(
     title="BOSA Migration Example",
+    openapi_tags=[
+        {"name": "API Keys", "description": "3-tier API key management"},
+        {"name": "Users", "description": "User management"},
+        {"name": "Auth", "description": "Authentication (login/logout)"},
+        {"name": "Third-Party", "description": "Third-party integrations"},
+        {"name": "Health", "description": "Health check"},
+    ],
+    swagger_ui_parameters={"persistAuthorization": True},
     description="""
 ## GL-IAM BOSA Migration Cookbook
 
