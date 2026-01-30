@@ -1,9 +1,8 @@
 """
 AIP Server Integration with GL-IAM.
 
-This example demonstrates how to integrate GL-IAM into an existing AIP server,
-supporting both Bearer token (GL-IAM) and X-API-Key (legacy) authentication
-while maintaining backward compatibility.
+This example demonstrates how to integrate GL-IAM into an AIP server
+using Bearer token authentication with role-based access control.
 """
 
 import os
@@ -12,7 +11,7 @@ from uuid import UUID
 
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException, Security
-from fastapi.security import APIKeyHeader, HTTPAuthorizationCredentials, HTTPBearer
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
 from pydantic_settings import BaseSettings
 from starlette.status import HTTP_401_UNAUTHORIZED
@@ -22,8 +21,6 @@ from gl_iam.core.types import PasswordCredentials, UserCreateInput
 from gl_iam.fastapi import (
     get_current_user as gliam_get_current_user,
     get_iam_gateway,
-    require_org_admin as gliam_require_org_admin,
-    require_org_member as gliam_require_org_member,
     set_iam_gateway,
 )
 from gl_iam.providers.postgresql import PostgreSQLProvider, PostgreSQLUserStoreConfig
@@ -46,9 +43,6 @@ class Settings(BaseSettings):
     gliam_enable_auth_hosting: bool = True
     gliam_auto_create_tables: bool = True
 
-    # Legacy API Key (for backward compatibility)
-    aip_master_api_key: str = "test-api-key"
-
     @property
     def gliam_enabled(self) -> bool:
         """Check if GL-IAM is configured."""
@@ -65,94 +59,61 @@ settings = Settings()
 # Security Schemes
 # =============================================================================
 bearer_scheme = HTTPBearer(auto_error=False)
-api_key_scheme = APIKeyHeader(name="X-API-Key", auto_error=False)
 
 
 # =============================================================================
-# Legacy API Key Auth (Simulated)
+# GL-IAM Authentication
 # =============================================================================
-async def verify_api_key(api_key: str) -> UUID | None:
-    """
-    Verify legacy API key. Returns account_id or None for master key.
-
-    In a real AIP server, this would check against the database.
-    """
-    if api_key == settings.aip_master_api_key:
-        return None  # Master key - no specific account
-    # In real implementation: check account API keys in database
-    # For this example, accept any key as valid
-    return UUID("00000000-0000-0000-0000-000000000001")  # Demo account
-
-
-# =============================================================================
-# Unified Authentication (GL-IAM + Legacy)
-# =============================================================================
-async def get_unified_identity(
+async def get_current_user(
     bearer_token: HTTPAuthorizationCredentials | None = Security(bearer_scheme),
-    api_key: str | None = Security(api_key_scheme),
-) -> User | UUID | None:
+) -> User:
     """
-    Get unified identity from either Bearer token or API key.
-
-    Priority:
-    1. Bearer token (GL-IAM session) -> Returns User object
-    2. X-API-Key (legacy) -> Returns UUID (account_id) or None (master key)
+    Get current user from GL-IAM Bearer token.
 
     Returns:
-        - User object if Bearer token is valid (GL-IAM)
-        - UUID (account_id) if account API key is valid
-        - None if master API key is valid
+        User object if Bearer token is valid
 
     Raises:
-        HTTPException: If no valid authentication provided
+        HTTPException: If GL-IAM not enabled or invalid token
     """
-    # Try Bearer token first (GL-IAM session)
-    if bearer_token and settings.gliam_enabled:
-        try:
-            gateway = get_iam_gateway()
-            user = await gateway.validate_token(
-                bearer_token.credentials,
-                organization_id=settings.gliam_organization_id,
-            )
-            if user:
-                return user
-        except Exception:
-            pass  # Fall through to API key
+    if not settings.gliam_enabled:
+        raise HTTPException(status_code=501, detail="GL-IAM not enabled")
 
-    # Fall back to legacy API key
-    if api_key:
-        account_id = await verify_api_key(api_key)
-        return account_id  # UUID or None
+    if not bearer_token:
+        raise HTTPException(
+            status_code=HTTP_401_UNAUTHORIZED,
+            detail="Bearer token required",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
-    raise HTTPException(
-        status_code=HTTP_401_UNAUTHORIZED,
-        detail="Authentication required. Provide Bearer token or X-API-Key.",
-        headers={"WWW-Authenticate": "Bearer, ApiKey"},
+    gateway = get_iam_gateway()
+    user = await gateway.validate_session(
+        bearer_token.credentials,
+        organization_id=settings.gliam_organization_id,
     )
 
+    if not user:
+        raise HTTPException(
+            status_code=HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
-def get_account_id_from_identity(identity: User | UUID | None) -> UUID | None:
+    return user
+
+
+def get_account_id_from_user(user: User) -> UUID | None:
     """
-    Extract account/organization ID from unified identity.
+    Extract organization ID as UUID from GL-IAM User.
 
-    For GL-IAM User: Returns organization_id as UUID
-    For legacy API key: Returns the account_id directly
-    For master key: Returns None
+    Returns:
+        UUID of the organization or None if not available
     """
-    if identity is None:
-        return None  # Master key
-
-    if isinstance(identity, UUID):
-        return identity  # Legacy API key account_id
-
-    # GL-IAM User - convert organization_id to UUID
-    if hasattr(identity, "organization_id"):
-        org_id = identity.organization_id
-        if org_id:
-            try:
-                return UUID(org_id)
-            except ValueError:
-                return None
+    if hasattr(user, "organization_id") and user.organization_id:
+        try:
+            return UUID(user.organization_id)
+        except ValueError:
+            return None
     return None
 
 
@@ -160,32 +121,73 @@ def get_account_id_from_identity(identity: User | UUID | None) -> UUID | None:
 # Role-Based Dependencies
 # =============================================================================
 def require_org_member():
-    """Require ORG_MEMBER role or valid API key."""
-    if settings.gliam_enabled:
-        return gliam_require_org_member()
+    """Require ORG_MEMBER role via GL-IAM."""
 
-    # Fallback: just require any valid API key
-    async def legacy_check(api_key: str | None = Security(api_key_scheme)):
-        if not api_key:
-            raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="API key required")
-        await verify_api_key(api_key)
+    async def check(
+        bearer_token: HTTPAuthorizationCredentials | None = Security(bearer_scheme),
+    ):
+        if not settings.gliam_enabled:
+            raise HTTPException(status_code=501, detail="GL-IAM not enabled")
 
-    return legacy_check
+        if not bearer_token:
+            raise HTTPException(
+                status_code=HTTP_401_UNAUTHORIZED,
+                detail="Bearer token required",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+        gateway = get_iam_gateway()
+        user = await gateway.validate_session(
+            bearer_token.credentials,
+            organization_id=settings.gliam_organization_id,
+        )
+
+        if not user:
+            raise HTTPException(
+                status_code=HTTP_401_UNAUTHORIZED,
+                detail="Invalid or expired token",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+        if not user.has_standard_role(StandardRole.ORG_MEMBER):
+            raise HTTPException(status_code=403, detail="ORG_MEMBER role required")
+
+    return check
 
 
 def require_org_admin():
-    """Require ORG_ADMIN role or master API key."""
-    if settings.gliam_enabled:
-        return gliam_require_org_admin()
+    """Require ORG_ADMIN role via GL-IAM."""
 
-    # Fallback: require master API key
-    async def legacy_check(api_key: str | None = Security(api_key_scheme)):
-        if not api_key:
-            raise HTTPException(status_code=HTTP_401_UNAUTHORIZED, detail="API key required")
-        if api_key != settings.aip_master_api_key:
-            raise HTTPException(status_code=403, detail="Admin access required")
+    async def check(
+        bearer_token: HTTPAuthorizationCredentials | None = Security(bearer_scheme),
+    ):
+        if not settings.gliam_enabled:
+            raise HTTPException(status_code=501, detail="GL-IAM not enabled")
 
-    return legacy_check
+        if not bearer_token:
+            raise HTTPException(
+                status_code=HTTP_401_UNAUTHORIZED,
+                detail="Bearer token required",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+        gateway = get_iam_gateway()
+        user = await gateway.validate_session(
+            bearer_token.credentials,
+            organization_id=settings.gliam_organization_id,
+        )
+
+        if not user:
+            raise HTTPException(
+                status_code=HTTP_401_UNAUTHORIZED,
+                detail="Invalid or expired token",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+        if not user.has_standard_role(StandardRole.ORG_ADMIN):
+            raise HTTPException(status_code=403, detail="ORG_ADMIN role required")
+
+    return check
 
 
 # =============================================================================
@@ -211,7 +213,7 @@ async def lifespan(app: FastAPI):
         set_iam_gateway(gateway, default_organization_id=settings.gliam_organization_id)
         print(f"GL-IAM initialized with organization: {settings.gliam_organization_id}")
     else:
-        print("GL-IAM not configured - using legacy API key auth only")
+        print("GL-IAM not configured - set GLIAM_SECRET_KEY to enable")
 
     yield
 
@@ -228,6 +230,7 @@ app = FastAPI(title="AIP Server with GL-IAM", lifespan=lifespan)
 # =============================================================================
 class RegisterRequest(BaseModel):
     """Request model for user registration."""
+
     email: str
     password: str
     display_name: str | None = None
@@ -235,18 +238,21 @@ class RegisterRequest(BaseModel):
 
 class LoginRequest(BaseModel):
     """Request model for user login."""
+
     email: str
     password: str
 
 
 class TokenResponse(BaseModel):
     """Response model containing access token."""
+
     access_token: str
     token_type: str
 
 
 class AgentResponse(BaseModel):
     """Response model for agent data."""
+
     id: str
     name: str
     account_id: str | None
@@ -257,7 +263,7 @@ class AgentResponse(BaseModel):
 # =============================================================================
 @app.post("/auth/register", response_model=dict)
 async def register(request: RegisterRequest):
-    """Register a new user (GL-IAM only)."""
+    """Register a new user."""
     if not settings.gliam_enabled:
         raise HTTPException(status_code=501, detail="GL-IAM not configured")
 
@@ -279,7 +285,7 @@ async def register(request: RegisterRequest):
 
 @app.post("/auth/login", response_model=TokenResponse)
 async def login(request: LoginRequest):
-    """Login and get access token (GL-IAM only)."""
+    """Login and get access token."""
     if not settings.gliam_enabled:
         raise HTTPException(status_code=501, detail="GL-IAM not configured")
 
@@ -299,7 +305,7 @@ async def login(request: LoginRequest):
 
 
 # =============================================================================
-# Protected Endpoints (Unified Auth)
+# Protected Endpoints
 # =============================================================================
 @app.get("/health")
 async def health():
@@ -313,16 +319,14 @@ async def health():
 @app.get("/agents", response_model=list[AgentResponse])
 async def list_agents(
     _: None = Depends(require_org_member()),
-    identity=Depends(get_unified_identity),
+    user: User = Depends(get_current_user),
 ):
     """
-    List agents for the current account.
+    List agents for the current user's organization.
 
-    Supports both:
-    - Bearer token (GL-IAM): Returns agents for user's organization
-    - X-API-Key (legacy): Returns agents for account
+    Requires ORG_MEMBER role.
     """
-    account_id = get_account_id_from_identity(identity)
+    account_id = get_account_id_from_user(user)
 
     # Demo response - in real server, query database
     return [
@@ -338,16 +342,14 @@ async def list_agents(
 async def create_agent(
     name: str,
     _: None = Depends(require_org_member()),
-    identity=Depends(get_unified_identity),
+    user: User = Depends(get_current_user),
 ):
     """
     Create a new agent.
 
-    Authentication:
-    - Bearer token: GL-IAM user (ORG_MEMBER role required)
-    - X-API-Key: Legacy API key
+    Requires ORG_MEMBER role.
     """
-    account_id = get_account_id_from_identity(identity)
+    account_id = get_account_id_from_user(user)
 
     # Demo response - in real server, create in database
     return AgentResponse(
@@ -360,12 +362,12 @@ async def create_agent(
 @app.get("/admin/accounts")
 async def list_accounts(
     _: None = Depends(require_org_admin()),
-    identity=Depends(get_unified_identity),
+    user: User = Depends(get_current_user),
 ):
     """
     Admin endpoint to list all accounts.
 
-    Requires ORG_ADMIN role (GL-IAM) or master API key (legacy).
+    Requires ORG_ADMIN role.
     """
     return {"accounts": ["account-1", "account-2"]}
 
