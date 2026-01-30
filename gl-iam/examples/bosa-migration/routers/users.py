@@ -14,6 +14,7 @@ from deps import (
     ApiKeyIdentityDep,
     CurrentUserDep,
     provider,
+    require_org_admin,
     require_scope,
 )
 from schemas import UserCreateRequest, UserResponse
@@ -196,3 +197,118 @@ async def delete_user(
                 detail=f"User {user_id} not found",
             )
         raise
+
+
+# =============================================================================
+# Role-Based Access Control (RBAC) Endpoints
+# =============================================================================
+
+
+@router.get(
+    "/admin/stats",
+    dependencies=[Depends(require_org_admin())],
+)
+async def get_admin_stats() -> dict:
+    """Admin-only endpoint - requires ORG_ADMIN or higher.
+
+    This endpoint demonstrates role-based protection using standard roles.
+    Only users with ORG_ADMIN or PLATFORM_ADMIN role can access this.
+
+    Returns:
+        Basic statistics about users.
+    """
+    return {"total_users": 42, "active_sessions": 10}
+
+
+@router.post("/{user_id}/roles/{role}")
+async def assign_role_to_user(
+    user_id: str,
+    role: str,
+    current_user: CurrentUserDep,
+) -> dict:
+    """Assign a role to a user.
+
+    The caller must have ORG_ADMIN role or higher. Authorization is
+    checked by the provider based on caller_id.
+
+    Args:
+        user_id: The user's ID to assign the role to.
+        role: The role to assign (e.g., "org_admin", "org_member").
+        current_user: Current authenticated user (for authorization).
+
+    Returns:
+        Success message.
+    """
+    try:
+        await provider.assign_role(
+            user_id=user_id,
+            role=role,
+            organization_id=settings.default_organization_id,
+            caller_id=current_user.id,
+        )
+    except PermissionError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e),
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
+    except Exception as e:
+        if "not found" in str(e).lower():
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"User {user_id} not found",
+            )
+        raise
+
+    return {"message": f"Role '{role}' assigned to user"}
+
+
+@router.delete("/{user_id}/roles/{role}")
+async def remove_role_from_user(
+    user_id: str,
+    role: str,
+    current_user: CurrentUserDep,
+) -> dict:
+    """Remove a role from a user.
+
+    The caller must have ORG_ADMIN role or higher. Authorization is
+    checked by the provider based on caller_id.
+
+    Args:
+        user_id: The user's ID to remove the role from.
+        role: The role to remove (e.g., "org_admin", "org_member").
+        current_user: Current authenticated user (for authorization).
+
+    Returns:
+        Success message.
+    """
+    try:
+        await provider.remove_role(
+            user_id=user_id,
+            role=role,
+            organization_id=settings.default_organization_id,
+            caller_id=current_user.id,
+        )
+    except PermissionError as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=str(e),
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
+    except Exception as e:
+        if "not found" in str(e).lower():
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"User {user_id} not found",
+            )
+        raise
+
+    return {"message": f"Role '{role}' removed from user"}

@@ -204,6 +204,86 @@ GL-IAM uses a 3-tier API key ownership model:
 | `api:read` | Read access to API |
 | `api:write` | Write access to API |
 
+## Standard Roles (User RBAC)
+
+GL-IAM provides cross-provider standard roles for user-based access control:
+
+| Role | Description | Implied Roles |
+|------|-------------|---------------|
+| `PLATFORM_ADMIN` | Super administrator across all organizations | ORG_ADMIN, ORG_MEMBER |
+| `ORG_ADMIN` | Administrator within an organization | ORG_MEMBER |
+| `ORG_MEMBER` | Regular member with basic access | (none) |
+
+### Role Hierarchy
+
+Roles follow an implicit hierarchy:
+- `PLATFORM_ADMIN` implies `ORG_ADMIN` and `ORG_MEMBER`
+- `ORG_ADMIN` implies `ORG_MEMBER`
+
+When checking `has_standard_role(ORG_ADMIN)`, users with `PLATFORM_ADMIN` also pass.
+
+### When to Use Roles vs Scopes
+
+| Use Case | Mechanism | Example |
+|----------|-----------|---------|
+| Machine-to-machine auth | API Key Scopes | Service accessing API with `api:read` scope |
+| End-user access control | Standard Roles | Admin managing users with `ORG_ADMIN` role |
+| Programmatic operations | API Key Tiers | PLATFORM key creating organization keys |
+| Feature gating | Standard Roles | Admin-only dashboard with `ORG_ADMIN` check |
+
+### Protecting Endpoints with Roles
+
+```python
+from deps import require_org_admin, require_org_member, require_standard_role
+from gl_iam import StandardRole
+
+# Require ORG_ADMIN or higher
+@router.get("/admin", dependencies=[Depends(require_org_admin())])
+async def admin_only(): ...
+
+# Require specific role
+@router.get("/platform", dependencies=[Depends(require_standard_role(StandardRole.PLATFORM_ADMIN))])
+async def platform_only(): ...
+```
+
+### Checking Roles in Code
+
+```python
+from gl_iam import StandardRole
+
+async def some_endpoint(current_user: CurrentUserDep):
+    # Check role with hierarchy
+    if current_user.has_standard_role(StandardRole.ORG_ADMIN):
+        # True for ORG_ADMIN and PLATFORM_ADMIN
+        return admin_data
+
+    # Check exact role (no hierarchy)
+    if current_user.has_standard_role(StandardRole.ORG_MEMBER, respect_hierarchy=False):
+        # Only true for exact ORG_MEMBER
+        return member_data
+```
+
+### Assign Roles
+
+```bash
+# Assign admin role to user
+curl -X POST http://localhost:8000/api/users/{user_id}/roles/org_admin \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN"
+
+# Remove role
+curl -X DELETE http://localhost:8000/api/users/{user_id}/roles/org_admin \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN"
+```
+
+### Test Admin Endpoint
+
+```bash
+# Access admin-only endpoint (requires ORG_ADMIN or PLATFORM_ADMIN)
+curl http://localhost:8000/api/users/admin/stats \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN"
+# Returns: {"total_users": 42, "active_sessions": 10}
+```
+
 ## Project Structure
 
 ```
