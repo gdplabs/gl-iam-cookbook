@@ -31,6 +31,7 @@ gl-iam-cookbook/
         ├── fastapi-postgresql/      # Self-managed user store
         ├── fastapi-keycloak/        # Keycloak integration
         ├── fastapi-stackauth/       # Stack Auth integration
+        ├── bosa-migration/          # BOSA Core Auth migration guide
         ├── aip-server-integration/  # AIP server with GL-IAM
         ├── aip-integration/         # Secure agent APIs (basic)
         └── aip-integration-advanced/ # Secure agent APIs (advanced)
@@ -45,6 +46,18 @@ gl-iam-cookbook/
 | [fastapi-postgresql](gl-iam/examples/fastapi-postgresql/) | Self-managed user store with PostgreSQL | PostgreSQLProvider |
 | [fastapi-keycloak](gl-iam/examples/fastapi-keycloak/) | Enterprise identity with Keycloak | KeycloakProvider |
 | [fastapi-stackauth](gl-iam/examples/fastapi-stackauth/) | Modern auth with Stack Auth | StackAuthProvider |
+
+### BOSA Migration Examples
+
+| Example | Description | Features |
+|---------|-------------|----------|
+| [bosa-migration](gl-iam/examples/bosa-migration/) | Complete BOSA Core Auth migration guide | 3-tier API keys, JWT sessions, third-party integrations |
+
+This example demonstrates migrating from legacy BOSA Core Auth to GL-IAM, including:
+- **3-Tier API Key Model**: PLATFORM, ORGANIZATION, PERSONAL keys with scope-based authorization
+- **User Management**: Create, authenticate, and manage users with password credentials
+- **JWT Sessions**: Token-based authentication with configurable expiration
+- **Third-Party Integrations**: Encrypted storage for OAuth tokens and external service credentials
 
 ### AIP (AI Agent Platform) Examples
 
