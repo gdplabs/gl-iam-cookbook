@@ -41,11 +41,8 @@ class ApiConfig(AppConfig):
         provider = KeycloakProvider(config=config)
         gateway = IAMGateway.from_fullstack_provider(provider)
 
-        # Set gateway with realm as default organization
-        set_iam_gateway(
-            gateway,
-            default_organization_id=os.getenv("KEYCLOAK_REALM"),
-        )
+        # Set gateway (default organization is configured in settings.py GL_IAM)
+        set_iam_gateway(gateway)
 
         # Verify connection
         is_healthy = run_sync(provider.health_check())

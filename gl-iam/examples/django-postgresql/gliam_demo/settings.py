@@ -27,17 +27,17 @@ ALLOWED_HOSTS = ["*"]
 # Application definition
 
 INSTALLED_APPS = [
+    "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.staticfiles",
     "rest_framework",
-    "gl_iam.django",
     "gliam_demo.api",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.middleware.common.CommonMiddleware",
-    "gl_iam.django.GLIAMAuthenticationMiddleware",
+    "gl_iam.django.middleware.GLIAMAuthenticationMiddleware",
 ]
 
 ROOT_URLCONF = "gliam_demo.urls"
@@ -59,8 +59,13 @@ TEMPLATES = [
 WSGI_APPLICATION = "gliam_demo.wsgi.application"
 
 
-# Database - not used for demo (GL-IAM manages its own tables)
-DATABASES = {}
+# Database - minimal SQLite for Django internals (GL-IAM manages its own tables separately)
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
+    }
+}
 
 
 # Password validation

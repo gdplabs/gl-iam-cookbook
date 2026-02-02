@@ -44,9 +44,6 @@ class ApiConfig(AppConfig):
         provider = PostgreSQLProvider(config)
         gateway = IAMGateway.from_fullstack_provider(provider)
 
-        set_iam_gateway(
-            gateway,
-            default_organization_id=os.getenv("DEFAULT_ORGANIZATION_ID"),
-        )
+        set_iam_gateway(gateway)
 
         print("GL-IAM gateway initialized with PostgreSQL provider")
