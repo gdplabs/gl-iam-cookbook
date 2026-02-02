@@ -87,19 +87,19 @@ async def get_current_user(
         )
 
     gateway = get_iam_gateway()
-    user = await gateway.validate_session(
+    result = await gateway.validate_session(
         bearer_token.credentials,
         organization_id=settings.gliam_organization_id,
     )
 
-    if not user:
+    if result.is_err:
         raise HTTPException(
             status_code=HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    return user
+    return result.value
 
 
 def get_account_id_from_user(user: User) -> UUID | None:
@@ -137,18 +137,19 @@ def require_org_member():
             )
 
         gateway = get_iam_gateway()
-        user = await gateway.validate_session(
+        result = await gateway.validate_session(
             bearer_token.credentials,
             organization_id=settings.gliam_organization_id,
         )
 
-        if not user:
+        if result.is_err:
             raise HTTPException(
                 status_code=HTTP_401_UNAUTHORIZED,
                 detail="Invalid or expired token",
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
+        user = result.value
         if not user.has_standard_role(StandardRole.ORG_MEMBER):
             raise HTTPException(status_code=403, detail="ORG_MEMBER role required")
 
@@ -172,18 +173,19 @@ def require_org_admin():
             )
 
         gateway = get_iam_gateway()
-        user = await gateway.validate_session(
+        result = await gateway.validate_session(
             bearer_token.credentials,
             organization_id=settings.gliam_organization_id,
         )
 
-        if not user:
+        if result.is_err:
             raise HTTPException(
                 status_code=HTTP_401_UNAUTHORIZED,
                 detail="Invalid or expired token",
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
+        user = result.value
         if not user.has_standard_role(StandardRole.ORG_ADMIN):
             raise HTTPException(status_code=403, detail="ORG_ADMIN role required")
 
@@ -291,16 +293,18 @@ async def login(request: LoginRequest):
 
     gateway = get_iam_gateway()
 
-    try:
-        result = await gateway.authenticate(
-            credentials=PasswordCredentials(email=request.email, password=request.password),
-            organization_id=settings.gliam_organization_id,
-        )
+    result = await gateway.authenticate(
+        credentials=PasswordCredentials(email=request.email, password=request.password),
+        organization_id=settings.gliam_organization_id,
+    )
+
+    if result.is_ok:
+        user, token = result.unwrap()
         return TokenResponse(
-            access_token=result.token.access_token,
-            token_type=result.token.token_type,
+            access_token=token.access_token,
+            token_type=token.token_type,
         )
-    except Exception:
+    else:
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
 
