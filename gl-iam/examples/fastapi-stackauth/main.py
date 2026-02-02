@@ -31,7 +31,7 @@ async def lifespan(app: FastAPI):
     Application lifespan context manager.
 
     Initializes the GL-IAM gateway with Stack Auth provider on startup
-    and verifies the connection.
+    and cleans up resources on shutdown.
     """
     # Configure Stack Auth provider
     config = StackAuthConfig(
@@ -52,6 +52,9 @@ async def lifespan(app: FastAPI):
         print(f"Connected to Stack Auth at {os.getenv('STACKAUTH_BASE_URL')}")
 
     yield
+
+    # Cleanup: close provider to release HTTP connection resources
+    await provider.close()
 
 
 app = FastAPI(title="GL-IAM Stack Auth Demo", lifespan=lifespan)
