@@ -14,7 +14,11 @@ Welcome to the **GL-IAM Cookbook** - your comprehensive collection of sample cod
 2. **Navigate to the specific example folder**
 
    ```bash
+   # FastAPI examples
    cd gl-iam/examples/fastapi-postgresql  # or fastapi-keycloak, fastapi-stackauth
+
+   # Django examples
+   cd gl-iam/examples/django-postgresql   # or django-keycloak, django-stackauth
    ```
 
 3. **Follow the README in each subfolder** for specific setup instructions and examples
@@ -28,9 +32,12 @@ gl-iam-cookbook/
 └── gl-iam/
     ├── README.md                    # Prerequisites
     └── examples/
-        ├── fastapi-postgresql/      # Self-managed user store
-        ├── fastapi-keycloak/        # Keycloak integration
-        ├── fastapi-stackauth/       # Stack Auth integration
+        ├── fastapi-postgresql/      # FastAPI + Self-managed user store
+        ├── fastapi-keycloak/        # FastAPI + Keycloak integration
+        ├── fastapi-stackauth/       # FastAPI + Stack Auth integration
+        ├── django-postgresql/       # Django + Self-managed user store
+        ├── django-keycloak/         # Django + Keycloak integration
+        ├── django-stackauth/        # Django + Stack Auth integration
         ├── bosa-migration/          # BOSA Core Auth migration guide
         ├── aip-server-integration/  # AIP server with GL-IAM
         ├── aip-integration/         # Secure agent APIs (basic)
@@ -47,6 +54,19 @@ gl-iam-cookbook/
 | [fastapi-postgresql](gl-iam/examples/fastapi-postgresql/) | Self-managed user store with PostgreSQL | PostgreSQLProvider |
 | [fastapi-keycloak](gl-iam/examples/fastapi-keycloak/) | Enterprise identity with Keycloak | KeycloakProvider |
 | [fastapi-stackauth](gl-iam/examples/fastapi-stackauth/) | Modern auth with Stack Auth | StackAuthProvider |
+
+### Django Provider Examples
+
+| Example | Description | Provider |
+|---------|-------------|----------|
+| [django-postgresql](gl-iam/examples/django-postgresql/) | Self-managed user store with PostgreSQL | PostgreSQLProvider |
+| [django-keycloak](gl-iam/examples/django-keycloak/) | Enterprise identity with Keycloak | KeycloakProvider |
+| [django-stackauth](gl-iam/examples/django-stackauth/) | Modern auth with Stack Auth | StackAuthProvider |
+
+Each Django example demonstrates three view patterns:
+- **FBV + Decorators**: `@gl_iam_login_required`, `@require_org_member()`
+- **CBV + Mixins**: `GLIAMLoginRequiredMixin`, `OrgMemberRequiredMixin`
+- **DRF APIView**: `GLIAMAuthentication`, `IsOrgMember` permission
 
 ### BOSA Migration Examples
 

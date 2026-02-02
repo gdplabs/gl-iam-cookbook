@@ -20,6 +20,19 @@ Check each subfolder in [examples](./examples/) folder for specific setup instru
 | [fastapi-keycloak](examples/fastapi-keycloak/) | Keycloak integration | Enterprise SSO, OIDC/SAML, federation |
 | [fastapi-stackauth](examples/fastapi-stackauth/) | Stack Auth integration | Modern auth, minimal infrastructure |
 
+### Django Provider Examples
+
+| Example | Description | Use Case |
+|---------|-------------|----------|
+| [django-postgresql](examples/django-postgresql/) | Self-managed user store | Full control, includes register/login |
+| [django-keycloak](examples/django-keycloak/) | Keycloak integration | Enterprise SSO, OIDC/SAML, federation |
+| [django-stackauth](examples/django-stackauth/) | Stack Auth integration | Modern auth, minimal infrastructure |
+
+Each Django example demonstrates three view patterns:
+- **FBV + Decorators**: `@gl_iam_login_required`, `@require_org_member()`
+- **CBV + Mixins**: `GLIAMLoginRequiredMixin`, `OrgMemberRequiredMixin`
+- **DRF APIView**: `GLIAMAuthentication`, `IsOrgMember` permission
+
 ### AIP (AI Agent Platform) Examples
 
 | Example | Description | Use Case |
@@ -36,15 +49,37 @@ Check each subfolder in [examples](./examples/) folder for specific setup instru
 
 ## SIMI Pattern
 
-All examples demonstrate the **Single Interface Multiple Implementation (SIMI)** pattern. The same GL-IAM FastAPI dependencies work regardless of which provider you use:
+All examples demonstrate the **Single Interface Multiple Implementation (SIMI)** pattern. The same GL-IAM dependencies work regardless of which provider you use:
 
+**FastAPI:**
 ```python
-# Same code works with any provider
-from gl_iam.fastapi import get_current_user, require_org_admin
+from gl_iam.fastapi import get_current_user, require_org_member
 
 @app.get("/protected")
 async def protected(user: User = Depends(get_current_user)):
     return {"user": user.email}
+```
+
+**Django (FBV):**
+```python
+from gl_iam.django import gl_iam_login_required, require_org_member
+
+@gl_iam_login_required
+@require_org_member()
+def protected(request):
+    return JsonResponse({"user": request.gl_iam_user.email})
+```
+
+**Django (DRF):**
+```python
+from gl_iam.django.drf import GLIAMAuthentication, IsOrgMember
+
+class ProtectedView(APIView):
+    authentication_classes = [GLIAMAuthentication]
+    permission_classes = [IsOrgMember]
+
+    def get(self, request):
+        return Response({"user": request.gl_iam_user.email})
 ```
 
 Only the provider configuration changes between examples.
