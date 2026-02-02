@@ -34,7 +34,8 @@ gl-iam-cookbook/
         ├── bosa-migration/          # BOSA Core Auth migration guide
         ├── aip-server-integration/  # AIP server with GL-IAM
         ├── aip-integration/         # Secure agent APIs (basic)
-        └── aip-integration-advanced/ # Secure agent APIs (advanced)
+        ├── aip-integration-advanced/ # Secure agent APIs (advanced)
+        └── rbac-showcase/           # RBAC with multi-provider support
 ```
 
 ## Examples
@@ -66,6 +67,12 @@ This example demonstrates migrating from legacy BOSA Core Auth to GL-IAM, includ
 | [aip-server-integration](gl-iam/examples/aip-server-integration/) | Add GL-IAM to existing AIP server | Unified auth (Bearer + API key) |
 | [aip-integration](gl-iam/examples/aip-integration/) | Secure agent APIs with GL-IAM (basic) | New agent APIs from scratch |
 | [aip-integration-advanced](gl-iam/examples/aip-integration-advanced/) | Advanced GL-IAM patterns for agents | Role-based tools, user-scoped memory |
+
+### RBAC Examples
+
+| Example | Description | Use Case |
+|---------|-------------|----------|
+| [rbac-showcase](gl-iam/examples/rbac-showcase/) | RBAC with Keycloak and StackAuth | Role mapping, hierarchy, SIMI pattern |
 
 ## Documentation
 

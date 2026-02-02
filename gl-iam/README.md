@@ -28,6 +28,12 @@ Check each subfolder in [examples](./examples/) folder for specific setup instru
 | [aip-integration](examples/aip-integration/) | Secure agent APIs (basic) | New agent APIs from scratch |
 | [aip-integration-advanced](examples/aip-integration-advanced/) | Advanced GL-IAM patterns | Role-based tools, user-scoped memory, RBAC config |
 
+### RBAC Examples
+
+| Example | Description | Use Case |
+|---------|-------------|----------|
+| [rbac-showcase](examples/rbac-showcase/) | Multi-provider RBAC demo | Role mapping, hierarchy, provider comparison |
+
 ## SIMI Pattern
 
 All examples demonstrate the **Single Interface Multiple Implementation (SIMI)** pattern. The same GL-IAM FastAPI dependencies work regardless of which provider you use:
