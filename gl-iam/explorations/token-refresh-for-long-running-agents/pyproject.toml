@@ -1,0 +1,18 @@
+[project]
+name = "token-refresh-exploration"
+version = "0.0.0"
+description = "TokenManager for long-running AI agents - automatic token refresh"
+requires-python = ">=3.11,<3.14"
+readme = "README.md"
+dependencies = [
+    "gl-iam",
+    "python-dotenv>=1.0.0,<2.0.0",
+    "httpx>=0.27.0,<0.28.0",
+]
+
+[tool.uv.sources]
+# For remote usage (branch pushed to remote):
+gl-iam = { git = "https://github.com/GDP-ADMIN/gl-sdk.git", subdirectory = "libs/gl-iam", branch = "feature/token-refresh-for-long-running-agents" }
+
+# For local development (uncomment if needed):
+# gl-iam = { path = "../../../../gl-sdk/libs/gl-iam", editable = true }
