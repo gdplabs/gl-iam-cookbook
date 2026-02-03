@@ -61,17 +61,25 @@ def log(message: str) -> None:
     print(f"[{timestamp}] {message}")
 
 
-def create_mock_token(ttl_seconds: int = MOCK_TOKEN_TTL) -> AuthToken:
+def create_mock_token(ttl_seconds: int = MOCK_TOKEN_TTL, show_tokens: bool = False) -> AuthToken:
     """Create a mock token with specified TTL for demonstration."""
     now = datetime.now(timezone.utc)
-    return AuthToken(
-        access_token=f"mock_access_{now.timestamp()}",
+    # Generate shorter, more readable token IDs
+    token_id = f"{int(now.timestamp()) % 10000:04d}"
+    token = AuthToken(
+        access_token=f"access_tok_{token_id}",
         token_type="Bearer",
         expires_at=now + timedelta(seconds=ttl_seconds),
-        refresh_token=f"mock_refresh_{now.timestamp()}",
+        refresh_token=f"refresh_tok_{token_id}",
         refresh_expires_at=now + timedelta(seconds=ttl_seconds * 24),  # Refresh token lasts longer
         metadata={"issued_at": now.isoformat()},
     )
+    if show_tokens:
+        log(f"  [TOKEN] Created new token pair:")
+        log(f"          access_token:  {token.access_token}")
+        log(f"          refresh_token: {token.refresh_token}")
+        log(f"          expires_at:    {token.expires_at.strftime('%H:%M:%S')}")
+    return token
 
 
 async def mock_refresh_callback(
@@ -83,13 +91,15 @@ async def mock_refresh_callback(
     In production, this would call your auth provider (Stack Auth, Keycloak, etc.)
     """
     log(f"  [REFRESH] Refreshing token for org: {organization_id}")
+    if current_token:
+        log(f"  [REFRESH] Old access_token:  {current_token.access_token}")
+        log(f"  [REFRESH] Old refresh_token: {current_token.refresh_token}")
 
     # Simulate network delay
     await asyncio.sleep(0.5)
 
     # Create new token
-    new_token = create_mock_token()
-    log(f"  [REFRESH] New token obtained, expires at: {new_token.expires_at.strftime('%H:%M:%S')}")
+    new_token = create_mock_token(show_tokens=True)
 
     return Result.ok(new_token)
 
@@ -124,8 +134,8 @@ async def main() -> None:
     gateway = IAMGateway(user_store=mock_user_store)
 
     # Create initial token
-    initial_token = create_mock_token()
-    log(f"Created initial token, expires at: {initial_token.expires_at.strftime('%H:%M:%S')}")
+    log("Creating initial token...")
+    initial_token = create_mock_token(show_tokens=True)
 
     # Configure TokenManager
     config = TokenManagerConfig(

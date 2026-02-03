@@ -269,17 +269,26 @@ class DeepResearchAgent:
         self._shutdown_event.set()
 
 
-def create_mock_token(ttl_seconds: int = MOCK_TOKEN_TTL) -> AuthToken:
+def create_mock_token(ttl_seconds: int = MOCK_TOKEN_TTL, show_tokens: bool = False) -> AuthToken:
     """Create a mock token with specified TTL."""
     now = datetime.now(timezone.utc)
-    return AuthToken(
-        access_token=f"agent_token_{now.timestamp()}",
+    # Generate shorter, more readable token IDs
+    token_id = f"{int(now.timestamp()) % 10000:04d}"
+    token = AuthToken(
+        access_token=f"agent_access_{token_id}",
         token_type="Bearer",
         expires_at=now + timedelta(seconds=ttl_seconds),
-        refresh_token=f"agent_refresh_{now.timestamp()}",
+        refresh_token=f"agent_refresh_{token_id}",
         refresh_expires_at=now + timedelta(seconds=ttl_seconds * 24),
         metadata={"issued_at": now.isoformat()},
     )
+    if show_tokens:
+        timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
+        print(f"[{timestamp}] [TOKEN  ] Created new token pair:")
+        print(f"[{timestamp}] [TOKEN  ]   access_token:  {token.access_token}")
+        print(f"[{timestamp}] [TOKEN  ]   refresh_token: {token.refresh_token}")
+        print(f"[{timestamp}] [TOKEN  ]   expires_at:    {token.expires_at.strftime('%H:%M:%S')}")
+    return token
 
 
 async def mock_refresh_callback(
@@ -289,9 +298,11 @@ async def mock_refresh_callback(
     """Mock refresh callback."""
     timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
     print(f"[{timestamp}] [TOKENMGR] Token refresh triggered for org: {organization_id}")
+    if current_token:
+        print(f"[{timestamp}] [TOKENMGR] Old access_token:  {current_token.access_token}")
+        print(f"[{timestamp}] [TOKENMGR] Old refresh_token: {current_token.refresh_token}")
     await asyncio.sleep(0.3)
-    new_token = create_mock_token()
-    print(f"[{timestamp}] [TOKENMGR] New token acquired, expires: {new_token.expires_at.strftime('%H:%M:%S')}")
+    new_token = create_mock_token(show_tokens=True)
     return Result.ok(new_token)
 
 
@@ -331,7 +342,9 @@ async def main() -> None:
     # Create gateway and initial token
     mock_user_store = MockUserStore()
     gateway = IAMGateway(user_store=mock_user_store)
-    initial_token = create_mock_token()
+    print()
+    print("Creating initial token...")
+    initial_token = create_mock_token(show_tokens=True)
 
     # Create audit callback
     audit_events, audit_callback = create_audit_callback()

@@ -60,17 +60,25 @@ def log(message: str, prefix: str = "") -> None:
     print(f"[{timestamp}] {prefix_str}{message}")
 
 
-def create_mock_token(ttl_seconds: int = MOCK_TOKEN_TTL) -> AuthToken:
+def create_mock_token(ttl_seconds: int = MOCK_TOKEN_TTL, show_tokens: bool = False) -> AuthToken:
     """Create a mock token with specified TTL."""
     now = datetime.now(timezone.utc)
-    return AuthToken(
-        access_token=f"mock_access_{now.timestamp()}",
+    # Generate shorter, more readable token IDs
+    token_id = f"{int(now.timestamp()) % 10000:04d}"
+    token = AuthToken(
+        access_token=f"access_tok_{token_id}",
         token_type="Bearer",
         expires_at=now + timedelta(seconds=ttl_seconds),
-        refresh_token=f"mock_refresh_{now.timestamp()}",
+        refresh_token=f"refresh_tok_{token_id}",
         refresh_expires_at=now + timedelta(seconds=ttl_seconds * 24),
         metadata={"issued_at": now.isoformat()},
     )
+    if show_tokens:
+        log(f"Created new token pair:", prefix="TOKEN")
+        log(f"  access_token:  {token.access_token}", prefix="TOKEN")
+        log(f"  refresh_token: {token.refresh_token}", prefix="TOKEN")
+        log(f"  expires_at:    {token.expires_at.strftime('%H:%M:%S')}", prefix="TOKEN")
+    return token
 
 
 async def mock_refresh_callback(
@@ -78,10 +86,12 @@ async def mock_refresh_callback(
     current_token: AuthToken | None,
 ) -> Result[AuthToken]:
     """Mock refresh callback."""
-    log("Refreshing token...", prefix="REFRESH")
+    log(f"Refreshing token for org: {organization_id}", prefix="REFRESH")
+    if current_token:
+        log(f"Old access_token:  {current_token.access_token}", prefix="REFRESH")
+        log(f"Old refresh_token: {current_token.refresh_token}", prefix="REFRESH")
     await asyncio.sleep(0.3)
-    new_token = create_mock_token()
-    log(f"New token expires at: {new_token.expires_at.strftime('%H:%M:%S')}", prefix="REFRESH")
+    new_token = create_mock_token(show_tokens=True)
     return Result.ok(new_token)
 
 
@@ -165,8 +175,8 @@ async def main() -> None:
     # Create gateway and initial token
     mock_user_store = MockUserStore()
     gateway = IAMGateway(user_store=mock_user_store)
-    initial_token = create_mock_token()
-    log(f"Initial token expires at: {initial_token.expires_at.strftime('%H:%M:%S')}")
+    log("Creating initial token...")
+    initial_token = create_mock_token(show_tokens=True)
 
     # Configure for background refresh
     config = TokenManagerConfig(
