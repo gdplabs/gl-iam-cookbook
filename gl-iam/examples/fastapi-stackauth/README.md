@@ -142,12 +142,46 @@ Additionally, you need:
 
 Stack Auth tokens are typically obtained through the frontend SDK. For testing:
 
-**Option A: Use Stack Auth Dashboard**
+**Option A: CLI Script (Recommended for Testing)**
+
+> **Note**: You must first create a user in the Stack Auth dashboard (Users → Add User) with password authentication enabled.
+
+Use the included `get_token.py` script to quickly get an access token:
+
+```bash
+# Interactive mode (prompts for email/password)
+uv run get_token.py
+
+# With arguments
+uv run get_token.py --email user@example.com --password yourpassword
+
+# Or set environment variables
+export TEST_USER_EMAIL=user@example.com
+export TEST_USER_PASSWORD=yourpassword
+uv run get_token.py
+```
+
+Output:
+```
+Authenticating user@example.com...
+
+============================================================
+ACCESS TOKEN (copy this for curl commands):
+============================================================
+eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9...
+============================================================
+
+Usage:
+  export TOKEN="eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9..."
+  curl http://localhost:8000/me -H "Authorization: Bearer $TOKEN"
+```
+
+**Option B: Use Stack Auth Dashboard**
 
 1. Navigate to your user in the Stack Auth dashboard
 2. Generate a test access token
 
-**Option B: Use Stack Auth Frontend SDK**
+**Option C: Use Stack Auth Frontend SDK**
 
 In your frontend application:
 
