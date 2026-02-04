@@ -115,29 +115,29 @@ curl http://localhost:8000/api/admin-area/ \
 
 New users are registered with `ORG_MEMBER` role by default. To test admin endpoints, you need to upgrade a user to `ORG_ADMIN`.
 
-**Option A: Via SQL (recommended for testing)**
+**Via SQL:**
 
 ```bash
 # Connect to PostgreSQL
 docker exec -it postgres psql -U postgres -d gliam
 
-# Find your user ID
-SELECT id, email FROM users;
+# Find your user and role IDs
+SELECT id, email FROM gl_iam.users;
+SELECT id, name FROM gl_iam.roles;
 
-# Assign ORG_ADMIN role (replace USER_ID and ORG_ID with actual values)
-INSERT INTO user_roles (user_id, role, organization_id)
-VALUES ('USER_ID', 'admin', 'ORG_ID')
-ON CONFLICT (user_id, role, organization_id) DO NOTHING;
+# Assign ORG_ADMIN role (replace USER_ID and ROLE_ID with actual values)
+INSERT INTO gl_iam.user_roles (user_id, role_id)
+SELECT 'USER_ID', id FROM gl_iam.roles WHERE name = 'org_admin'
+ON CONFLICT DO NOTHING;
 
 # Verify
-SELECT * FROM user_roles WHERE user_id = 'USER_ID';
+SELECT u.email, r.name as role
+FROM gl_iam.user_roles ur
+JOIN gl_iam.users u ON ur.user_id = u.id
+JOIN gl_iam.roles r ON ur.role_id = r.id;
 ```
 
 > **Note**: After assigning a new role, the user must log in again to get a new token with updated roles.
-
-**Option B: Via API (if you add an admin endpoint)**
-
-You can add an admin endpoint to assign roles programmatically. See the `assign_role` method in `gateway.user_store`.
 
 ## Understanding the Code
 
