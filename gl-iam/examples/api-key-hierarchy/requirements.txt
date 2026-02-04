@@ -1,0 +1,17 @@
+# GL-IAM API Key Hierarchy Example
+# Install with: pip install -r requirements.txt
+
+# Core GL-IAM library
+gl-iam>=0.1.0
+
+# Configuration management
+pydantic-settings>=2.0.0
+
+# Environment variable loading
+python-dotenv>=1.0.0
+
+# PostgreSQL async driver (required for PostgreSQLApiKeyProvider)
+asyncpg>=0.29.0
+
+# SQLAlchemy async support
+sqlalchemy[asyncio]>=2.0.0
