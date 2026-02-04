@@ -75,7 +75,7 @@ Additionally, you need:
 # 1. Health check (public)
 curl http://localhost:8000/health/
 
-# 2. Register a new user
+# 2. Register a new user (automatically assigned ORG_MEMBER role)
 curl -X POST http://localhost:8000/api/register/ \
   -H "Content-Type: application/json" \
   -d '{"email": "user@example.com", "password": "SecurePass123!", "display_name": "Test User"}'
@@ -101,14 +101,43 @@ curl http://localhost:8000/api/cbv/me/ \
 curl http://localhost:8000/api/drf/me/ \
   -H "Authorization: Bearer $TOKEN"
 
-# 5. Access member-only endpoint
+# 5. Access member-only endpoint (works - user has ORG_MEMBER role)
 curl http://localhost:8000/api/member-area/ \
   -H "Authorization: Bearer $TOKEN"
 
-# 6. Access admin endpoint (will fail for regular user)
+# 6. Access admin endpoint (fails - user only has ORG_MEMBER role)
 curl http://localhost:8000/api/admin-area/ \
   -H "Authorization: Bearer $TOKEN"
+# Expected: 403 Forbidden
 ```
+
+## Assigning Admin Role
+
+New users are registered with `ORG_MEMBER` role by default. To test admin endpoints, you need to upgrade a user to `ORG_ADMIN`.
+
+**Option A: Via SQL (recommended for testing)**
+
+```bash
+# Connect to PostgreSQL
+docker exec -it postgres psql -U postgres -d gliam
+
+# Find your user ID
+SELECT id, email FROM users;
+
+# Assign ORG_ADMIN role (replace USER_ID and ORG_ID with actual values)
+INSERT INTO user_roles (user_id, role, organization_id)
+VALUES ('USER_ID', 'admin', 'ORG_ID')
+ON CONFLICT (user_id, role, organization_id) DO NOTHING;
+
+# Verify
+SELECT * FROM user_roles WHERE user_id = 'USER_ID';
+```
+
+> **Note**: After assigning a new role, the user must log in again to get a new token with updated roles.
+
+**Option B: Via API (if you add an admin endpoint)**
+
+You can add an admin endpoint to assign roles programmatically. See the `assign_role` method in `gateway.user_store`.
 
 ## Understanding the Code
 
