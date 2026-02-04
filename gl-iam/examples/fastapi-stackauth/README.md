@@ -49,28 +49,59 @@ Additionally, you need:
 
    **Option B: Self-Hosted**
 
-   If using the self-hosted Stack Auth instance:
+   If using a self-hosted Stack Auth instance:
+
+   **Prerequisites for self-hosting:**
+   - Node.js v20+
+   - pnpm v9+
+   - Docker
+   - 24GB+ RAM recommended for development
+
+   **Setup steps:**
 
    ```bash
+   # Clone the Stack Auth repository
+   git clone https://github.com/stack-auth/stack-auth.git
    cd stack-auth
+
+   # Install dependencies
    pnpm install
+
+   # Build packages and generate code
    pnpm build:packages
-   pnpm restart-deps    # Start Docker containers
-   pnpm dev             # Start dev server at http://localhost:8100
+   pnpm codegen
+
+   # Start Docker containers (PostgreSQL, Inbucket, etc.)
+   pnpm restart-deps
+
+   # Start the development server
+   pnpm dev
    ```
 
-   The Stack Auth API runs at `http://localhost:8102` by default.
+   Once running:
+   - Dashboard: `http://localhost:8100`
+   - API: `http://localhost:8102`
 
-4. **Configure Team Permissions**
+   **Default development API keys** (created by `pnpm restart-deps`):
+   ```bash
+   STACKAUTH_PROJECT_ID=internal
+   STACKAUTH_PUBLISHABLE_CLIENT_KEY=this-publishable-client-key-is-for-local-development-only
+   STACKAUTH_SECRET_SERVER_KEY=this-secret-server-key-is-for-local-development-only
+   ```
+
+   > For production deployment, see the [Stack Auth documentation](https://docs.stack-auth.com).
+
+4. **Configure Team and User**
 
    In the Stack Auth dashboard:
 
-   1. Navigate to **Team Settings** > **Permissions**
-   2. Create the following permissions (these become roles):
-      - `$admin` - Administrator permission
-      - `$member` - Member permission (usually default)
+   1. **Create a Team**: Navigate to **Teams** and create a new team (e.g., "Test Team")
+   2. **Add User to Team**: Add your user to the team
+   3. **Assign Role**: Assign the user a role in the team:
+      - `team_admin` - Administrator role (maps to GL-IAM `admin`)
+      - `team_member` - Member role (maps to GL-IAM `member`)
 
-   > Stack Auth uses `$`-prefixed permissions as roles.
+   > **Important**: Users must have a **selected team** for roles to work. The user's active team context determines their permissions. When adding a user to a team, they automatically get `team_member` permission.
 
 5. **Configure environment**
 
@@ -79,9 +110,20 @@ Additionally, you need:
    # Edit .env with your Stack Auth settings
    ```
 
-   For Stack Auth Cloud:
+   **For Stack Auth Cloud:**
    ```bash
    STACKAUTH_BASE_URL=https://api.stack-auth.com
+   STACKAUTH_PROJECT_ID=your-project-id
+   STACKAUTH_PUBLISHABLE_CLIENT_KEY=pck_your_publishable_key
+   STACKAUTH_SECRET_SERVER_KEY=ssk_your_secret_key
+   ```
+
+   **For Self-Hosted (development):**
+   ```bash
+   STACKAUTH_BASE_URL=http://localhost:8102
+   STACKAUTH_PROJECT_ID=internal
+   STACKAUTH_PUBLISHABLE_CLIENT_KEY=this-publishable-client-key-is-for-local-development-only
+   STACKAUTH_SECRET_SERVER_KEY=this-secret-server-key-is-for-local-development-only
    ```
 
 6. **Run the server**
@@ -138,7 +180,7 @@ curl http://localhost:8000/me \
 curl http://localhost:8000/member-area \
   -H "Authorization: Bearer $TOKEN"
 
-# Access admin area (requires $admin permission)
+# Access admin area (requires team_admin permission)
 curl http://localhost:8000/admin-area \
   -H "Authorization: Bearer $TOKEN"
 ```
@@ -150,9 +192,11 @@ Expected output for `/me`:
   "id": "user-123",
   "email": "user@example.com",
   "display_name": "Test User",
-  "roles": ["member"]
+  "roles": ["admin", "member"]
 }
 ```
+
+> **Note**: The `roles` array depends on the permissions assigned to the user in their selected team. Users with `team_admin` permission will have `["admin", "member"]`, while users with only `team_member` will have `["member"]`.
 
 ## Understanding the Code
 
@@ -187,14 +231,14 @@ Backend -> StackAuthProvider validates token -> GL-IAM User object
 
 ### Standard Role Mapping
 
-Stack Auth uses `$`-prefixed permissions which are mapped to GL-IAM standard roles:
+Stack Auth permissions are mapped to GL-IAM standard roles:
 
-| Stack Auth Permission | GL-IAM Standard Role |
-|-----------------------|---------------------|
-| `$admin` | ORG_ADMIN |
-| `$member` | ORG_MEMBER |
+| Stack Auth Permission | GL-IAM Role | GL-IAM Standard Role |
+|-----------------------|-------------|---------------------|
+| `team_admin` | `admin` | ORG_ADMIN |
+| `team_member` | `member` | ORG_MEMBER |
 
-> The `$` prefix is stripped when mapping to GL-IAM roles. So `$admin` becomes `admin` in the user's roles list, and is recognized as `ORG_ADMIN` by GL-IAM.
+> Both Stack Auth Cloud and self-hosted use the same permission names (`team_admin`, `team_member`).
 
 ### Configuration Reference
 
@@ -213,10 +257,8 @@ Stack Auth uses `$`-prefixed permissions which are mapped to GL-IAM standard rol
 | Stack Auth | GL-IAM |
 |------------|--------|
 | Team | Organization |
-| Permission (`$admin`, `$member`) | Role |
+| Selected Team | User's active organization context |
+| Permission (`team_admin`, `team_member`) | Role |
 | User | User |
 | Access Token | Auth Token |
 
-## Reference
-
-This example is based on the [GL-IAM FastAPI with Stack Auth Provider tutorial](https://gdplabs.gitbook.io/sdk/tutorials/gl-iam/fastapi-with-stackauth-provider).

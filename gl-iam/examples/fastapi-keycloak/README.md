@@ -177,7 +177,3 @@ Keycloak realm roles are automatically mapped to GL-IAM standard roles:
 ```bash
 docker-compose down -v
 ```
-
-## Reference
-
-This example is based on the [GL-IAM FastAPI with Keycloak Provider tutorial](https://gdplabs.gitbook.io/sdk/tutorials/gl-iam/fastapi-with-keycloak-provider).

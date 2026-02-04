@@ -114,7 +114,3 @@ GL-IAM uses a role hierarchy where higher roles include lower role permissions:
 | `require_org_admin()` | Ensures user has at least ORG_ADMIN role |
 | `require_platform_admin()` | Ensures user has PLATFORM_ADMIN role |
 | `get_iam_gateway()` | Gets the IAMGateway instance for direct operations |
-
-## Reference
-
-This example is based on the [GL-IAM FastAPI with PostgreSQL Provider tutorial](https://gdplabs.gitbook.io/sdk/tutorials/gl-iam/fastapi-with-postgresql-provider).

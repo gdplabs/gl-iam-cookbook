@@ -161,7 +161,3 @@ def get_agent_config_for_user(user: User) -> dict:
 | `require_org_member()` | FastAPI dependency requiring ORG_MEMBER+ |
 | `require_org_admin()` | FastAPI dependency requiring ORG_ADMIN+ |
 | `set_iam_gateway()` | Configure GL-IAM for FastAPI application |
-
-## Reference
-
-This example is based on the [GL-IAM AIP Integration (Advanced) tutorial](https://gdplabs.gitbook.io/sdk/tutorials/gl-iam/aip-integration-advanced).

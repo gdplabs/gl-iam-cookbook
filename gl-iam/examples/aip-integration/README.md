@@ -106,7 +106,3 @@ The GL-IAM integration consists of these key elements:
 1. **User Context in Agent**: The agent receives user information (name, access level) in its system instruction
 2. **Role-Based Protection**: `require_org_member()` ensures only authenticated organization members can access the chat endpoint
 3. **Standard Roles**: Use `has_standard_role()` to check user access levels (ORG_MEMBER, ORG_ADMIN, PLATFORM_ADMIN)
-
-## Reference
-
-This example is based on the [GL-IAM AIP Integration tutorial](https://gdplabs.gitbook.io/sdk/tutorials/gl-iam/aip-integration).

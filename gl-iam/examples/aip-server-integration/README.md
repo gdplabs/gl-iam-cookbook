@@ -163,7 +163,3 @@ async def get_unified_identity(
 | `get_account_id_from_identity()` | Extract account ID for data scoping |
 | `require_org_member()` | GL-IAM RBAC or legacy API key check |
 | `require_org_admin()` | GL-IAM RBAC or master API key check |
-
-## Reference
-
-This example is based on the [GL-IAM AIP Server Integration tutorial](https://gdplabs.gitbook.io/sdk/tutorials/gl-iam/aip-server-integration).
