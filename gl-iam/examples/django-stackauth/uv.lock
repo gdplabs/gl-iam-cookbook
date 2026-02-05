@@ -44,16 +44,16 @@ wheels = [
 
 [[package]]
 name = "django"
-version = "5.2.10"
+version = "5.2.11"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "asgiref" },
     { name = "sqlparse" },
     { name = "tzdata", marker = "sys_platform == 'win32'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/e6/e5/2671df24bf0ded831768ef79532e5a7922485411a5696f6d979568591a37/django-5.2.10.tar.gz", hash = "sha256:74df100784c288c50a2b5cad59631d71214f40f72051d5af3fdf220c20bdbbbe", size = 10880754, upload-time = "2026-01-06T18:55:26.817Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/17/f2/3e57ef696b95067e05ae206171e47a8e53b9c84eec56198671ef9eaa51a6/django-5.2.11.tar.gz", hash = "sha256:7f2d292ad8b9ee35e405d965fbbad293758b858c34bbf7f3df551aeeac6f02d3", size = 10885017, upload-time = "2026-02-03T13:52:50.554Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/fa/de/f1a7cd896daec85832136ab509d9b2a6daed4939dbe26313af3e95fc5f5e/django-5.2.10-py3-none-any.whl", hash = "sha256:cf85067a64250c95d5f9067b056c5eaa80591929f7e16fbcd997746e40d6c45c", size = 8290820, upload-time = "2026-01-06T18:55:20.009Z" },
+    { url = "https://files.pythonhosted.org/packages/91/a7/2b112ab430575bf3135b8304ac372248500d99c352f777485f53fdb9537e/django-5.2.11-py3-none-any.whl", hash = "sha256:e7130df33ada9ab5e5e929bc19346a20fe383f5454acb2cc004508f242ee92c0", size = 8291375, upload-time = "2026-02-03T13:52:42.47Z" },
 ]
 
 [[package]]
@@ -71,7 +71,7 @@ dependencies = [
 requires-dist = [
     { name = "django", specifier = ">=5.1.0,<6.0.0" },
     { name = "djangorestframework", specifier = ">=3.15.0,<4.0.0" },
-    { name = "gl-iam", extras = ["django", "stackauth"], virtual = "../../../../gl-sdk/libs/gl-iam" },
+    { name = "gl-iam", extras = ["django", "stackauth"], git = "https://github.com/GDP-ADMIN/gl-sdk.git?subdirectory=libs%2Fgl-iam&branch=feature%2Fgl-iam-sdk" },
     { name = "python-dotenv", specifier = ">=1.0.0,<2.0.0" },
 ]
 
@@ -112,7 +112,7 @@ wheels = [
 [[package]]
 name = "gl-iam"
 version = "0.0.0"
-source = { virtual = "../../../../gl-sdk/libs/gl-iam" }
+source = { git = "https://github.com/GDP-ADMIN/gl-sdk.git?subdirectory=libs%2Fgl-iam&branch=feature%2Fgl-iam-sdk#e41f922e804227a5c75950fd9a77cbc4dce7c7c3" }
 dependencies = [
     { name = "email-validator" },
     { name = "pydantic" },
@@ -127,60 +127,6 @@ django = [
 stackauth = [
     { name = "httpx" },
 ]
-
-[package.metadata]
-requires-dist = [
-    { name = "aiosqlite", marker = "extra == 'all'", specifier = ">=0.20.0,<1.0.0" },
-    { name = "aiosqlite", marker = "extra == 'postgresql'", specifier = ">=0.20.0,<1.0.0" },
-    { name = "argon2-cffi", marker = "extra == 'all'", specifier = ">=23.1.0,<26.0.0" },
-    { name = "argon2-cffi", marker = "extra == 'postgresql'", specifier = ">=23.1.0,<26.0.0" },
-    { name = "asgiref", marker = "extra == 'all'", specifier = ">=3.5.0,<4.0.0" },
-    { name = "asgiref", marker = "extra == 'django'", specifier = ">=3.5.0,<4.0.0" },
-    { name = "asgiref", marker = "extra == 'drf'", specifier = ">=3.5.0,<4.0.0" },
-    { name = "asyncpg", marker = "extra == 'all'", specifier = ">=0.30.0,<1.0.0" },
-    { name = "asyncpg", marker = "extra == 'postgresql'", specifier = ">=0.30.0,<1.0.0" },
-    { name = "boto3", marker = "extra == 'cli-aws'", specifier = ">=1.34.0,<2.0.0" },
-    { name = "click", marker = "extra == 'all'", specifier = ">=8.1.0,<9.0.0" },
-    { name = "click", marker = "extra == 'cli'", specifier = ">=8.1.0,<9.0.0" },
-    { name = "click", marker = "extra == 'cli-aws'", specifier = ">=8.1.0,<9.0.0" },
-    { name = "click", marker = "extra == 'cli-gcp'", specifier = ">=8.1.0,<9.0.0" },
-    { name = "click", marker = "extra == 'cli-vault'", specifier = ">=8.1.0,<9.0.0" },
-    { name = "coverage", marker = "extra == 'dev'", specifier = ">=7.4.4,<8.0.0" },
-    { name = "cryptography", marker = "extra == 'all'", specifier = ">=43.0.0,<45.0.0" },
-    { name = "cryptography", marker = "extra == 'postgresql'", specifier = ">=43.0.0,<45.0.0" },
-    { name = "django", marker = "extra == 'all'", specifier = ">=4.0,<6.0" },
-    { name = "django", marker = "extra == 'django'", specifier = ">=4.0,<6.0" },
-    { name = "django", marker = "extra == 'drf'", specifier = ">=4.0,<6.0" },
-    { name = "djangorestframework", marker = "extra == 'all'", specifier = ">=3.14.0,<4.0.0" },
-    { name = "djangorestframework", marker = "extra == 'drf'", specifier = ">=3.14.0,<4.0.0" },
-    { name = "email-validator", specifier = ">=2.0.0,<3.0.0" },
-    { name = "fastapi", marker = "extra == 'all'", specifier = ">=0.115.0,<1.0.0" },
-    { name = "fastapi", marker = "extra == 'fastapi'", specifier = ">=0.115.0,<1.0.0" },
-    { name = "google-cloud-secret-manager", marker = "extra == 'cli-gcp'", specifier = ">=2.18.0,<3.0.0" },
-    { name = "httpx", marker = "extra == 'all'", specifier = ">=0.28.0,<1.0.0" },
-    { name = "httpx", marker = "extra == 'keycloak'", specifier = ">=0.28.0,<1.0.0" },
-    { name = "httpx", marker = "extra == 'stackauth'", specifier = ">=0.28.0,<1.0.0" },
-    { name = "hvac", marker = "extra == 'cli-vault'", specifier = ">=2.1.0,<3.0.0" },
-    { name = "ldap3", marker = "extra == 'all'", specifier = ">=2.9.1,<3.0.0" },
-    { name = "ldap3", marker = "extra == 'ldap'", specifier = ">=2.9.1,<3.0.0" },
-    { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.15.0,<2.0.0" },
-    { name = "passlib", extras = ["bcrypt"], marker = "extra == 'all'", specifier = ">=1.7.4,<2.0.0" },
-    { name = "passlib", extras = ["bcrypt"], marker = "extra == 'postgresql'", specifier = ">=1.7.4,<2.0.0" },
-    { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=3.7.0,<4.0.0" },
-    { name = "pydantic", specifier = ">=2.11.4,<3.0.0" },
-    { name = "pyjwt", marker = "extra == 'all'", specifier = ">=2.8.0,<3.0.0" },
-    { name = "pyjwt", marker = "extra == 'postgresql'", specifier = ">=2.8.0,<3.0.0" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.1.1,<9.0.0" },
-    { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.23.6,<1.0.0" },
-    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=5.0.0,<6.0.0" },
-    { name = "python-json-logger", specifier = ">=3.3.0,<4.0.0" },
-    { name = "python3-saml", marker = "extra == 'all'", specifier = ">=1.16.0,<2.0.0" },
-    { name = "python3-saml", marker = "extra == 'saml'", specifier = ">=1.16.0,<2.0.0" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.6.7,<1.0.0" },
-    { name = "sqlalchemy", extras = ["asyncio"], marker = "extra == 'all'", specifier = ">=2.0.0,<3.0.0" },
-    { name = "sqlalchemy", extras = ["asyncio"], marker = "extra == 'postgresql'", specifier = ">=2.0.0,<3.0.0" },
-]
-provides-extras = ["dev", "fastapi", "stackauth", "keycloak", "ldap", "saml", "postgresql", "cli", "cli-aws", "cli-vault", "cli-gcp", "django", "drf", "all"]
 
 [[package]]
 name = "h11"
