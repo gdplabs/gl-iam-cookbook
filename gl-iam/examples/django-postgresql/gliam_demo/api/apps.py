@@ -45,6 +45,8 @@ class ApiConfig(AppConfig):
             auto_create_tables=True,
             # Pass default_org_id so the SDK auto-creates the correct organization
             default_org_id=default_org_id,
+            # Required for Django's sync environment to prevent asyncpg event loop issues
+            use_null_pool=True,
         )
         provider = PostgreSQLProvider(config)
         gateway = IAMGateway.from_fullstack_provider(provider)
