@@ -38,15 +38,20 @@ async def lifespan(app: FastAPI):
     Initializes the GL-IAM gateway with PostgreSQL provider on startup
     and cleans up resources on shutdown.
     """
+    # Get default organization ID from environment
+    default_org_id = os.getenv("DEFAULT_ORGANIZATION_ID", "default")
+
     config = PostgreSQLUserStoreConfig(
         database_url=os.getenv("DATABASE_URL"),
         secret_key=os.getenv("SECRET_KEY"),
         enable_auth_hosting=True,
         auto_create_tables=True,
+        # Pass default_org_id so the SDK auto-creates the correct organization
+        default_org_id=default_org_id,
     )
     provider = PostgreSQLProvider(config)
     gateway = IAMGateway.from_fullstack_provider(provider)
-    set_iam_gateway(gateway, default_organization_id=os.getenv("DEFAULT_ORGANIZATION_ID"))
+    set_iam_gateway(gateway, default_organization_id=default_org_id)
     yield
     await provider.close()
 
