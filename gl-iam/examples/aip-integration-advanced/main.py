@@ -240,14 +240,13 @@ async def login(request: LoginRequest):
         organization_id=org_id,
     )
 
-    if result.is_ok:
-        user, token = result.unwrap()
+    if result.success:
         return TokenResponse(
-            access_token=token.access_token,
-            token_type=token.token_type,
+            access_token=result.token.access_token,
+            token_type=result.token.token_type,
         )
     else:
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+        raise HTTPException(status_code=401, detail=result.error_message or "Invalid credentials")
 
 
 # =============================================================================
