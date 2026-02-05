@@ -142,13 +142,13 @@ async def login(request: LoginRequest):
         organization_id=org_id,
     )
 
-    if result.success:
+    if result.is_ok:
         return TokenResponse(
             access_token=result.token.access_token,
             token_type=result.token.token_type,
         )
     else:
-        raise HTTPException(status_code=401, detail=result.error_message or "Invalid credentials")
+        raise HTTPException(status_code=401, detail=result.error.message)
 
 
 # =============================================================================

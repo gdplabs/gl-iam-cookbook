@@ -141,13 +141,13 @@ def login(request):
         organization_id=org_id,
     ))
 
-    if result.success:
+    if result.is_ok:
         return JsonResponse({
             "access_token": result.token.access_token,
             "token_type": result.token.token_type,
         })
     else:
-        return JsonResponse({"error": result.error_message or "Invalid credentials"}, status=401)
+        return JsonResponse({"error": result.error.message}, status=401)
 
 
 # ============================================================================
@@ -460,7 +460,7 @@ class LoginAPIView(APIView):
             organization_id=org_id,
         ))
 
-        if result.success:
+        if result.is_ok:
             response_serializer = TokenResponseSerializer({
                 "access_token": result.token.access_token,
                 "token_type": result.token.token_type,
@@ -468,6 +468,6 @@ class LoginAPIView(APIView):
             return Response(response_serializer.data)
         else:
             return Response(
-                {"error": result.error_message or "Invalid credentials"},
+                {"error": result.error.message},
                 status=status.HTTP_401_UNAUTHORIZED,
             )
