@@ -105,10 +105,7 @@ Additionally, you need:
 
 5. **Configure environment**
 
-   ```bash
-   cp .env.example .env
-   # Edit .env with your Stack Auth settings
-   ```
+   The setup script already creates `.env` from `.env.example`. Edit it with your Stack Auth settings:
 
    **For Stack Auth Cloud:**
    ```bash

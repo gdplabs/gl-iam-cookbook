@@ -39,10 +39,11 @@ Additionally, you need:
 
    Or manually: `uv sync`
 
-3. **Configure environment**
+3. **Configure environment** (optional)
+
+   The setup script already creates `.env` from `.env.example`. To customize:
 
    ```bash
-   cp .env.example .env
    # Edit .env with your settings (defaults work with docker-compose)
    ```
 

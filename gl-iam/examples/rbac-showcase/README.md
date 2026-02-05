@@ -72,11 +72,7 @@ Or manually: `uv sync`
 
 ### 3. Configure Environment
 
-```bash
-cp .env.example .env
-```
-
-Edit `.env` to choose your provider:
+The setup script already creates `.env` from `.env.example`. Edit it to choose your provider:
 - `PROVIDER_TYPE=keycloak` (default) - Uses local Docker Keycloak
 - `PROVIDER_TYPE=stackauth` - Requires external Stack Auth instance
 

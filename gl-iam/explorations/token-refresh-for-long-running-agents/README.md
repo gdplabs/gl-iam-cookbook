@@ -71,11 +71,7 @@ For local development, you can switch to the local path by uncommenting the path
 
 ## Configuration
 
-Copy the environment template and customize:
-
-```bash
-cp .env.example .env
-```
+The setup script already creates `.env` from `.env.example`. To customize, edit the `.env` file.
 
 ### Environment Variables
 

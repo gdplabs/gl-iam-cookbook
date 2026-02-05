@@ -3,6 +3,8 @@
 # Setup script for Unix-based systems (macOS, Linux)
 # This script installs dependencies using UV package manager
 
+set -e
+
 echo "============================================"
 echo "TokenManager Exploration - Setup"
 echo "============================================"
@@ -18,28 +20,30 @@ fi
 echo "Installing dependencies via UV..."
 uv sync
 
-if [ $? -eq 0 ]; then
-    echo ""
-    echo "============================================"
-    echo "Setup completed successfully!"
-    echo "============================================"
-    echo ""
-    echo "Next steps:"
-    echo "1. Copy .env.example to .env and configure settings:"
-    echo "   cp .env.example .env"
-    echo ""
-    echo "2. Run the demos:"
-    echo "   - Simple on-demand refresh:"
-    echo "     uv run python simple_demo.py"
-    echo ""
-    echo "   - Background refresh pattern:"
-    echo "     uv run python background_demo.py"
-    echo ""
-    echo "   - Full deep research agent simulation:"
-    echo "     uv run python deep_research_agent.py"
-    echo ""
+# Copy .env.example to .env if it doesn't exist
+if [ ! -f .env ]; then
+    echo "Creating .env from .env.example..."
+    cp .env.example .env
+    echo "Created .env file. You can customize it if needed."
 else
-    echo ""
-    echo "Error: Setup failed. Please check the error messages above."
-    exit 1
+    echo ".env file already exists, skipping..."
 fi
+
+echo ""
+echo "============================================"
+echo "Setup completed successfully!"
+echo "============================================"
+echo ""
+echo "Next steps:"
+echo "1. Configure your settings in .env"
+echo ""
+echo "2. Run the demos:"
+echo "   - Simple on-demand refresh:"
+echo "     uv run python simple_demo.py"
+echo ""
+echo "   - Background refresh pattern:"
+echo "     uv run python background_demo.py"
+echo ""
+echo "   - Full deep research agent simulation:"
+echo "     uv run python deep_research_agent.py"
+echo ""

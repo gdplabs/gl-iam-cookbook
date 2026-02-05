@@ -35,12 +35,7 @@ Additionally, you need:
 
 3. **Configure environment**
 
-   ```bash
-   cp .env.example .env
-   # Edit .env with your settings
-   ```
-
-   Generate encryption key for third-party integrations:
+   The setup script already creates `.env` from `.env.example`. Generate an encryption key for third-party integrations:
    ```bash
    python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
    ```
