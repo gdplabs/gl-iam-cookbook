@@ -207,6 +207,7 @@ async def lifespan(app: FastAPI):
             secret_key=settings.gliam_secret_key,
             enable_auth_hosting=settings.gliam_enable_auth_hosting,
             auto_create_tables=settings.gliam_auto_create_tables,
+            default_org_id=settings.gliam_organization_id,
         )
         provider = PostgreSQLProvider(config)
         gateway = IAMGateway.from_fullstack_provider(provider)
