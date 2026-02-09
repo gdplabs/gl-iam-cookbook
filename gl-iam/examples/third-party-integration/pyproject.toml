@@ -1,0 +1,16 @@
+[project]
+name = "third-party-integration"
+version = "0.0.0"
+description = "GL-IAM third-party integration with full GitHub OAuth flow"
+requires-python = ">=3.11,<3.14"
+readme = "README.md"
+dependencies = [
+    "fastapi>=0.115.0,<0.116.0",
+    "uvicorn>=0.34.0,<0.35.0",
+    "python-dotenv>=1.0.0,<2.0.0",
+    "httpx>=0.28.0,<0.29.0",
+    "gl-iam[fastapi,postgresql]",
+]
+
+[tool.uv.sources]
+gl-iam = { git = "https://github.com/GDP-ADMIN/gl-sdk.git", subdirectory = "libs/gl-iam", branch = "feature/gl-iam-sdk" }
