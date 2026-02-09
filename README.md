@@ -42,7 +42,9 @@ gl-iam-cookbook/
         ├── aip-server-integration/  # AIP server with GL-IAM
         ├── aip-integration/         # Secure agent APIs (basic)
         ├── aip-integration-advanced/ # Secure agent APIs (advanced)
-        └── rbac-showcase/           # RBAC with multi-provider support
+        ├── rbac-showcase/           # RBAC with multi-provider support
+        ├── api-key-hierarchy/       # API key management with SOLID patterns
+        └── third-party-integration/ # Third-party OAuth with GitHub flow
 ```
 
 ## Examples
@@ -93,6 +95,13 @@ This example demonstrates migrating from legacy BOSA Core Auth to GL-IAM, includ
 | Example | Description | Use Case |
 |---------|-------------|----------|
 | [rbac-showcase](gl-iam/examples/rbac-showcase/) | RBAC with Keycloak and StackAuth | Role mapping, hierarchy, SIMI pattern |
+
+### API Key & Integration Examples
+
+| Example | Description | Features |
+|---------|-------------|----------|
+| [api-key-hierarchy](gl-iam/examples/api-key-hierarchy/) | API key management with SOLID patterns | 3-tier API keys, scope-based authorization |
+| [third-party-integration](gl-iam/examples/third-party-integration/) | Full GitHub OAuth flow with pluggable connectors | Encrypted credential storage, multi-account support, token revocation |
 
 ## Documentation
 

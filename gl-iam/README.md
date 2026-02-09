@@ -47,6 +47,13 @@ Each Django example demonstrates three view patterns:
 |---------|-------------|----------|
 | [rbac-showcase](examples/rbac-showcase/) | Multi-provider RBAC demo | Role mapping, hierarchy, provider comparison |
 
+### API Key & Integration Examples
+
+| Example | Description | Use Case |
+|---------|-------------|----------|
+| [api-key-hierarchy](examples/api-key-hierarchy/) | API key management with SOLID patterns | 3-tier API keys, scope-based authorization |
+| [third-party-integration](examples/third-party-integration/) | Full GitHub OAuth flow with pluggable connectors | Encrypted storage, multi-account, token revocation |
+
 ## SIMI Pattern
 
 All examples demonstrate the **Single Interface Multiple Implementation (SIMI)** pattern. The same GL-IAM dependencies work regardless of which provider you use:
