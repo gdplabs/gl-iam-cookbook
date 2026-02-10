@@ -23,7 +23,7 @@ from gl_iam.fastapi import (
     get_iam_gateway,
     set_iam_gateway,
 )
-from gl_iam.providers.postgresql import PostgreSQLProvider, PostgreSQLUserStoreConfig
+from gl_iam.providers.postgresql import PostgreSQLProvider, PostgreSQLConfig
 
 load_dotenv()
 
@@ -202,7 +202,7 @@ async def lifespan(app: FastAPI):
 
     # Initialize GL-IAM if configured
     if settings.gliam_enabled:
-        config = PostgreSQLUserStoreConfig(
+        config = PostgreSQLConfig(
             database_url=settings.aip_db_url,
             secret_key=settings.gliam_secret_key,
             enable_auth_hosting=settings.gliam_enable_auth_hosting,

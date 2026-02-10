@@ -310,11 +310,11 @@ from gl_iam.providers.postgresql import (
     PostgreSQLProvider,
     PostgreSQLApiKeyProvider,
     PostgreSQLThirdPartyProvider,
-    PostgreSQLUserStoreConfig,
+    PostgreSQLConfig,
 )
 
 # Configuration
-config = PostgreSQLUserStoreConfig(
+config = PostgreSQLConfig(
     database_url=settings.database_url,
     secret_key=settings.secret_key,
     encryption_key=settings.encryption_key,

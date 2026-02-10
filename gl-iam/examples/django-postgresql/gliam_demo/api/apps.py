@@ -32,13 +32,13 @@ class ApiConfig(AppConfig):
         from gl_iam.django import set_iam_gateway
         from gl_iam.providers.postgresql import (
             PostgreSQLProvider,
-            PostgreSQLUserStoreConfig,
+            PostgreSQLConfig,
         )
 
         # Get default organization ID from environment
         default_org_id = os.getenv("DEFAULT_ORGANIZATION_ID", "default")
 
-        config = PostgreSQLUserStoreConfig(
+        config = PostgreSQLConfig(
             database_url=os.getenv("DATABASE_URL"),
             secret_key=os.getenv("SECRET_KEY"),
             enable_auth_hosting=True,

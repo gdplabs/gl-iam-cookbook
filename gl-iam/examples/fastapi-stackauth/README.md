@@ -246,7 +246,7 @@ Only the provider configuration changes:
 
 | Example | Provider | Configuration |
 |---------|----------|---------------|
-| fastapi-postgresql | PostgreSQLProvider | `PostgreSQLUserStoreConfig` |
+| fastapi-postgresql | PostgreSQLProvider | `PostgreSQLConfig` |
 | fastapi-keycloak | KeycloakProvider | `KeycloakConfig` |
 | **fastapi-stackauth** | StackAuthProvider | `StackAuthConfig` |
 

@@ -95,7 +95,7 @@ The GL-IAM integration consists of these key elements:
 |------|-------------|---------|
 | Imports | `from gl_iam import IAMGateway, StandardRole, User` | Core GL-IAM types |
 | Imports | `from gl_iam.fastapi import get_current_user, require_org_member, set_iam_gateway` | FastAPI dependencies |
-| Imports | `from gl_iam.providers.postgresql import PostgreSQLProvider, PostgreSQLUserStoreConfig` | PostgreSQL provider |
+| Imports | `from gl_iam.providers.postgresql import PostgreSQLProvider, PostgreSQLConfig` | PostgreSQL provider |
 | Setup | `set_iam_gateway(gateway, ...)` | Initialize GL-IAM for FastAPI |
 | Endpoint | `user: User = Depends(get_current_user)` | Get authenticated user |
 | Endpoint | `Depends(require_org_member())` | Require ORG_MEMBER role |

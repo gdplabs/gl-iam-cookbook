@@ -28,7 +28,7 @@ from gl_iam.fastapi import (  # <-- GL-IAM
 )
 from gl_iam.providers.postgresql import (  # <-- GL-IAM
     PostgreSQLProvider,
-    PostgreSQLUserStoreConfig,
+    PostgreSQLConfig,
 )
 
 # =============================================================================
@@ -51,7 +51,7 @@ async def lifespan(app: FastAPI):
     This sets up the GL-IAM gateway with PostgreSQL provider.
     """
     # Configure GL-IAM provider
-    config = PostgreSQLUserStoreConfig(  # <-- GL-IAM
+    config = PostgreSQLConfig(  # <-- GL-IAM
         database_url=os.getenv("DATABASE_URL"),
         secret_key=os.getenv("SECRET_KEY"),
         enable_auth_hosting=True,

@@ -149,7 +149,7 @@ Unlike FastAPI's lifespan context manager, Django uses `AppConfig.ready()`:
 ```python
 class ApiConfig(AppConfig):
     def ready(self):
-        config = PostgreSQLUserStoreConfig(
+        config = PostgreSQLConfig(
             database_url=os.getenv("DATABASE_URL"),
             secret_key=os.getenv("SECRET_KEY"),
             enable_auth_hosting=True,

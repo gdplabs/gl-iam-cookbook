@@ -22,7 +22,7 @@ from gl_iam.providers.postgresql import (
     PostgreSQLApiKeyProvider,
     PostgreSQLProvider,
     PostgreSQLThirdPartyProvider,
-    PostgreSQLUserStoreConfig,
+    PostgreSQLConfig,
 )
 
 from config import settings
@@ -32,7 +32,7 @@ from config import settings
 # =============================================================================
 
 # Configuration for all providers
-_config = PostgreSQLUserStoreConfig(
+_config = PostgreSQLConfig(
     database_url=settings.database_url,
     secret_key=settings.secret_key,
     encryption_key=settings.encryption_key,

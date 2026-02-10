@@ -9,7 +9,7 @@ PostgreSQLApiKeyProvider interface, not on concrete configuration details.
 
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 
-from gl_iam.providers.postgresql import PostgreSQLApiKeyProvider, PostgreSQLUserStoreConfig
+from gl_iam.providers.postgresql import PostgreSQLApiKeyProvider, PostgreSQLConfig
 
 from config import settings
 
@@ -46,7 +46,7 @@ def create_api_key_provider() -> PostgreSQLApiKeyProvider:
         >>> provider = create_api_key_provider()
         >>> key, secret = await provider.create_api_key(name="my-key", ...)
     """
-    config = PostgreSQLUserStoreConfig(
+    config = PostgreSQLConfig(
         database_url=settings.database_url,
         db_schema=settings.db_schema,
         auto_create_tables=True,

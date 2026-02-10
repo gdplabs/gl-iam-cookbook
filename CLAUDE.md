@@ -87,7 +87,7 @@ gl-iam/
 ```python
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    config = PostgreSQLUserStoreConfig(database_url=settings.DATABASE_URL)
+    config = PostgreSQLConfig(database_url=settings.DATABASE_URL)
     provider = PostgreSQLProvider(config)
     gateway = IAMGateway.from_fullstack_provider(provider)
     set_iam_gateway(gateway)

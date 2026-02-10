@@ -38,11 +38,7 @@ from gl_iam.fastapi import (
 )
 from gl_iam.providers.postgresql import PostgreSQLProvider
 
-# PostgreSQLUserStoreConfig was renamed to PostgreSQLConfig in newer versions
-try:
-    from gl_iam.providers.postgresql import PostgreSQLConfig
-except ImportError:
-    from gl_iam.providers.postgresql import PostgreSQLUserStoreConfig as PostgreSQLConfig
+from gl_iam.providers.postgresql import PostgreSQLConfig
 
 load_dotenv()
 

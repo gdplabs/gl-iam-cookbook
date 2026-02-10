@@ -31,7 +31,7 @@ from gl_iam.fastapi import (
     require_org_member,  # Dependency: Require ORG_MEMBER role or higher
     set_iam_gateway,  # Setup: Configure IAM gateway
 )
-from gl_iam.providers.postgresql import PostgreSQLProvider, PostgreSQLUserStoreConfig
+from gl_iam.providers.postgresql import PostgreSQLProvider, PostgreSQLConfig
 
 # =============================================================================
 # GL AIP SDK Imports (Optional) - Agent Framework
@@ -145,7 +145,7 @@ def build_tool_config_from_user(user: User) -> dict:
 async def lifespan(app: FastAPI):
     """Application lifespan with GL-IAM initialization."""
     # Configure GL-IAM with PostgreSQL provider
-    config = PostgreSQLUserStoreConfig(
+    config = PostgreSQLConfig(
         database_url=os.getenv("DATABASE_URL"),
         secret_key=os.getenv("SECRET_KEY"),
         enable_auth_hosting=True,

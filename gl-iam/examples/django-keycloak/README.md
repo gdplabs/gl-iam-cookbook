@@ -175,7 +175,7 @@ Only the provider configuration changes:
 
 | Example | Provider | Configuration |
 |---------|----------|---------------|
-| django-postgresql | PostgreSQLProvider | `PostgreSQLUserStoreConfig` |
+| django-postgresql | PostgreSQLProvider | `PostgreSQLConfig` |
 | **django-keycloak** | KeycloakProvider | `KeycloakConfig` |
 | django-stackauth | StackAuthProvider | `StackAuthConfig` |
 
