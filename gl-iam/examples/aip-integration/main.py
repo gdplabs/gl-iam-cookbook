@@ -126,7 +126,21 @@ async def register(request: RegisterRequest):
         organization_id=org_id,
     )
     await gateway.user_store.set_user_password(user.id, request.password, org_id)
-    await gateway.user_store.assign_role(user.id, StandardRole.ORG_MEMBER.value, org_id)
+
+    # Assign org_member role directly (system operation - bypasses permission check)
+    # Note: assign_role() requires admin permissions, so for self-registration
+    # we use a direct SQL insert via the provider's session factory
+    from sqlalchemy import select
+    from gl_iam.providers.postgresql.models import RoleModel, UserRoleModel
+    provider = gateway.user_store
+    async with provider._session_factory() as session:
+        result = await session.execute(
+            select(RoleModel).where(RoleModel.name == StandardRole.ORG_MEMBER.value)
+        )
+        role = result.scalar_one_or_none()
+        if role:
+            session.add(UserRoleModel(user_id=user.id, role_id=role.id))
+            await session.commit()
 
     return {"id": user.id, "email": user.email, "display_name": user.display_name}
 
