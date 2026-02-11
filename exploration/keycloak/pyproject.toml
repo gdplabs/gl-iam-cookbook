@@ -1,0 +1,20 @@
+[project]
+name = "keycloak-dpop-mtls-lab"
+version = "0.1.0"
+description = "Hands-on lab for DPoP and mTLS with Keycloak"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "cryptography>=42.0.0",
+    "httpx>=0.27.0",
+    "pyjwt>=2.8.0",
+]
+
+[project.scripts]
+keycloak-lab = "keycloak_dpop_mtls.cli:main"
+
+[tool.uv]
+package = true
+
+[dependency-groups]
+dev = ["pytest>=8.0.0"]
