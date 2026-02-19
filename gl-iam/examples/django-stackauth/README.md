@@ -108,10 +108,92 @@ Additionally, you need:
    1. **Create a Team**: Navigate to **Teams** and create a new team (e.g., "Test Team")
    2. **Add User to Team**: Add your user to the team
    3. **Assign Role**: Assign the user a role in the team:
-      - `team_admin` - Administrator role (maps to GL-IAM `admin`)
-      - `team_member` - Member role (maps to GL-IAM `member`)
+      - `$admin` (self-hosted) or `team_admin` (cloud) - Administrator role (maps to GL-IAM ORG_ADMIN)
+      - `$member` (self-hosted) or `team_member` (cloud) - Member role (maps to GL-IAM ORG_MEMBER)
 
-   > **Important**: Users must have a **selected team** for roles to work. The user's active team context determines their permissions. When adding a user to a team, they automatically get `team_member` permission.
+## Important: Team Selection Required for Role Mapping
+
+**Users must have a selected team for GL-IAM to read their roles.**
+
+This is the most common issue when working with Stack Auth and GL-IAM. See the flow below:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                     How GL-IAM Reads Stack Auth Roles                       │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  1. User authenticates with Stack Auth (via frontend SDK)                  │
+│     ↓                                                                       │
+│  2. User gets access token                                                  │
+│     ↓                                                                       │
+│  3. User calls /me with Bearer token                                        │
+│     ↓                                                                       │
+│  4. GL-IAM validates token with Stack Auth                                  │
+│     ↓                                                                       │
+│  5. GL-IAM reads: user.selected_team_id → team → permissions               │
+│     ↓                                                                       │
+│  6. Permissions mapped to roles: $admin → ORG_ADMIN, $member → ORG_MEMBER  │
+│                                                                             │
+│  ⚠️ If user.selected_team_id is NULL, NO roles will be returned!            │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### How to Ensure Users Have a Selected Team
+
+**Option A: Enable Auto-Create Team on Signup (Recommended)**
+
+In Stack Auth Dashboard → Project Settings, enable:
+- **"Auto-create team when user signs up"**
+
+This automatically:
+1. Creates a personal team for each new user
+2. Adds the user to their team
+3. Sets the team as `selected_team`
+4. Grants `$admin` permission to the user
+
+**Option B: Manual Team Selection After Adding to Team**
+
+If you manually add a user to a team via the Stack Auth dashboard:
+
+1. Admin creates a team in Stack Auth dashboard
+2. Admin adds user to the team
+3. Admin assigns permissions (`$admin` or `$member`)
+4. **User must select the team** - This is the critical step!
+
+The user can select a team via:
+- Stack Auth frontend SDK: User chooses team from team switcher
+- Stack Auth API: Call `PATCH /api/v1/users/{user_id}` with `{ "selected_team_id": "team-id" }`
+
+**Option C: Auto-Select Team via Server API During Registration**
+
+If you're creating users via Stack Auth Server API, automatically set their selected team:
+
+```bash
+# After creating user and adding to team:
+curl -X PATCH "https://your-stack-auth.com/api/v1/users/{user_id}" \
+  -H "x-stack-access-type: server" \
+  -H "x-stack-project-id: your-project-id" \
+  -H "x-stack-secret-server-key: your-secret-key" \
+  -H "Content-Type: application/json" \
+  -d '{"selected_team_id": "your-team-id"}'
+```
+
+### Verifying User Has Selected Team
+
+Check the user's data in Stack Auth:
+
+```bash
+# Get user info
+curl -H "Authorization: Bearer $TOKEN" \
+  "$STACKAUTH_BASE_URL/api/v1/users/me"
+```
+
+Look for:
+- `selected_team_id`: Should be a valid team UUID (not `null`)
+- `selected_team`: Should contain team object (not `null`)
+
+If `selected_team_id` is `null`, the user has no role context and GL-IAM will return empty roles.
 
 5. **Configure environment**
 
