@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.11, <3.14"
 
 [[package]]
@@ -329,7 +329,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "fastapi", specifier = ">=0.115.0,<0.116.0" },
-    { name = "gl-iam", extras = ["fastapi", "postgresql"], git = "https://github.com/GDP-ADMIN/gl-sdk.git?subdirectory=libs%2Fgl-iam&branch=feature%2Fgl-iam-sdk" },
+    { name = "gl-iam", extras = ["fastapi", "postgresql"], git = "https://github.com/GDP-ADMIN/gl-sdk.git?subdirectory=libs%2Fgl-iam&branch=release%2Fgl-iam%2Fv0.1.x" },
     { name = "python-dotenv", specifier = ">=1.0.0,<2.0.0" },
     { name = "uvicorn", specifier = ">=0.34.0,<0.35.0" },
 ]
@@ -337,7 +337,7 @@ requires-dist = [
 [[package]]
 name = "gl-iam"
 version = "0.0.0"
-source = { git = "https://github.com/GDP-ADMIN/gl-sdk.git?subdirectory=libs%2Fgl-iam&branch=feature%2Fgl-iam-sdk#4a380789f29ff955640147b2291c813e4bc34738" }
+source = { git = "https://github.com/GDP-ADMIN/gl-sdk.git?subdirectory=libs%2Fgl-iam&branch=release%2Fgl-iam%2Fv0.1.x#acc790ff17b07585a528d81a61d02a2ac157ed73" }
 dependencies = [
     { name = "email-validator" },
     { name = "pydantic" },
