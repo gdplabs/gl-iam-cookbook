@@ -51,11 +51,11 @@ async def run_organization_demo(
         name="Primary API Key",
         organization_id=organization_id,
         scopes=[
-            "agents:execute",   # Execute AI agents
-            "agents:read",      # Read agent status
-            "agents:write",     # Configure agents
-            "keys:create",      # Create child keys
-            "keys:revoke",      # Revoke child keys
+            "agents:execute",  # Execute AI agents
+            "agents:read",  # Read agent status
+            "agents:write",  # Configure agents
+            "keys:create",  # Create child keys
+            "keys:revoke",  # Revoke child keys
         ],
     )
 

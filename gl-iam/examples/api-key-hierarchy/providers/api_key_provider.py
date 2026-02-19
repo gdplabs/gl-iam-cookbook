@@ -7,29 +7,9 @@ High-level business logic (services, demos) depend on the abstract
 PostgreSQLApiKeyProvider interface, not on concrete configuration details.
 """
 
-from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
-
 from gl_iam.providers.postgresql import PostgreSQLApiKeyProvider, PostgreSQLConfig
 
 from config import settings
-
-# Module-level engine for reuse
-_engine: AsyncEngine | None = None
-
-
-def get_engine() -> AsyncEngine:
-    """Get or create the async database engine.
-
-    Returns:
-        AsyncEngine: SQLAlchemy async engine instance.
-    """
-    global _engine
-    if _engine is None:
-        _engine = create_async_engine(
-            settings.database_url,
-            echo=False,  # Set to True for SQL debugging
-        )
-    return _engine
 
 
 def create_api_key_provider() -> PostgreSQLApiKeyProvider:
@@ -52,12 +32,11 @@ def create_api_key_provider() -> PostgreSQLApiKeyProvider:
         auto_create_tables=True,
         api_key_prefix=settings.api_key_prefix,
     )
-    engine = get_engine()
-    return PostgreSQLApiKeyProvider(engine=engine, config=config)
+    return PostgreSQLApiKeyProvider(config=config)
 
 
 async def ensure_tables(provider: PostgreSQLApiKeyProvider) -> None:
-    """Ensure all required database tables exist.
+    """Ensure all required database tables and organization exist.
 
     Args:
         provider: The API key provider instance.
@@ -65,10 +44,26 @@ async def ensure_tables(provider: PostgreSQLApiKeyProvider) -> None:
     from sqlalchemy import text
     from gl_iam.providers.postgresql.models import Base
 
-    engine = get_engine()
-    async with engine.begin() as conn:
-        # Create schema if it doesn't exist
+    async with provider._engine.begin() as conn:
         if settings.db_schema:
-            await conn.execute(text(f"CREATE SCHEMA IF NOT EXISTS {settings.db_schema}"))
-        # Create all tables
+            await conn.execute(
+                text(f"CREATE SCHEMA IF NOT EXISTS {settings.db_schema}")
+            )
         await conn.run_sync(Base.metadata.create_all)
+
+        result = await conn.execute(
+            text(f"SELECT id FROM {settings.db_schema}.organizations WHERE id = :id"),
+            {"id": settings.default_organization_id},
+        )
+        if not result.scalar():
+            await conn.execute(
+                text(f"""
+                    INSERT INTO {settings.db_schema}.organizations (id, name, slug, created_at)
+                    VALUES (:id, :name, :slug, NOW())
+                """),
+                {
+                    "id": settings.default_organization_id,
+                    "name": f"Organization {settings.default_organization_id}",
+                    "slug": settings.default_organization_id,
+                },
+            )
