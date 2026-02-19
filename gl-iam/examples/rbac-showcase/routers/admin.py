@@ -205,8 +205,22 @@ async def get_authorization_rules(
     return {
         "rules": {
             "PLATFORM_ADMIN": {
-                "can_assign": ["admin", "member", "viewer", "$admin", "$member", "platform_admin"],
-                "can_remove": ["admin", "member", "viewer", "$admin", "$member", "platform_admin"],
+                "can_assign": [
+                    "admin",
+                    "member",
+                    "viewer",
+                    "$admin",
+                    "$member",
+                    "platform_admin",
+                ],
+                "can_remove": [
+                    "admin",
+                    "member",
+                    "viewer",
+                    "$admin",
+                    "$member",
+                    "platform_admin",
+                ],
                 "restrictions": ["Cannot remove own platform_admin role"],
             },
             "ORG_ADMIN": {

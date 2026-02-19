@@ -19,25 +19,18 @@ from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel
+from sqlalchemy import select
 
-# =============================================================================
-# GL-IAM Imports - Authentication & Authorization
-# =============================================================================
 from gl_iam import IAMGateway, StandardRole, User
 from gl_iam.core.types import PasswordCredentials, UserCreateInput
 from gl_iam.fastapi import (
-    get_current_user,  # Dependency: Get authenticated user
+    get_current_user,
     get_iam_gateway,
-    require_org_member,  # Dependency: Require ORG_MEMBER role or higher
-    set_iam_gateway,  # Setup: Configure IAM gateway
+    require_org_member,
+    set_iam_gateway,
 )
 from gl_iam.providers.postgresql import PostgreSQLProvider, PostgreSQLConfig
-
-# =============================================================================
-# GL AIP SDK Imports (Optional) - Agent Framework
-# Uncomment when glaip-sdk is installed
-# =============================================================================
-# from glaip_sdk import Agent
+from gl_iam.providers.postgresql.models import RoleModel, UserRoleModel
 
 load_dotenv()
 
@@ -66,7 +59,7 @@ User: {user.email}
 User ID: {user.id}
 Organization: {user.organization_id}
 Access Level: {access}
-Roles: {', '.join(user.roles) if user.roles else 'None'}
+Roles: {", ".join(user.roles) if user.roles else "None"}
 
 You must respect these access controls in all operations.
 """
@@ -144,7 +137,6 @@ def build_tool_config_from_user(user: User) -> dict:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan with GL-IAM initialization."""
-    # Configure GL-IAM with PostgreSQL provider
     config = PostgreSQLConfig(
         database_url=os.getenv("DATABASE_URL"),
         secret_key=os.getenv("SECRET_KEY"),
@@ -153,9 +145,11 @@ async def lifespan(app: FastAPI):
     )
     provider = PostgreSQLProvider(config)
     gateway = IAMGateway.from_fullstack_provider(provider)
+    set_iam_gateway(
+        gateway, default_organization_id=os.getenv("DEFAULT_ORGANIZATION_ID")
+    )
 
-    # Initialize GL-IAM for FastAPI
-    set_iam_gateway(gateway, default_organization_id=os.getenv("DEFAULT_ORGANIZATION_ID"))
+    app.state.provider = provider
 
     yield
     await provider.close()
@@ -169,6 +163,7 @@ app = FastAPI(title="GL-IAM + GL AIP SDK Advanced Integration", lifespan=lifespa
 # =============================================================================
 class RegisterRequest(BaseModel):
     """Request model for user registration."""
+
     email: str
     password: str
     display_name: str | None = None
@@ -176,23 +171,27 @@ class RegisterRequest(BaseModel):
 
 class LoginRequest(BaseModel):
     """Request model for user login."""
+
     email: str
     password: str
 
 
 class TokenResponse(BaseModel):
     """Response model containing access token."""
+
     access_token: str
     token_type: str
 
 
 class ChatRequest(BaseModel):
     """Request model for chat."""
+
     message: str
 
 
 class ChatResponse(BaseModel):
     """Response model for chat with GL-IAM context."""
+
     response: str
     gliam_user_email: str
     gliam_access_level: str
@@ -214,7 +213,7 @@ async def health():
 async def register(request: RegisterRequest):
     """Register a new user."""
     gateway = get_iam_gateway()
-    org_id = os.getenv("DEFAULT_ORGANIZATION_ID")
+    org_id = os.getenv("DEFAULT_ORGANIZATION_ID", "default")
 
     user = await gateway.user_store.create_user(
         UserCreateInput(
@@ -224,7 +223,16 @@ async def register(request: RegisterRequest):
         organization_id=org_id,
     )
     await gateway.user_store.set_user_password(user.id, request.password, org_id)
-    await gateway.user_store.assign_role(user.id, StandardRole.ORG_MEMBER.value, org_id)
+
+    provider = app.state.provider
+    async with provider._session_factory() as session:
+        result = await session.execute(
+            select(RoleModel).where(RoleModel.name == StandardRole.ORG_MEMBER.value)
+        )
+        role = result.scalar_one_or_none()
+        if role:
+            session.add(UserRoleModel(user_id=user.id, role_id=role.id))
+            await session.commit()
 
     return {"id": user.id, "email": user.email, "display_name": user.display_name}
 
@@ -271,7 +279,7 @@ async def chat(
     # Build instruction with GL-IAM user context
     instruction = build_gliam_instruction(
         user=user,
-        base_instruction="You are a helpful assistant with access to user data."
+        base_instruction="You are a helpful assistant with access to user data.",
     )
 
     # Get role-appropriate agent configuration
@@ -301,7 +309,9 @@ async def chat(
     # )
 
     # Simulated response when glaip-sdk is not available
-    access_level = "admin" if user.has_standard_role(StandardRole.ORG_ADMIN) else "member"
+    access_level = (
+        "admin" if user.has_standard_role(StandardRole.ORG_ADMIN) else "member"
+    )
     result = (
         f"[Advanced Agent Response]\n"
         f"User: {user.display_name or user.email}\n"

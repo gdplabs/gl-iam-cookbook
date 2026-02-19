@@ -11,6 +11,7 @@ from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel
+from sqlalchemy import select
 
 from gl_iam import IAMGateway, StandardRole, User
 from gl_iam.core.types import PasswordCredentials, UserCreateInput
@@ -22,7 +23,11 @@ from gl_iam.fastapi import (
     require_platform_admin,
     set_iam_gateway,
 )
-from gl_iam.providers.postgresql import PostgreSQLProvider, PostgreSQLConfig
+from gl_iam.providers.postgresql import (
+    PostgreSQLConfig,
+    PostgreSQLProvider,
+)
+from gl_iam.providers.postgresql.models import RoleModel, UserRoleModel
 
 load_dotenv()
 
@@ -38,7 +43,6 @@ async def lifespan(app: FastAPI):
     Initializes the GL-IAM gateway with PostgreSQL provider on startup
     and cleans up resources on shutdown.
     """
-    # Get default organization ID from environment
     default_org_id = os.getenv("DEFAULT_ORGANIZATION_ID", "default")
 
     config = PostgreSQLConfig(
@@ -46,13 +50,16 @@ async def lifespan(app: FastAPI):
         secret_key=os.getenv("SECRET_KEY"),
         enable_auth_hosting=True,
         auto_create_tables=True,
-        # Pass default_org_id so the SDK auto-creates the correct organization
         default_org_id=default_org_id,
     )
     provider = PostgreSQLProvider(config)
     gateway = IAMGateway.from_fullstack_provider(provider)
     set_iam_gateway(gateway, default_organization_id=default_org_id)
+
+    app.state.provider = provider
+
     yield
+
     await provider.close()
 
 
@@ -64,6 +71,7 @@ app = FastAPI(title="Secure API", lifespan=lifespan)
 # ============================================================================
 class RegisterRequest(BaseModel):
     """Request model for user registration."""
+
     email: str
     password: str
     display_name: str | None = None
@@ -71,18 +79,21 @@ class RegisterRequest(BaseModel):
 
 class LoginRequest(BaseModel):
     """Request model for user login."""
+
     email: str
     password: str
 
 
 class TokenResponse(BaseModel):
     """Response model containing access token."""
+
     access_token: str
     token_type: str
 
 
 class UserResponse(BaseModel):
     """Response model for user data."""
+
     id: str
     email: str
     display_name: str | None
@@ -102,12 +113,12 @@ async def register(request: RegisterRequest):
     """
     Register a new user.
 
-    Creates a user, sets their password, and assigns the default ORG_MEMBER role.
+    Creates a user, sets their password, and assigns the default ORG_MEMBER role
+    using direct database insert (bypasses RBAC for self-registration).
     """
     gateway = get_iam_gateway()
-    org_id = os.getenv("DEFAULT_ORGANIZATION_ID")
+    org_id = os.getenv("DEFAULT_ORGANIZATION_ID", "default")
 
-    # Create user via provider
     user = await gateway.user_store.create_user(
         UserCreateInput(
             email=request.email,
@@ -116,11 +127,23 @@ async def register(request: RegisterRequest):
         organization_id=org_id,
     )
 
-    # Set password
     await gateway.user_store.set_user_password(user.id, request.password, org_id)
 
-    # Assign default role
-    await gateway.user_store.assign_role(user.id, StandardRole.ORG_MEMBER.value, org_id)
+    provider = app.state.provider
+    async with provider._session_factory() as session:
+        result = await session.execute(
+            select(RoleModel).where(RoleModel.name == StandardRole.ORG_MEMBER.value)
+        )
+        role = result.scalar_one_or_none()
+
+        if role:
+            session.add(
+                UserRoleModel(
+                    user_id=user.id,
+                    role_id=role.id,
+                )
+            )
+            await session.commit()
 
     return UserResponse(id=user.id, email=user.email, display_name=user.display_name)
 
@@ -203,4 +226,5 @@ async def platform_admin_only(
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000)

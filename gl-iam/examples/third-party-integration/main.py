@@ -20,6 +20,7 @@ from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException, Query
 from pydantic import BaseModel
+from sqlalchemy import select
 
 from connectors.base import BaseConnector
 from connectors.github import GitHubConnector
@@ -36,9 +37,8 @@ from gl_iam.fastapi import (
     require_org_member,
     set_iam_gateway,
 )
-from gl_iam.providers.postgresql import PostgreSQLProvider
-
-from gl_iam.providers.postgresql import PostgreSQLConfig
+from gl_iam.providers.postgresql import PostgreSQLProvider, PostgreSQLConfig
+from gl_iam.providers.postgresql.models import RoleModel, UserRoleModel
 
 load_dotenv()
 
@@ -48,13 +48,7 @@ load_dotenv()
 # ============================================================================
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Initialize GL-IAM gateway with all 6 providers including third-party.
-
-    Unlike the basic fastapi-postgresql example which uses
-    IAMGateway.from_fullstack_provider(), we construct the gateway manually
-    to ensure third_party_provider is wired (from_fullstack_provider does
-    not wire it).
-    """
+    """Initialize GL-IAM gateway with all 6 providers including third-party."""
     default_org_id = os.getenv("DEFAULT_ORGANIZATION_ID", "default")
 
     config = PostgreSQLConfig(
@@ -67,7 +61,6 @@ async def lifespan(app: FastAPI):
     )
     provider = PostgreSQLProvider(config)
 
-    # Manual gateway construction to wire ALL 6 providers
     gateway = IAMGateway(
         auth_provider=provider,
         user_store=provider,
@@ -78,16 +71,14 @@ async def lifespan(app: FastAPI):
     )
     set_iam_gateway(gateway, default_organization_id=default_org_id)
 
-    # Register connectors
     github_connector = GitHubConnector(provider=provider)
     connectors: dict[str, BaseConnector] = {github_connector.name: github_connector}
 
-    # Register connector routes (OAuth callbacks)
     for connector in connectors.values():
         connector.register_routes(app, prefix=f"/connectors/{connector.name}")
 
-    # Store connectors in app state for endpoint access
     app.state.connectors = connectors
+    app.state.provider = provider
 
     yield
     await provider.close()
@@ -118,6 +109,7 @@ def get_org_id() -> str:
 # ============================================================================
 class RegisterRequest(BaseModel):
     """Request model for user registration."""
+
     email: str
     password: str
     display_name: str | None = None
@@ -125,18 +117,21 @@ class RegisterRequest(BaseModel):
 
 class LoginRequest(BaseModel):
     """Request model for user login."""
+
     email: str
     password: str
 
 
 class TokenResponse(BaseModel):
     """Response model containing access token."""
+
     access_token: str
     token_type: str
 
 
 class UserResponse(BaseModel):
     """Response model for user data."""
+
     id: str
     email: str
     display_name: str | None
@@ -144,11 +139,13 @@ class UserResponse(BaseModel):
 
 class AuthorizeResponse(BaseModel):
     """Response model for OAuth authorization initiation."""
+
     authorization_url: str
 
 
 class IntegrationResponse(BaseModel):
     """Response model for a third-party integration."""
+
     id: str
     connector: str
     user_identifier: str
@@ -162,11 +159,13 @@ class IntegrationResponse(BaseModel):
 
 class SetSelectedRequest(BaseModel):
     """Request model for setting the selected (default) integration."""
+
     user_identifier: str
 
 
 class UpdateIntegrationRequest(BaseModel):
     """Request model for updating an integration."""
+
     scopes: list[str] | None = None
     metadata: dict | None = None
     is_active: bool | None = None
@@ -195,7 +194,16 @@ async def register(request: RegisterRequest):
         organization_id=org_id,
     )
     await gateway.user_store.set_user_password(user.id, request.password, org_id)
-    await gateway.user_store.assign_role(user.id, StandardRole.ORG_MEMBER.value, org_id)
+
+    provider = app.state.provider
+    async with provider._session_factory() as session:
+        result = await session.execute(
+            select(RoleModel).where(RoleModel.name == StandardRole.ORG_MEMBER.value)
+        )
+        role = result.scalar_one_or_none()
+        if role:
+            session.add(UserRoleModel(user_id=user.id, role_id=role.id))
+            await session.commit()
 
     return UserResponse(id=user.id, email=user.email, display_name=user.display_name)
 
@@ -294,7 +302,9 @@ async def list_integrations(
     ]
 
 
-@app.get("/integrations/{connector_name}/selected", response_model=IntegrationResponse | None)
+@app.get(
+    "/integrations/{connector_name}/selected", response_model=IntegrationResponse | None
+)
 async def get_selected_integration(
     connector_name: str,
     user: User = Depends(get_current_user),
@@ -318,7 +328,9 @@ async def get_selected_integration(
         scopes=integration.scopes,
         is_selected=integration.is_selected,
         is_active=integration.is_active,
-        created_at=integration.created_at.isoformat() if integration.created_at else None,
+        created_at=integration.created_at.isoformat()
+        if integration.created_at
+        else None,
         metadata=integration.metadata,
     )
 
@@ -393,7 +405,9 @@ async def update_integration(
             scopes=integration.scopes,
             is_selected=integration.is_selected,
             is_active=integration.is_active,
-            created_at=integration.created_at.isoformat() if integration.created_at else None,
+            created_at=integration.created_at.isoformat()
+            if integration.created_at
+            else None,
             metadata=integration.metadata,
         )
     except IntegrationNotFoundError as e:
@@ -450,7 +464,9 @@ async def remove_integration(
 # ============================================================================
 # Admin Endpoints
 # ============================================================================
-@app.get("/admin/integrations/{connector_name}", response_model=list[IntegrationResponse])
+@app.get(
+    "/admin/integrations/{connector_name}", response_model=list[IntegrationResponse]
+)
 async def admin_list_integrations(
     connector_name: str,
     user: User = Depends(get_current_user),
@@ -484,4 +500,5 @@ async def admin_list_integrations(
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000)

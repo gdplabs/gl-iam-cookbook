@@ -10,6 +10,9 @@ This module demonstrates three different Django view patterns with GL-IAM:
 All three patterns work with any GL-IAM provider (PostgreSQL, Keycloak, StackAuth).
 This demonstrates the SIMI (Single Interface Multiple Implementation) pattern -
 the same view code works regardless of which provider you use.
+
+Note: User registration and authentication is handled by Stack Auth.
+Users must be created in Stack Auth and obtain tokens via Stack Auth frontend SDK.
 """
 
 from django.http import JsonResponse
@@ -42,6 +45,7 @@ from gl_iam.django.drf import (
 # Public Endpoints
 # ============================================================================
 
+
 def health(request):
     """Public health check endpoint."""
     return JsonResponse({"status": "healthy", "provider": "stackauth"})
@@ -50,6 +54,7 @@ def health(request):
 # ============================================================================
 # Pattern 1: Function-Based Views with Decorators
 # ============================================================================
+
 
 @gl_iam_login_required
 def me_fbv(request):
@@ -60,13 +65,15 @@ def me_fbv(request):
     The authenticated user is available via request.gl_iam_user.
     """
     user = request.gl_iam_user
-    return JsonResponse({
-        "id": user.id,
-        "email": user.email,
-        "display_name": user.display_name,
-        "roles": user.roles,
-        "pattern": "FBV with decorator",
-    })
+    return JsonResponse(
+        {
+            "id": user.id,
+            "email": user.email,
+            "display_name": user.display_name,
+            "roles": user.roles,
+            "pattern": "FBV with decorator",
+        }
+    )
 
 
 @gl_iam_login_required
@@ -79,11 +86,13 @@ def member_area_fbv(request):
     Accessible by ORG_MEMBER, ORG_ADMIN, or PLATFORM_ADMIN.
     """
     user = request.gl_iam_user
-    return JsonResponse({
-        "message": f"Welcome {user.email}!",
-        "access_level": "member",
-        "pattern": "FBV with decorator",
-    })
+    return JsonResponse(
+        {
+            "message": f"Welcome {user.email}!",
+            "access_level": "member",
+            "pattern": "FBV with decorator",
+        }
+    )
 
 
 @gl_iam_login_required
@@ -96,11 +105,13 @@ def admin_area_fbv(request):
     Accessible by ORG_ADMIN or PLATFORM_ADMIN only.
     """
     user = request.gl_iam_user
-    return JsonResponse({
-        "message": f"Welcome Admin {user.email}!",
-        "access_level": "admin",
-        "pattern": "FBV with decorator",
-    })
+    return JsonResponse(
+        {
+            "message": f"Welcome Admin {user.email}!",
+            "access_level": "admin",
+            "pattern": "FBV with decorator",
+        }
+    )
 
 
 @gl_iam_login_required
@@ -113,16 +124,19 @@ def platform_admin_fbv(request):
     Accessible by PLATFORM_ADMIN only.
     """
     user = request.gl_iam_user
-    return JsonResponse({
-        "message": f"Welcome Platform Admin {user.email}!",
-        "access_level": "platform_admin",
-        "pattern": "FBV with decorator",
-    })
+    return JsonResponse(
+        {
+            "message": f"Welcome Platform Admin {user.email}!",
+            "access_level": "platform_admin",
+            "pattern": "FBV with decorator",
+        }
+    )
 
 
 # ============================================================================
 # Pattern 2: Class-Based Views with Mixins
 # ============================================================================
+
 
 @method_decorator(csrf_exempt, name="dispatch")
 class MeCBV(GLIAMLoginRequiredMixin, View):
@@ -135,13 +149,15 @@ class MeCBV(GLIAMLoginRequiredMixin, View):
 
     def get(self, request):
         user = request.gl_iam_user
-        return JsonResponse({
-            "id": user.id,
-            "email": user.email,
-            "display_name": user.display_name,
-            "roles": user.roles,
-            "pattern": "CBV with mixin",
-        })
+        return JsonResponse(
+            {
+                "id": user.id,
+                "email": user.email,
+                "display_name": user.display_name,
+                "roles": user.roles,
+                "pattern": "CBV with mixin",
+            }
+        )
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -155,11 +171,13 @@ class MemberAreaCBV(OrgMemberRequiredMixin, View):
 
     def get(self, request):
         user = request.gl_iam_user
-        return JsonResponse({
-            "message": f"Welcome {user.email}!",
-            "access_level": "member",
-            "pattern": "CBV with mixin",
-        })
+        return JsonResponse(
+            {
+                "message": f"Welcome {user.email}!",
+                "access_level": "member",
+                "pattern": "CBV with mixin",
+            }
+        )
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -173,11 +191,13 @@ class AdminAreaCBV(OrgAdminRequiredMixin, View):
 
     def get(self, request):
         user = request.gl_iam_user
-        return JsonResponse({
-            "message": f"Welcome Admin {user.email}!",
-            "access_level": "admin",
-            "pattern": "CBV with mixin",
-        })
+        return JsonResponse(
+            {
+                "message": f"Welcome Admin {user.email}!",
+                "access_level": "admin",
+                "pattern": "CBV with mixin",
+            }
+        )
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -191,16 +211,19 @@ class PlatformAdminCBV(PlatformAdminRequiredMixin, View):
 
     def get(self, request):
         user = request.gl_iam_user
-        return JsonResponse({
-            "message": f"Welcome Platform Admin {user.email}!",
-            "access_level": "platform_admin",
-            "pattern": "CBV with mixin",
-        })
+        return JsonResponse(
+            {
+                "message": f"Welcome Platform Admin {user.email}!",
+                "access_level": "platform_admin",
+                "pattern": "CBV with mixin",
+            }
+        )
 
 
 # ============================================================================
 # Pattern 3: Django REST Framework APIView
 # ============================================================================
+
 
 class MeAPIView(APIView):
     """
@@ -215,13 +238,15 @@ class MeAPIView(APIView):
 
     def get(self, request):
         user = request.gl_iam_user
-        return Response({
-            "id": user.id,
-            "email": user.email,
-            "display_name": user.display_name,
-            "roles": user.roles,
-            "pattern": "DRF APIView",
-        })
+        return Response(
+            {
+                "id": user.id,
+                "email": user.email,
+                "display_name": user.display_name,
+                "roles": user.roles,
+                "pattern": "DRF APIView",
+            }
+        )
 
 
 class MemberAreaAPIView(APIView):
@@ -237,11 +262,13 @@ class MemberAreaAPIView(APIView):
 
     def get(self, request):
         user = request.gl_iam_user
-        return Response({
-            "message": f"Welcome {user.email}!",
-            "access_level": "member",
-            "pattern": "DRF APIView",
-        })
+        return Response(
+            {
+                "message": f"Welcome {user.email}!",
+                "access_level": "member",
+                "pattern": "DRF APIView",
+            }
+        )
 
 
 class AdminAreaAPIView(APIView):
@@ -257,11 +284,13 @@ class AdminAreaAPIView(APIView):
 
     def get(self, request):
         user = request.gl_iam_user
-        return Response({
-            "message": f"Welcome Admin {user.email}!",
-            "access_level": "admin",
-            "pattern": "DRF APIView",
-        })
+        return Response(
+            {
+                "message": f"Welcome Admin {user.email}!",
+                "access_level": "admin",
+                "pattern": "DRF APIView",
+            }
+        )
 
 
 class PlatformAdminAPIView(APIView):
@@ -277,8 +306,10 @@ class PlatformAdminAPIView(APIView):
 
     def get(self, request):
         user = request.gl_iam_user
-        return Response({
-            "message": f"Welcome Platform Admin {user.email}!",
-            "access_level": "platform_admin",
-            "pattern": "DRF APIView",
-        })
+        return Response(
+            {
+                "message": f"Welcome Platform Admin {user.email}!",
+                "access_level": "platform_admin",
+                "pattern": "DRF APIView",
+            }
+        )

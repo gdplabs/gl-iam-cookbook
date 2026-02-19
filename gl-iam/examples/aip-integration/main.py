@@ -14,28 +14,18 @@ from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel
+from sqlalchemy import select
 
-# =============================================================================
-# GL-IAM Imports
-# =============================================================================
-from gl_iam import IAMGateway, StandardRole, User  # <-- GL-IAM
-from gl_iam.core.types import PasswordCredentials, UserCreateInput  # <-- GL-IAM
-from gl_iam.fastapi import (  # <-- GL-IAM
+from gl_iam import IAMGateway, StandardRole, User
+from gl_iam.core.types import PasswordCredentials, UserCreateInput
+from gl_iam.fastapi import (
     get_current_user,
     get_iam_gateway,
     require_org_member,
     set_iam_gateway,
 )
-from gl_iam.providers.postgresql import (  # <-- GL-IAM
-    PostgreSQLProvider,
-    PostgreSQLConfig,
-)
-
-# =============================================================================
-# GL AIP SDK Imports (Optional)
-# Uncomment when glaip-sdk is installed
-# =============================================================================
-# from glaip_sdk import Agent
+from gl_iam.providers.postgresql import PostgreSQLProvider, PostgreSQLConfig
+from gl_iam.providers.postgresql.models import RoleModel, UserRoleModel
 
 load_dotenv()
 
@@ -50,18 +40,20 @@ async def lifespan(app: FastAPI):
 
     This sets up the GL-IAM gateway with PostgreSQL provider.
     """
-    # Configure GL-IAM provider
-    config = PostgreSQLConfig(  # <-- GL-IAM
+    config = PostgreSQLConfig(
         database_url=os.getenv("DATABASE_URL"),
         secret_key=os.getenv("SECRET_KEY"),
         enable_auth_hosting=True,
         auto_create_tables=True,
     )
-    provider = PostgreSQLProvider(config)  # <-- GL-IAM
-    gateway = IAMGateway.from_fullstack_provider(provider)  # <-- GL-IAM
-    set_iam_gateway(  # <-- GL-IAM
+    provider = PostgreSQLProvider(config)
+    gateway = IAMGateway.from_fullstack_provider(provider)
+    set_iam_gateway(
         gateway, default_organization_id=os.getenv("DEFAULT_ORGANIZATION_ID")
     )
+
+    app.state.provider = provider
+
     yield
     await provider.close()
 
@@ -74,6 +66,7 @@ app = FastAPI(title="Secure Agent API", lifespan=lifespan)
 # =============================================================================
 class RegisterRequest(BaseModel):
     """Request model for user registration."""
+
     email: str
     password: str
     display_name: str | None = None
@@ -81,23 +74,27 @@ class RegisterRequest(BaseModel):
 
 class LoginRequest(BaseModel):
     """Request model for user login."""
+
     email: str
     password: str
 
 
 class TokenResponse(BaseModel):
     """Response model containing access token."""
+
     access_token: str
     token_type: str
 
 
 class ChatRequest(BaseModel):
     """Request model for chat."""
+
     message: str
 
 
 class ChatResponse(BaseModel):
     """Response model for chat."""
+
     response: str
     user_email: str
     access_level: str
@@ -116,7 +113,7 @@ async def health():
 async def register(request: RegisterRequest):
     """Register a new user."""
     gateway = get_iam_gateway()
-    org_id = os.getenv("DEFAULT_ORGANIZATION_ID")
+    org_id = os.getenv("DEFAULT_ORGANIZATION_ID", "default")
 
     user = await gateway.user_store.create_user(
         UserCreateInput(
@@ -126,7 +123,16 @@ async def register(request: RegisterRequest):
         organization_id=org_id,
     )
     await gateway.user_store.set_user_password(user.id, request.password, org_id)
-    await gateway.user_store.assign_role(user.id, StandardRole.ORG_MEMBER.value, org_id)
+
+    provider = app.state.provider
+    async with provider._session_factory() as session:
+        result = await session.execute(
+            select(RoleModel).where(RoleModel.name == StandardRole.ORG_MEMBER.value)
+        )
+        role = result.scalar_one_or_none()
+        if role:
+            session.add(UserRoleModel(user_id=user.id, role_id=role.id))
+            await session.commit()
 
     return {"id": user.id, "email": user.email, "display_name": user.display_name}
 

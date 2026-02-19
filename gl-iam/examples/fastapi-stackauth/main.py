@@ -4,6 +4,9 @@ Secure FastAPI application with GL-IAM Stack Auth authentication.
 This example demonstrates how to use GL-IAM with Stack Auth as your identity
 provider. It shows the SIMI (Single Interface Multiple Implementation) pattern
 where the same GL-IAM dependencies work regardless of which provider you use.
+
+Note: User registration and authentication is handled by Stack Auth.
+Users must be created in Stack Auth and obtain tokens via Stack Auth frontend SDK.
 """
 
 import os
@@ -62,6 +65,7 @@ app = FastAPI(title="GL-IAM Stack Auth Demo", lifespan=lifespan)
 
 class UserResponse(BaseModel):
     """Response model for user data with roles."""
+
     id: str
     email: str
     display_name: str | None
@@ -118,4 +122,5 @@ async def admin_area(
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000)

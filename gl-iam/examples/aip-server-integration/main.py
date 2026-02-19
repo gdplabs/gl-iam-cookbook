@@ -14,6 +14,7 @@ from fastapi import Depends, FastAPI, HTTPException, Security
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
 from pydantic_settings import BaseSettings
+from sqlalchemy import select
 from starlette.status import HTTP_401_UNAUTHORIZED
 
 from gl_iam import IAMGateway, StandardRole, User
@@ -24,6 +25,7 @@ from gl_iam.fastapi import (
     set_iam_gateway,
 )
 from gl_iam.providers.postgresql import PostgreSQLProvider, PostgreSQLConfig
+from gl_iam.providers.postgresql.models import RoleModel, UserRoleModel
 
 load_dotenv()
 
@@ -200,7 +202,6 @@ async def lifespan(app: FastAPI):
     """Application lifespan with GL-IAM initialization."""
     provider = None
 
-    # Initialize GL-IAM if configured
     if settings.gliam_enabled:
         config = PostgreSQLConfig(
             database_url=settings.aip_db_url,
@@ -211,16 +212,15 @@ async def lifespan(app: FastAPI):
         )
         provider = PostgreSQLProvider(config)
         gateway = IAMGateway.from_fullstack_provider(provider)
-
-        # Make gateway available to FastAPI dependencies
         set_iam_gateway(gateway, default_organization_id=settings.gliam_organization_id)
         print(f"GL-IAM initialized with organization: {settings.gliam_organization_id}")
+
+        app.state.provider = provider
     else:
         print("GL-IAM not configured - set GLIAM_SECRET_KEY to enable")
 
     yield
 
-    # Cleanup GL-IAM resources
     if provider:
         await provider.close()
 
@@ -281,7 +281,16 @@ async def register(request: RegisterRequest):
         organization_id=org_id,
     )
     await gateway.user_store.set_user_password(user.id, request.password, org_id)
-    await gateway.user_store.assign_role(user.id, StandardRole.ORG_MEMBER.value, org_id)
+
+    provider = app.state.provider
+    async with provider._session_factory() as session:
+        result = await session.execute(
+            select(RoleModel).where(RoleModel.name == StandardRole.ORG_MEMBER.value)
+        )
+        role = result.scalar_one_or_none()
+        if role:
+            session.add(UserRoleModel(user_id=user.id, role_id=role.id))
+            await session.commit()
 
     return {"id": user.id, "email": user.email}
 
