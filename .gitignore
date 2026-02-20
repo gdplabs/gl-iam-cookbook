@@ -149,6 +149,7 @@ cython_debug/
 .vscode/
 *.swp
 *.swo
+**/pyrightconfig.json
 
 # macOS
 .DS_Store
