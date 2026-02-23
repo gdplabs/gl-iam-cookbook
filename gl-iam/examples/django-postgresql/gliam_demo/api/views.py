@@ -8,6 +8,8 @@ This module demonstrates three different Django view patterns with GL-IAM:
 3. Django REST Framework (DRF) APIView with authentication/permission classes
 
 All three patterns work with any GL-IAM provider (PostgreSQL, Keycloak, StackAuth).
+This demonstrates the SIMI (Single Interface Multiple Implementation) pattern -
+the same view code works regardless of which provider you use.
 """
 
 import os
@@ -20,7 +22,6 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from gl_iam import StandardRole
 from gl_iam.core.types import PasswordCredentials, UserCreateInput
 from gl_iam.django import (
     get_iam_gateway,
@@ -44,7 +45,6 @@ from gl_iam.django.drf import (
 
 from .serializers import (
     LoginSerializer,
-    MessageResponseSerializer,
     RegisterSerializer,
     TokenResponseSerializer,
     UserResponseSerializer,
@@ -54,6 +54,7 @@ from .serializers import (
 # ============================================================================
 # Public Endpoints
 # ============================================================================
+
 
 def health(request):
     """Public health check endpoint."""
@@ -65,12 +66,14 @@ def register(request):
     """
     Register a new user (POST only).
 
-    Creates a user, sets their password, and assigns the default ORG_MEMBER role.
+    Creates a user with email, password, and automatically assigns
+    the default ORG_MEMBER role via SDK's auto_assign_default_role feature.
     """
     if request.method != "POST":
         return JsonResponse({"error": "Method not allowed"}, status=405)
 
     import json
+
     try:
         data = json.loads(request.body)
     except json.JSONDecodeError:
@@ -81,33 +84,33 @@ def register(request):
         return JsonResponse({"errors": serializer.errors}, status=400)
 
     gateway = get_iam_gateway()
-    org_id = os.getenv("DEFAULT_ORGANIZATION_ID")
+    org_id = os.getenv("DEFAULT_ORGANIZATION_ID", "default")
 
-    # Create user via provider
-    user = run_sync(gateway.user_store.create_user(
-        UserCreateInput(
-            email=serializer.validated_data["email"],
-            display_name=serializer.validated_data.get("display_name")
-            or serializer.validated_data["email"].split("@")[0],
-        ),
-        organization_id=org_id,
-    ))
+    user = run_sync(
+        gateway.user_store.create_user(
+            UserCreateInput(
+                email=serializer.validated_data["email"],
+                display_name=serializer.validated_data.get("display_name")
+                or serializer.validated_data["email"].split("@")[0],
+            ),
+            organization_id=org_id,
+        )
+    )
 
-    # Set password
-    run_sync(gateway.user_store.set_user_password(
-        user.id, serializer.validated_data["password"], org_id
-    ))
+    run_sync(
+        gateway.user_store.set_user_password(
+            user.id, serializer.validated_data["password"], org_id
+        )
+    )
 
-    # Assign default role
-    run_sync(gateway.user_store.assign_role(
-        user.id, StandardRole.ORG_MEMBER.value, org_id
-    ))
-
-    return JsonResponse({
-        "id": user.id,
-        "email": user.email,
-        "display_name": user.display_name,
-    }, status=201)
+    return JsonResponse(
+        {
+            "id": user.id,
+            "email": user.email,
+            "display_name": user.display_name,
+        },
+        status=201,
+    )
 
 
 @csrf_exempt
@@ -121,6 +124,7 @@ def login(request):
         return JsonResponse({"error": "Method not allowed"}, status=405)
 
     import json
+
     try:
         data = json.loads(request.body)
     except json.JSONDecodeError:
@@ -133,19 +137,23 @@ def login(request):
     gateway = get_iam_gateway()
     org_id = os.getenv("DEFAULT_ORGANIZATION_ID")
 
-    result = run_sync(gateway.authenticate(
-        credentials=PasswordCredentials(
-            email=serializer.validated_data["email"],
-            password=serializer.validated_data["password"],
-        ),
-        organization_id=org_id,
-    ))
+    result = run_sync(
+        gateway.authenticate(
+            credentials=PasswordCredentials(
+                email=serializer.validated_data["email"],
+                password=serializer.validated_data["password"],
+            ),
+            organization_id=org_id,
+        )
+    )
 
     if result.is_ok:
-        return JsonResponse({
-            "access_token": result.token.access_token,
-            "token_type": result.token.token_type,
-        })
+        return JsonResponse(
+            {
+                "access_token": result.token.access_token,
+                "token_type": result.token.token_type,
+            }
+        )
     else:
         return JsonResponse({"error": result.error.message}, status=401)
 
@@ -153,6 +161,7 @@ def login(request):
 # ============================================================================
 # Pattern 1: Function-Based Views with Decorators
 # ============================================================================
+
 
 @gl_iam_login_required
 def me_fbv(request):
@@ -163,12 +172,14 @@ def me_fbv(request):
     The authenticated user is available via request.gl_iam_user.
     """
     user = request.gl_iam_user
-    return JsonResponse({
-        "id": user.id,
-        "email": user.email,
-        "display_name": user.display_name,
-        "pattern": "FBV with decorator",
-    })
+    return JsonResponse(
+        {
+            "id": user.id,
+            "email": user.email,
+            "display_name": user.display_name,
+            "pattern": "FBV with decorator",
+        }
+    )
 
 
 @gl_iam_login_required
@@ -181,11 +192,13 @@ def member_area_fbv(request):
     Accessible by ORG_MEMBER, ORG_ADMIN, or PLATFORM_ADMIN.
     """
     user = request.gl_iam_user
-    return JsonResponse({
-        "message": f"Welcome {user.email}!",
-        "access_level": "member",
-        "pattern": "FBV with decorator",
-    })
+    return JsonResponse(
+        {
+            "message": f"Welcome {user.email}!",
+            "access_level": "member",
+            "pattern": "FBV with decorator",
+        }
+    )
 
 
 @gl_iam_login_required
@@ -198,11 +211,13 @@ def admin_area_fbv(request):
     Accessible by ORG_ADMIN or PLATFORM_ADMIN only.
     """
     user = request.gl_iam_user
-    return JsonResponse({
-        "message": f"Welcome Admin {user.email}!",
-        "access_level": "admin",
-        "pattern": "FBV with decorator",
-    })
+    return JsonResponse(
+        {
+            "message": f"Welcome Admin {user.email}!",
+            "access_level": "admin",
+            "pattern": "FBV with decorator",
+        }
+    )
 
 
 @gl_iam_login_required
@@ -215,16 +230,19 @@ def platform_admin_fbv(request):
     Accessible by PLATFORM_ADMIN only.
     """
     user = request.gl_iam_user
-    return JsonResponse({
-        "message": f"Welcome Platform Admin {user.email}!",
-        "access_level": "platform_admin",
-        "pattern": "FBV with decorator",
-    })
+    return JsonResponse(
+        {
+            "message": f"Welcome Platform Admin {user.email}!",
+            "access_level": "platform_admin",
+            "pattern": "FBV with decorator",
+        }
+    )
 
 
 # ============================================================================
 # Pattern 2: Class-Based Views with Mixins
 # ============================================================================
+
 
 @method_decorator(csrf_exempt, name="dispatch")
 class MeCBV(GLIAMLoginRequiredMixin, View):
@@ -237,12 +255,14 @@ class MeCBV(GLIAMLoginRequiredMixin, View):
 
     def get(self, request):
         user = request.gl_iam_user
-        return JsonResponse({
-            "id": user.id,
-            "email": user.email,
-            "display_name": user.display_name,
-            "pattern": "CBV with mixin",
-        })
+        return JsonResponse(
+            {
+                "id": user.id,
+                "email": user.email,
+                "display_name": user.display_name,
+                "pattern": "CBV with mixin",
+            }
+        )
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -256,11 +276,13 @@ class MemberAreaCBV(OrgMemberRequiredMixin, View):
 
     def get(self, request):
         user = request.gl_iam_user
-        return JsonResponse({
-            "message": f"Welcome {user.email}!",
-            "access_level": "member",
-            "pattern": "CBV with mixin",
-        })
+        return JsonResponse(
+            {
+                "message": f"Welcome {user.email}!",
+                "access_level": "member",
+                "pattern": "CBV with mixin",
+            }
+        )
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -274,11 +296,13 @@ class AdminAreaCBV(OrgAdminRequiredMixin, View):
 
     def get(self, request):
         user = request.gl_iam_user
-        return JsonResponse({
-            "message": f"Welcome Admin {user.email}!",
-            "access_level": "admin",
-            "pattern": "CBV with mixin",
-        })
+        return JsonResponse(
+            {
+                "message": f"Welcome Admin {user.email}!",
+                "access_level": "admin",
+                "pattern": "CBV with mixin",
+            }
+        )
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -292,16 +316,19 @@ class PlatformAdminCBV(PlatformAdminRequiredMixin, View):
 
     def get(self, request):
         user = request.gl_iam_user
-        return JsonResponse({
-            "message": f"Welcome Platform Admin {user.email}!",
-            "access_level": "platform_admin",
-            "pattern": "CBV with mixin",
-        })
+        return JsonResponse(
+            {
+                "message": f"Welcome Platform Admin {user.email}!",
+                "access_level": "platform_admin",
+                "pattern": "CBV with mixin",
+            }
+        )
 
 
 # ============================================================================
 # Pattern 3: Django REST Framework APIView
 # ============================================================================
+
 
 class MeAPIView(APIView):
     """
@@ -316,12 +343,14 @@ class MeAPIView(APIView):
 
     def get(self, request):
         user = request.gl_iam_user
-        return Response({
-            "id": user.id,
-            "email": user.email,
-            "display_name": user.display_name,
-            "pattern": "DRF APIView",
-        })
+        return Response(
+            {
+                "id": user.id,
+                "email": user.email,
+                "display_name": user.display_name,
+                "pattern": "DRF APIView",
+            }
+        )
 
 
 class MemberAreaAPIView(APIView):
@@ -337,11 +366,13 @@ class MemberAreaAPIView(APIView):
 
     def get(self, request):
         user = request.gl_iam_user
-        return Response({
-            "message": f"Welcome {user.email}!",
-            "access_level": "member",
-            "pattern": "DRF APIView",
-        })
+        return Response(
+            {
+                "message": f"Welcome {user.email}!",
+                "access_level": "member",
+                "pattern": "DRF APIView",
+            }
+        )
 
 
 class AdminAreaAPIView(APIView):
@@ -357,11 +388,13 @@ class AdminAreaAPIView(APIView):
 
     def get(self, request):
         user = request.gl_iam_user
-        return Response({
-            "message": f"Welcome Admin {user.email}!",
-            "access_level": "admin",
-            "pattern": "DRF APIView",
-        })
+        return Response(
+            {
+                "message": f"Welcome Admin {user.email}!",
+                "access_level": "admin",
+                "pattern": "DRF APIView",
+            }
+        )
 
 
 class PlatformAdminAPIView(APIView):
@@ -377,22 +410,26 @@ class PlatformAdminAPIView(APIView):
 
     def get(self, request):
         user = request.gl_iam_user
-        return Response({
-            "message": f"Welcome Platform Admin {user.email}!",
-            "access_level": "platform_admin",
-            "pattern": "DRF APIView",
-        })
+        return Response(
+            {
+                "message": f"Welcome Platform Admin {user.email}!",
+                "access_level": "platform_admin",
+                "pattern": "DRF APIView",
+            }
+        )
 
 
 # ============================================================================
 # DRF Registration and Login (for completeness)
 # ============================================================================
 
+
 class RegisterAPIView(APIView):
     """
     Register a new user (DRF pattern).
 
-    Creates a user, sets their password, and assigns the default ORG_MEMBER role.
+    Creates a user and sets their password. The ORG_MEMBER role is
+    automatically assigned via the SDK's auto_assign_default_role config.
     """
 
     authentication_classes = []
@@ -404,33 +441,32 @@ class RegisterAPIView(APIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         gateway = get_iam_gateway()
-        org_id = os.getenv("DEFAULT_ORGANIZATION_ID")
+        org_id = os.getenv("DEFAULT_ORGANIZATION_ID", "default")
 
-        # Create user via provider
-        user = run_sync(gateway.user_store.create_user(
-            UserCreateInput(
-                email=serializer.validated_data["email"],
-                display_name=serializer.validated_data.get("display_name")
-                or serializer.validated_data["email"].split("@")[0],
-            ),
-            organization_id=org_id,
-        ))
+        user = run_sync(
+            gateway.user_store.create_user(
+                UserCreateInput(
+                    email=serializer.validated_data["email"],
+                    display_name=serializer.validated_data.get("display_name")
+                    or serializer.validated_data["email"].split("@")[0],
+                ),
+                organization_id=org_id,
+            )
+        )
 
-        # Set password
-        run_sync(gateway.user_store.set_user_password(
-            user.id, serializer.validated_data["password"], org_id
-        ))
+        run_sync(
+            gateway.user_store.set_user_password(
+                user.id, serializer.validated_data["password"], org_id
+            )
+        )
 
-        # Assign default role
-        run_sync(gateway.user_store.assign_role(
-            user.id, StandardRole.ORG_MEMBER.value, org_id
-        ))
-
-        response_serializer = UserResponseSerializer({
-            "id": user.id,
-            "email": user.email,
-            "display_name": user.display_name,
-        })
+        response_serializer = UserResponseSerializer(
+            {
+                "id": user.id,
+                "email": user.email,
+                "display_name": user.display_name,
+            }
+        )
         return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
 
@@ -452,19 +488,23 @@ class LoginAPIView(APIView):
         gateway = get_iam_gateway()
         org_id = os.getenv("DEFAULT_ORGANIZATION_ID")
 
-        result = run_sync(gateway.authenticate(
-            credentials=PasswordCredentials(
-                email=serializer.validated_data["email"],
-                password=serializer.validated_data["password"],
-            ),
-            organization_id=org_id,
-        ))
+        result = run_sync(
+            gateway.authenticate(
+                credentials=PasswordCredentials(
+                    email=serializer.validated_data["email"],
+                    password=serializer.validated_data["password"],
+                ),
+                organization_id=org_id,
+            )
+        )
 
         if result.is_ok:
-            response_serializer = TokenResponseSerializer({
-                "access_token": result.token.access_token,
-                "token_type": result.token.token_type,
-            })
+            response_serializer = TokenResponseSerializer(
+                {
+                    "access_token": result.token.access_token,
+                    "token_type": result.token.token_type,
+                }
+            )
             return Response(response_serializer.data)
         else:
             return Response(

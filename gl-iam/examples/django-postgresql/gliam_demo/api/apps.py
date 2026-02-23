@@ -23,8 +23,8 @@ class ApiConfig(AppConfig):
         This is called once when Django starts up. We configure the
         PostgreSQL provider and set it as the global IAM gateway.
         """
-        # Avoid running during management commands like migrate
         import sys
+
         if "runserver" not in sys.argv:
             return
 
@@ -35,7 +35,6 @@ class ApiConfig(AppConfig):
             PostgreSQLConfig,
         )
 
-        # Get default organization ID from environment
         default_org_id = os.getenv("DEFAULT_ORGANIZATION_ID", "default")
 
         config = PostgreSQLConfig(
@@ -43,9 +42,7 @@ class ApiConfig(AppConfig):
             secret_key=os.getenv("SECRET_KEY"),
             enable_auth_hosting=True,
             auto_create_tables=True,
-            # Pass default_org_id so the SDK auto-creates the correct organization
             default_org_id=default_org_id,
-            # Required for Django's sync environment to prevent asyncpg event loop issues
             use_null_pool=True,
         )
         provider = PostgreSQLProvider(config)

@@ -7,6 +7,7 @@ Add authentication and authorization to your FastAPI application using GL-IAM wi
 Please refer to prerequisites [here](../../README.md).
 
 Additionally, you need:
+
 - PostgreSQL database running locally
 
 ## Getting Started
@@ -21,11 +22,13 @@ Additionally, you need:
 2. **Install dependencies**
 
    **For Unix-based systems (Linux, macOS):**
+
    ```bash
    ./setup.sh
    ```
 
    **For Windows:**
+
    ```cmd
    setup.bat
    ```
@@ -57,6 +60,7 @@ Additionally, you need:
    ```
 
    Output:
+
    ```
    INFO:     Uvicorn running on http://0.0.0.0:8000
    ```
@@ -126,7 +130,7 @@ JOIN gl_iam.roles r ON ur.role_id = r.id;
 ### Authentication Flow
 
 ```
-Register -> Create User -> Set Password -> Assign Role
+Register -> Create User -> Set Password
 Login -> Authenticate -> Get Token
 Request -> Validate Token -> Get User -> Check Role -> Allow/Deny
 ```

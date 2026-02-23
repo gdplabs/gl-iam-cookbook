@@ -128,7 +128,9 @@ class KeyCreationService:
             ...     expires_in_days=30,
             ... )
         """
-        expires_at = datetime.now(timezone.utc) + timedelta(days=expires_in_days)
+        expires_at = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(
+            days=expires_in_days
+        )
 
         return await self._provider.create_api_key(
             name=name,

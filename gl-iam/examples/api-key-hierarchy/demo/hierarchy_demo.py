@@ -57,14 +57,20 @@ async def run_hierarchy_demo(
         print(f"  Preview: {root_key.key_preview}...")
         print(f"  Tier: {root_key.tier.value.upper()}")
         print(f"  Scopes: {root_key.scopes}")
-        print(f"  Expires: {'Never' if not root_key.expires_at else root_key.expires_at}")
+        print(
+            f"  Expires: {'Never' if not root_key.expires_at else root_key.expires_at}"
+        )
 
         # Print children
         if children:
             print(f"  Children ({len(children)}):")
             for child in children:
                 prefix = "  +--"
-                expires = child.expires_at.strftime('%Y-%m-%d') if child.expires_at else 'Never'
+                expires = (
+                    child.expires_at.strftime("%Y-%m-%d")
+                    if child.expires_at
+                    else "Never"
+                )
                 print(f"  {prefix} {child.name}")
                 print(f"       Preview: {child.key_preview}...")
                 print(f"       Scopes: {child.scopes}")

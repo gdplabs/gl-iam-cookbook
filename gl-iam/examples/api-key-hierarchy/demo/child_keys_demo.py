@@ -64,7 +64,9 @@ async def run_child_keys_demo(
         },
     ]
 
-    print(f"\nCreating {len(child_configs)} child keys under parent: {parent_key_id[:8]}...")
+    print(
+        f"\nCreating {len(child_configs)} child keys under parent: {parent_key_id[:8]}..."
+    )
 
     for config in child_configs:
         key, plain_key = await service.create_child_key(

@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.11, <3.14"
 
 [[package]]
@@ -283,7 +283,7 @@ dependencies = [
 requires-dist = [
     { name = "django", specifier = ">=5.1.0,<6.0.0" },
     { name = "djangorestframework", specifier = ">=3.15.0,<4.0.0" },
-    { name = "gl-iam", extras = ["django", "postgresql"], git = "https://github.com/GDP-ADMIN/gl-sdk.git?subdirectory=libs%2Fgl-iam&branch=feature%2Fgl-iam-sdk" },
+    { name = "gl-iam", extras = ["django", "postgresql"], git = "https://github.com/GDP-ADMIN/gl-sdk.git?subdirectory=libs%2Fgl-iam&branch=release%2Fgl-iam%2Fv0.1.x" },
     { name = "python-dotenv", specifier = ">=1.0.0,<2.0.0" },
 ]
 
@@ -324,7 +324,7 @@ wheels = [
 [[package]]
 name = "gl-iam"
 version = "0.0.0"
-source = { git = "https://github.com/GDP-ADMIN/gl-sdk.git?subdirectory=libs%2Fgl-iam&branch=feature%2Fgl-iam-sdk#4a380789f29ff955640147b2291c813e4bc34738" }
+source = { git = "https://github.com/GDP-ADMIN/gl-sdk.git?subdirectory=libs%2Fgl-iam&branch=release%2Fgl-iam%2Fv0.1.x#acc790ff17b07585a528d81a61d02a2ac157ed73" }
 dependencies = [
     { name = "email-validator" },
     { name = "pydantic" },

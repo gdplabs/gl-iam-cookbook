@@ -5,7 +5,6 @@ This example demonstrates how to integrate GL-IAM into an AIP server
 using Bearer token authentication with role-based access control.
 """
 
-import os
 from contextlib import asynccontextmanager
 from uuid import UUID
 
@@ -19,7 +18,6 @@ from starlette.status import HTTP_401_UNAUTHORIZED
 from gl_iam import IAMGateway, StandardRole, User
 from gl_iam.core.types import PasswordCredentials, UserCreateInput
 from gl_iam.fastapi import (
-    get_current_user as gliam_get_current_user,
     get_iam_gateway,
     set_iam_gateway,
 )
@@ -200,7 +198,6 @@ async def lifespan(app: FastAPI):
     """Application lifespan with GL-IAM initialization."""
     provider = None
 
-    # Initialize GL-IAM if configured
     if settings.gliam_enabled:
         config = PostgreSQLConfig(
             database_url=settings.aip_db_url,
@@ -211,8 +208,6 @@ async def lifespan(app: FastAPI):
         )
         provider = PostgreSQLProvider(config)
         gateway = IAMGateway.from_fullstack_provider(provider)
-
-        # Make gateway available to FastAPI dependencies
         set_iam_gateway(gateway, default_organization_id=settings.gliam_organization_id)
         print(f"GL-IAM initialized with organization: {settings.gliam_organization_id}")
     else:
@@ -220,7 +215,6 @@ async def lifespan(app: FastAPI):
 
     yield
 
-    # Cleanup GL-IAM resources
     if provider:
         await provider.close()
 
@@ -281,7 +275,6 @@ async def register(request: RegisterRequest):
         organization_id=org_id,
     )
     await gateway.user_store.set_user_password(user.id, request.password, org_id)
-    await gateway.user_store.assign_role(user.id, StandardRole.ORG_MEMBER.value, org_id)
 
     return {"id": user.id, "email": user.email}
 
