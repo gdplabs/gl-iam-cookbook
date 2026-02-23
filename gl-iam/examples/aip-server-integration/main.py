@@ -210,8 +210,6 @@ async def lifespan(app: FastAPI):
         gateway = IAMGateway.from_fullstack_provider(provider)
         set_iam_gateway(gateway, default_organization_id=settings.gliam_organization_id)
         print(f"GL-IAM initialized with organization: {settings.gliam_organization_id}")
-
-        app.state.provider = provider
     else:
         print("GL-IAM not configured - set GLIAM_SECRET_KEY to enable")
 

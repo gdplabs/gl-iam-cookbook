@@ -428,8 +428,8 @@ class RegisterAPIView(APIView):
     """
     Register a new user (DRF pattern).
 
-    Creates a user, sets their password, and assigns the default ORG_MEMBER role
-    using direct database insert (bypasses RBAC for self-registration).
+    Creates a user and sets their password. The ORG_MEMBER role is
+    automatically assigned via the SDK's auto_assign_default_role config.
     """
 
     authentication_classes = []

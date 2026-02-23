@@ -13,4 +13,3 @@ dependencies = [
 
 [tool.uv.sources]
 gl-iam = { git = "https://github.com/GDP-ADMIN/gl-sdk.git", subdirectory = "libs/gl-iam", branch = "release/gl-iam/v0.1.x" }
-# gl-iam = { path = "/Users/miapalovaara/GL/gl-sdk/libs/gl-iam", editable = true }

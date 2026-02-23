@@ -147,8 +147,6 @@ async def lifespan(app: FastAPI):
         gateway, default_organization_id=os.getenv("DEFAULT_ORGANIZATION_ID")
     )
 
-    app.state.provider = provider
-
     yield
     await provider.close()
 

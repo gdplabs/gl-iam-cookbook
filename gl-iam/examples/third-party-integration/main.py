@@ -75,7 +75,6 @@ async def lifespan(app: FastAPI):
         connector.register_routes(app, prefix=f"/connectors/{connector.name}")
 
     app.state.connectors = connectors
-    app.state.provider = provider
 
     yield
     await provider.close()

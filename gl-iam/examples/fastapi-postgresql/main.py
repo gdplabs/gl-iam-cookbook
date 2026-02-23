@@ -54,8 +54,6 @@ async def lifespan(app: FastAPI):
     gateway = IAMGateway.from_fullstack_provider(provider)
     set_iam_gateway(gateway, default_organization_id=default_org_id)
 
-    app.state.provider = provider
-
     yield
 
     await provider.close()
@@ -111,8 +109,8 @@ async def register(request: RegisterRequest):
     """
     Register a new user.
 
-    Creates a user, sets their password, and assigns the default ORG_MEMBER role
-    using direct database insert (bypasses RBAC for self-registration).
+    Creates a user and sets their password. The ORG_MEMBER role is
+    automatically assigned via the SDK's auto_assign_default_role config.
     """
     gateway = get_iam_gateway()
     org_id = os.getenv("DEFAULT_ORGANIZATION_ID", "default")

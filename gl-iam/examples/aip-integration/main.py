@@ -14,8 +14,6 @@ from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel
-from sqlalchemy import select
-
 from gl_iam import IAMGateway, StandardRole, User
 from gl_iam.core.types import PasswordCredentials, UserCreateInput
 from gl_iam.fastapi import (
@@ -25,7 +23,6 @@ from gl_iam.fastapi import (
     set_iam_gateway,
 )
 from gl_iam.providers.postgresql import PostgreSQLProvider, PostgreSQLConfig
-from gl_iam.providers.postgresql.models import RoleModel, UserRoleModel
 
 load_dotenv()
 
@@ -51,8 +48,6 @@ async def lifespan(app: FastAPI):
     set_iam_gateway(
         gateway, default_organization_id=os.getenv("DEFAULT_ORGANIZATION_ID")
     )
-
-    app.state.provider = provider
 
     yield
     await provider.close()
