@@ -20,13 +20,11 @@ from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException, Query
 from pydantic import BaseModel
-from sqlalchemy import select
 
 from connectors.base import BaseConnector
 from connectors.github import GitHubConnector
-from gl_iam import IAMGateway, StandardRole, User
+from gl_iam import IAMGateway, User
 from gl_iam.core.exceptions import (
-    IntegrationAlreadyExistsError,
     IntegrationNotFoundError,
 )
 from gl_iam.core.types import PasswordCredentials, UserCreateInput
@@ -38,7 +36,6 @@ from gl_iam.fastapi import (
     set_iam_gateway,
 )
 from gl_iam.providers.postgresql import PostgreSQLProvider, PostgreSQLConfig
-from gl_iam.providers.postgresql.models import RoleModel, UserRoleModel
 
 load_dotenv()
 
@@ -194,16 +191,6 @@ async def register(request: RegisterRequest):
         organization_id=org_id,
     )
     await gateway.user_store.set_user_password(user.id, request.password, org_id)
-
-    provider = app.state.provider
-    async with provider._session_factory() as session:
-        result = await session.execute(
-            select(RoleModel).where(RoleModel.name == StandardRole.ORG_MEMBER.value)
-        )
-        role = result.scalar_one_or_none()
-        if role:
-            session.add(UserRoleModel(user_id=user.id, role_id=role.id))
-            await session.commit()
 
     return UserResponse(id=user.id, email=user.email, display_name=user.display_name)
 

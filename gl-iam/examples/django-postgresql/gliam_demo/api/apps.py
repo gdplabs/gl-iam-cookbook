@@ -9,13 +9,6 @@ import os
 
 from django.apps import AppConfig
 
-_provider = None
-
-
-def get_provider():
-    """Get the PostgreSQL provider instance."""
-    return _provider
-
 
 class ApiConfig(AppConfig):
     """Configuration for the API app."""
@@ -30,8 +23,6 @@ class ApiConfig(AppConfig):
         This is called once when Django starts up. We configure the
         PostgreSQL provider and set it as the global IAM gateway.
         """
-        global _provider
-
         import sys
 
         if "runserver" not in sys.argv:
@@ -54,8 +45,8 @@ class ApiConfig(AppConfig):
             default_org_id=default_org_id,
             use_null_pool=True,
         )
-        _provider = PostgreSQLProvider(config)
-        gateway = IAMGateway.from_fullstack_provider(_provider)
+        provider = PostgreSQLProvider(config)
+        gateway = IAMGateway.from_fullstack_provider(provider)
 
         set_iam_gateway(gateway)
 

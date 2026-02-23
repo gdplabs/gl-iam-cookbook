@@ -127,29 +127,10 @@ JOIN gl_iam.roles r ON ur.role_id = r.id;
 
 ## Understanding the Code
 
-### Self-Registration Pattern
-
-The `/register` endpoint uses **direct database insert** for role assignment:
-
-```python
-# Direct DB insert bypasses RBAC (new user has no permissions yet)
-async with provider._session_factory() as session:
-    result = await session.execute(
-        select(RoleModel).where(RoleModel.name == StandardRole.ORG_MEMBER.value)
-    )
-    role = result.scalar_one_or_none()
-    
-    if role:
-        session.add(UserRoleModel(user_id=user.id, role_id=role.id))
-        await session.commit()
-```
-
-**Why direct insert?** The `assign_role()` method requires the caller to have admin permissions. A newly registered user has no roles, so they cannot assign roles to themselves. Direct database insert bypasses this RBAC check, allowing self-registration.
-
 ### Authentication Flow
 
 ```
-Register -> Create User -> Set Password -> Assign Role
+Register -> Create User -> Set Password
 Login -> Authenticate -> Get Token
 Request -> Validate Token -> Get User -> Check Role -> Allow/Deny
 ```

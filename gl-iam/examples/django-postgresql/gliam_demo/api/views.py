@@ -8,6 +8,8 @@ This module demonstrates three different Django view patterns with GL-IAM:
 3. Django REST Framework (DRF) APIView with authentication/permission classes
 
 All three patterns work with any GL-IAM provider (PostgreSQL, Keycloak, StackAuth).
+This demonstrates the SIMI (Single Interface Multiple Implementation) pattern -
+the same view code works regardless of which provider you use.
 """
 
 import os
@@ -19,9 +21,7 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from sqlalchemy import select
 
-from gl_iam import StandardRole
 from gl_iam.core.types import PasswordCredentials, UserCreateInput
 from gl_iam.django import (
     get_iam_gateway,
@@ -42,12 +42,9 @@ from gl_iam.django.drf import (
     IsOrgMember,
     IsPlatformAdmin,
 )
-from gl_iam.providers.postgresql.models import RoleModel, UserRoleModel
 
-from .apps import get_provider
 from .serializers import (
     LoginSerializer,
-    MessageResponseSerializer,
     RegisterSerializer,
     TokenResponseSerializer,
     UserResponseSerializer,
@@ -69,8 +66,8 @@ def register(request):
     """
     Register a new user (POST only).
 
-    Creates a user, sets their password, and assigns the default ORG_MEMBER role
-    using direct database insert (bypasses RBAC for self-registration).
+    Creates a user with email, password, and automatically assigns
+    the default ORG_MEMBER role via SDK's auto_assign_default_role feature.
     """
     if request.method != "POST":
         return JsonResponse({"error": "Method not allowed"}, status=405)
@@ -105,23 +102,6 @@ def register(request):
             user.id, serializer.validated_data["password"], org_id
         )
     )
-
-    provider = get_provider()
-    if provider:
-
-        async def _assign_role():
-            async with provider._session_factory() as session:
-                result = await session.execute(
-                    select(RoleModel).where(
-                        RoleModel.name == StandardRole.ORG_MEMBER.value
-                    )
-                )
-                role = result.scalar_one_or_none()
-                if role:
-                    session.add(UserRoleModel(user_id=user.id, role_id=role.id))
-                    await session.commit()
-
-        run_sync(_assign_role())
 
     return JsonResponse(
         {
@@ -479,23 +459,6 @@ class RegisterAPIView(APIView):
                 user.id, serializer.validated_data["password"], org_id
             )
         )
-
-        provider = get_provider()
-        if provider:
-
-            async def _assign_role():
-                async with provider._session_factory() as session:
-                    result = await session.execute(
-                        select(RoleModel).where(
-                            RoleModel.name == StandardRole.ORG_MEMBER.value
-                        )
-                    )
-                    role = result.scalar_one_or_none()
-                    if role:
-                        session.add(UserRoleModel(user_id=user.id, role_id=role.id))
-                        await session.commit()
-
-            run_sync(_assign_role())
 
         response_serializer = UserResponseSerializer(
             {

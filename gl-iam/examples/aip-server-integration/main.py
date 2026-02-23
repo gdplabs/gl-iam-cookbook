@@ -5,7 +5,6 @@ This example demonstrates how to integrate GL-IAM into an AIP server
 using Bearer token authentication with role-based access control.
 """
 
-import os
 from contextlib import asynccontextmanager
 from uuid import UUID
 
@@ -14,18 +13,15 @@ from fastapi import Depends, FastAPI, HTTPException, Security
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
 from pydantic_settings import BaseSettings
-from sqlalchemy import select
 from starlette.status import HTTP_401_UNAUTHORIZED
 
 from gl_iam import IAMGateway, StandardRole, User
 from gl_iam.core.types import PasswordCredentials, UserCreateInput
 from gl_iam.fastapi import (
-    get_current_user as gliam_get_current_user,
     get_iam_gateway,
     set_iam_gateway,
 )
 from gl_iam.providers.postgresql import PostgreSQLProvider, PostgreSQLConfig
-from gl_iam.providers.postgresql.models import RoleModel, UserRoleModel
 
 load_dotenv()
 
@@ -281,16 +277,6 @@ async def register(request: RegisterRequest):
         organization_id=org_id,
     )
     await gateway.user_store.set_user_password(user.id, request.password, org_id)
-
-    provider = app.state.provider
-    async with provider._session_factory() as session:
-        result = await session.execute(
-            select(RoleModel).where(RoleModel.name == StandardRole.ORG_MEMBER.value)
-        )
-        role = result.scalar_one_or_none()
-        if role:
-            session.add(UserRoleModel(user_id=user.id, role_id=role.id))
-            await session.commit()
 
     return {"id": user.id, "email": user.email}
 

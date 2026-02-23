@@ -337,7 +337,7 @@ requires-dist = [
 [[package]]
 name = "gl-iam"
 version = "0.0.0"
-source = { git = "https://github.com/GDP-ADMIN/gl-sdk.git?subdirectory=libs%2Fgl-iam&branch=release%2Fgl-iam%2Fv0.1.x#acc790ff17b07585a528d81a61d02a2ac157ed73" }
+source = { git = "https://github.com/GDP-ADMIN/gl-sdk.git?subdirectory=libs%2Fgl-iam&branch=release%2Fgl-iam%2Fv0.1.x#ba6db9b068d3c893642fd831c1a290be9312fba2" }
 dependencies = [
     { name = "email-validator" },
     { name = "pydantic" },
