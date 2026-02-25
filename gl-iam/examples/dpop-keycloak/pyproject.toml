@@ -15,4 +15,4 @@ dependencies = [
 ]
 
 [tool.uv.sources]
-gl-iam = { path = "/Users/miapalovaara/GL/gl-sdk/libs/gl-iam", editable = true }
+gl-iam = { git = "https://github.com/GDP-ADMIN/gl-sdk.git", subdirectory = "libs/gl-iam", branch = "feat/gl-iam/keycloak-dpop-provider" }
