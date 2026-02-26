@@ -12,19 +12,22 @@ This example demonstrates **DPoP (Demonstrating Proof of Possession)** with Keyc
 
 ## How DPoP Works
 
-```
-1. Client creates a key pair (once)
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant K as Keycloak
+    participant R as Resource Server<br/>(FastAPI)
 
-2. Client asks Keycloak for a token
-   → includes a DPoP proof (signed with the key)
+    Note over C: 1. Generate EC P-256<br/>key pair (once)
 
-3. Keycloak returns an access token
-   → token is now bound to that key
+    C->>K: POST /token + DPoP proof (signed with private key)
+    K-->>C: Access token with cnf.jkt (bound to client's key)
 
-4. For EVERY API request:
-   - client sends the token
-   - client sends a NEW DPoP proof
-   - server checks: “does this proof match the token & request?”
+    Note over C: For EVERY API request:
+
+    C->>R: GET /api/protected<br/>Authorization: DPoP {token}<br/>DPoP: {new proof}
+    R->>R: Verify proof signature<br/>Match cnf.jkt ↔ proof key<br/>Validate ath (token hash)
+    R-->>C: 200 OK (user data)
 ```
 
 ## Prerequisites
@@ -50,6 +53,30 @@ dpop-keycloak/
 │   └── jwk.json
 └── realm/                  # Keycloak realm configuration
     └── realm-export.json   # Realm with seeded user (local only, use more secure seeding for prod) and DPoP enabled 
+```
+
+### Architecture
+
+```mermaid
+graph LR
+    subgraph Docker
+        KC[Keycloak :8080] --> DB[(PostgreSQL)]
+    end
+
+    subgraph Local
+        FS[FastAPI :8000<br/>main.py]
+        GK[generate_key.py]
+        CP[create_proof.py]
+    end
+
+    GK -- saves --> Keys[keys/]
+    CP -- reads --> Keys
+    CP -- creates proof --> Client
+
+    Client -- "① DPoP proof + credentials" --> KC
+    KC -- "② DPoP-bound token" --> Client
+    Client -- "③ Token + new proof" --> FS
+    FS -- "④ Validate via JWKS" --> KC
 ```
 
 ### What happens when you run commands
@@ -139,12 +166,23 @@ async def protected(user: User = Depends(get_current_user_with_dpop)):
     return {"user": user.email}
 ```
 
-The `get_current_user_with_dpop` dependency:
+The `get_current_user_with_dpop` dependency validates incoming requests:
 
-1. Extracts the DPoP proof from the `DPoP` header
-2. Validates the proof signature
-3. Verifies the proof's `cnf.jkt` matches the token's
-4. Validates `ath` claim (hash of access token)
+```mermaid
+flowchart TD
+    A[Incoming Request] --> B{DPoP header<br/>present?}
+    B -- No --> X[401 Unauthorized]
+    B -- Yes --> C[Decode DPoP proof JWT]
+    C --> D{Signature<br/>valid?}
+    D -- No --> X
+    D -- Yes --> E{htm/htu match<br/>request method/URL?}
+    E -- No --> X
+    E -- Yes --> F{cnf.jkt in token<br/>== proof key thumbprint?}
+    F -- No --> X
+    F -- Yes --> G{ath claim<br/>== hash of access token?}
+    G -- No --> X
+    G -- Yes --> H[✓ Return User]
+```
 
 ### 2. Client-side (key generation + proof signing)
 
