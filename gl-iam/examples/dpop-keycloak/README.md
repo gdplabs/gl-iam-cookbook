@@ -13,19 +13,18 @@ This example demonstrates **DPoP (Demonstrating Proof of Possession)** with Keyc
 ## How DPoP Works
 
 ```
-1. Client generates key pair (EC P-256)
-         │
-         ▼
-2. Client sends DPoP proof (signed JWT) to Keycloak when requesting token
-         │
-         ▼
-3. Keycloak returns token with cnf.jkt (JWK thumbprint of client's key)
-         │
-         ▼
-4. Client accesses protected resource:
-   - Sends the token (now bound to their key)
-   - Sends NEW proof signed with same private key
-   - Server verifies proof's key matches token's cnf.jkt
+1. Client creates a key pair (once)
+
+2. Client asks Keycloak for a token
+   → includes a DPoP proof (signed with the key)
+
+3. Keycloak returns an access token
+   → token is now bound to that key
+
+4. For EVERY API request:
+   - client sends the token
+   - client sends a NEW DPoP proof
+   - server checks: “does this proof match the token & request?”
 ```
 
 ## Prerequisites
@@ -116,7 +115,7 @@ TOKEN=$(curl -s -X POST "http://localhost:8080/realms/dpop-demo/protocol/openid-
   -d "username=user@example.com" \
   -d "password=user123" | jq -r '.access_token')
 
-# Access protected endpoint
+# Access protected endpoint (recreate proof if it's already consumed to avoid DPoP replay error)
 RESOURCE_PROOF=$(uv run create_proof.py GET "http://localhost:8000/api/protected" "$TOKEN")
 curl http://localhost:8000/api/protected \
   -H "Authorization: DPoP $TOKEN" \
