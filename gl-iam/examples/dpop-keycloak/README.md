@@ -103,10 +103,10 @@ INFO: Uvicorn running on http://0.0.0.0:8000
 
 ```bash
 # Generate your DPoP key pair
-uv run python generate_key.py
+uv run generate_key.py
 
 # Get DPoP-bound token
-DPOP_PROOF=$(uv run python create_proof.py POST "http://localhost:8080/realms/dpop-demo/protocol/openid-connect/token")
+DPOP_PROOF=$(uv run create_proof.py POST "http://localhost:8080/realms/dpop-demo/protocol/openid-connect/token")
 TOKEN=$(curl -s -X POST "http://localhost:8080/realms/dpop-demo/protocol/openid-connect/token" \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -H "DPoP: $DPOP_PROOF" \
@@ -117,7 +117,7 @@ TOKEN=$(curl -s -X POST "http://localhost:8080/realms/dpop-demo/protocol/openid-
   -d "password=user123" | jq -r '.access_token')
 
 # Access protected endpoint
-RESOURCE_PROOF=$(uv run python create_proof.py GET "http://localhost:8000/api/protected" "$TOKEN")
+RESOURCE_PROOF=$(uv run create_proof.py GET "http://localhost:8000/api/protected" "$TOKEN")
 curl http://localhost:8000/api/protected \
   -H "Authorization: DPoP $TOKEN" \
   -H "DPoP: $RESOURCE_PROOF"
