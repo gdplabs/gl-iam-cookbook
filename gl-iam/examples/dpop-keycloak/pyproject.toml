@@ -15,5 +15,4 @@ dependencies = [
 ]
 
 [tool.uv.sources]
-# change to main or release branch (release/gl-iam/vx.x.x) after merging
-gl-iam = { git = "https://github.com/GDP-ADMIN/gl-sdk.git", subdirectory = "libs/gl-iam", branch = "feat/gl-iam/keycloak-dpop-provider" }
+gl-iam = { git = "https://github.com/GDP-ADMIN/gl-sdk.git", subdirectory = "libs/gl-iam", branch = "main" }

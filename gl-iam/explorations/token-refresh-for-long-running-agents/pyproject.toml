@@ -12,7 +12,7 @@ dependencies = [
 
 [tool.uv.sources]
 # For remote usage (branch pushed to remote):
-gl-iam = { git = "https://github.com/GDP-ADMIN/gl-sdk.git", subdirectory = "libs/gl-iam", branch = "feature/token-refresh-for-long-running-agents" }
+gl-iam = { git = "https://github.com/GDP-ADMIN/gl-sdk.git", subdirectory = "libs/gl-iam", branch = "main" }
 
 # For local development (uncomment if needed):
 # gl-iam = { path = "../../../../gl-sdk/libs/gl-iam", editable = true }
