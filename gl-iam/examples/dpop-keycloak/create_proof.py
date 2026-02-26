@@ -25,12 +25,23 @@ from gl_iam.client.dpop import DPoPClient
 
 def load_client():
     """Load a DPoPClient from persisted key files."""
-    with open("keys/private_key.pem", "rb") as f:
-        private_key = serialization.load_pem_private_key(f.read(), password=None)
-    with open("keys/jwk.json", "r") as f:
-        jwk = json.load(f)
+    try:
+        with open("keys/private_key.pem", "rb") as f:
+            private_key = serialization.load_pem_private_key(f.read(), password=None)
+        with open("keys/jwk.json", "r") as f:
+            jwk = json.load(f)
+    except FileNotFoundError as e:
+        print("Error: Required key file(s) not found.")
+        if e.filename:
+            print(f"Missing file: {e.filename}")
+        print(
+            "Please run generate_key.py to generate the key files before running create_proof.py."
+        )
+        sys.exit(1)
 
     # Recreate client from loaded key
+    # HACK: DPoPClient doesn't support loading existing keys yet.
+    # Verify compatibility when upgrading gl-iam.
     client = DPoPClient()
     client._private_key = private_key
     client.jwk = jwk
