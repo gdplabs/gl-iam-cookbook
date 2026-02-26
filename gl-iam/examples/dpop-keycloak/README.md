@@ -33,7 +33,7 @@ This example demonstrates **DPoP (Demonstrating Proof of Possession)** with Keyc
 - Docker and Docker Compose
 - Python 3.11+
 - UV package manager
-- **Keycloak 26.4+** (required for DPoP token binding)
+- **Keycloak 26.4+** (DPoP token binding is supported from this version; see the official Keycloak documentation for configuration details)
 
 ## Folder Structure
 
@@ -50,7 +50,7 @@ dpop-keycloak/
 │   ├── private_key.pem
 │   └── jwk.json
 └── realm/                  # Keycloak realm configuration
-    └── realm-export.json   # Realm with DPoP enabled
+    └── realm-export.json   # Realm with seeded user (local only, use more secure seeding for prod) and DPoP enabled 
 ```
 
 ### What happens when you run commands
@@ -60,8 +60,8 @@ dpop-keycloak/
 | `./setup.sh` | Installs Python dependencies |
 | `docker-compose up -d` | Starts Keycloak in Docker |
 | `uv run main.py` | Starts FastAPI server on port 8000 |
-| `uv run python generate_key.py` | Creates `keys/` directory with your DPoP key pair |
-| `uv run python create_proof.py ...` | Generates a DPoP proof JWT |
+| `uv run generate_key.py` | Creates `keys/` directory with your DPoP key pair |
+| `uv run create_proof.py ...` | Generates a DPoP proof JWT |
 
 ## Quick Start
 
