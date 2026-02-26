@@ -20,4 +20,4 @@ echo Next steps:
 echo   1. Start Keycloak: docker-compose up -d
 echo   2. Run server:     uv run main.py
 echo " 3. Generate key:   uv run generate_key.py"
-echo " 4. Generate proof: uv run craetea_proof.py"
+echo " 4. Generate proof: uv run create_proof.py ..."

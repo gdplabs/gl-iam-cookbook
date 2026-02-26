@@ -26,7 +26,7 @@ def main():
     os.makedirs(keys_dir, exist_ok=True)
 
     # Save private key (PEM format)
-    # HACK: DPoPClient doesn't support loading existing keys yet.
+    # HACK: DPoPClient doesn't expose private key serialization.
     # Verify compatibility when upgrading gl-iam.
 
     private_key_pem = client._private_key.private_bytes(
