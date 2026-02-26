@@ -40,14 +40,20 @@ def _require_env(name: str) -> str:
     return value
 
 
+server_url = _require_env("KEYCLOAK_SERVER_URL")
+realm = _require_env("KEYCLOAK_REALM")
+client_id = _require_env("KEYCLOAK_CLIENT_ID")
+client_secret = _require_env("KEYCLOAK_CLIENT_SECRET")
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     """Initialize GL-IAM gateway with Keycloak and DPoP support."""
     keycloak_config = KeycloakConfig(
-        server_url=_require_env("KEYCLOAK_SERVER_URL"),
-        realm=_require_env("KEYCLOAK_REALM"),
-        client_id=_require_env("KEYCLOAK_CLIENT_ID"),
-        client_secret=_require_env("KEYCLOAK_CLIENT_SECRET"),
+        server_url=server_url,
+        realm=realm,
+        client_id=client_id,
+        client_secret=client_secret,
     )
 
     keycloak_provider = KeycloakProvider(config=keycloak_config)
@@ -59,14 +65,18 @@ async def lifespan(_: FastAPI):
     gateway = IAMGateway.from_fullstack_provider(
         provider=keycloak_provider, dpop_provider=dpop_provider
     )
-    set_iam_gateway(gateway, default_organization_id=os.getenv("KEYCLOAK_REALM"))
+    set_iam_gateway(gateway, default_organization_id=realm)
 
     is_healthy = await keycloak_provider.health_check()
     if is_healthy:
-        print(f"Connected to Keycloak at {os.getenv('KEYCLOAK_SERVER_URL')}")
+        print(f"Connected to Keycloak at {server_url}")
         print("DPoP is enabled - tokens will be bound to client keys")
+    else:
+        print(f"Failed to connect to Keycloak at {server_url}")
+        raise RuntimeError("Cannot start server without Keycloak connection")
+
     app.state.iam_gateway = gateway
-    app.state.default_organization_id = os.getenv("KEYCLOAK_REALM")
+    app.state.default_organization_id = realm
     yield
 
 
