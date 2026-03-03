@@ -1,0 +1,15 @@
+[project]
+name = "agent-delegation-django"
+version = "0.0.0"
+description = "GL-IAM Agent Delegation with Django and PostgreSQL"
+requires-python = ">=3.11,<3.14"
+readme = "README.md"
+dependencies = [
+  "django>=5.1.0,<6.0.0",
+  "djangorestframework>=3.15.0,<4.0.0",
+  "python-dotenv>=1.0.0,<2.0.0",
+  "gl-iam[django,postgresql]",
+]
+
+[tool.uv.sources]
+gl-iam = { git = "https://github.com/GDP-ADMIN/gl-sdk.git", subdirectory = "libs/gl-iam", branch = "main" }

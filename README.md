@@ -44,7 +44,15 @@ gl-iam-cookbook/
         ├── aip-integration-advanced/ # Secure agent APIs (advanced)
         ├── rbac-showcase/           # RBAC with multi-provider support
         ├── api-key-hierarchy/       # API key management with SOLID patterns
-        └── third-party-integration/ # Third-party OAuth with GitHub flow
+        ├── third-party-integration/ # Third-party OAuth with GitHub flow
+        ├── agent-delegation-fastapi/ # Agent delegation with FastAPI
+        ├── agent-delegation-django/  # Agent delegation with Django
+        ├── agent-delegation-chain/   # Multi-hop delegation chains
+        ├── agent-scope-constraints/  # Resource constraint validators
+        ├── agent-lifecycle/          # Agent suspend, revoke & audit
+        ├── agent-cross-service/      # Cross-service delegation
+        ├── agent-keycloak/           # Agent delegation with Keycloak
+        └── agent-stackauth/          # Agent delegation with Stack Auth
 ```
 
 ## Examples
@@ -102,6 +110,19 @@ This example demonstrates migrating from legacy BOSA Core Auth to GL-IAM, includ
 |---------|-------------|----------|
 | [api-key-hierarchy](gl-iam/examples/api-key-hierarchy/) | API key management with SOLID patterns | 3-tier API keys, scope-based authorization |
 | [third-party-integration](gl-iam/examples/third-party-integration/) | Full GitHub OAuth flow with pluggable connectors | Encrypted credential storage, multi-account support, token revocation |
+
+### Agent Delegation Examples
+
+| Example | Description | Features |
+|---------|-------------|----------|
+| [agent-delegation-fastapi](gl-iam/examples/agent-delegation-fastapi/) | Core agent delegation with FastAPI | Register agents, delegate authority, scope-protected endpoints |
+| [agent-delegation-django](gl-iam/examples/agent-delegation-django/) | Core agent delegation with Django | FBV decorators, CBV mixins, DRF permission classes |
+| [agent-delegation-chain](gl-iam/examples/agent-delegation-chain/) | Multi-hop delegation chains | Scope narrowing, chain inspection, orchestrator→worker |
+| [agent-scope-constraints](gl-iam/examples/agent-scope-constraints/) | Resource constraint validators | String equality, set subset, numeric LTE, composite |
+| [agent-lifecycle](gl-iam/examples/agent-lifecycle/) | Agent suspend, revoke & audit | Lifecycle management, audit event callback |
+| [agent-cross-service](gl-iam/examples/agent-cross-service/) | Cross-service delegation | Two-service setup, minimal agent-only gateway |
+| [agent-keycloak](gl-iam/examples/agent-keycloak/) | Agent delegation with Keycloak | Keycloak OIDC + GL-IAM agent delegation |
+| [agent-stackauth](gl-iam/examples/agent-stackauth/) | Agent delegation with Stack Auth | StackAuth token bridge, delegation JWT conversion |
 
 ## Documentation
 

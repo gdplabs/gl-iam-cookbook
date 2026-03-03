@@ -1,0 +1,78 @@
+{
+  "id": "gl-iam-demo",
+  "realm": "gl-iam-demo",
+  "displayName": "GL-IAM Demo",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": true,
+  "registrationEmailAsUsername": true,
+  "loginWithEmailAllowed": true,
+  "roles": {
+    "realm": [
+      {
+        "id": "role-admin",
+        "name": "admin",
+        "description": "Administrator role with full access"
+      },
+      {
+        "id": "role-member",
+        "name": "member",
+        "description": "Standard member role"
+      },
+      {
+        "id": "role-viewer",
+        "name": "viewer",
+        "description": "Read-only viewer role"
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "glchat-backend",
+      "name": "GLChat Backend",
+      "enabled": true,
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "glchat-backend-secret",
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": true,
+      "protocol": "openid-connect",
+      "defaultClientScopes": ["profile", "roles", "email"]
+    }
+  ],
+  "users": [
+    {
+      "username": "user@example.com",
+      "email": "user@example.com",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Regular",
+      "lastName": "User",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "user123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["member"]
+    },
+    {
+      "username": "admin@example.com",
+      "email": "admin@example.com",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Admin",
+      "lastName": "User",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "admin123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["admin", "member"]
+    }
+  ],
+  "accessTokenLifespan": 3600
+}
