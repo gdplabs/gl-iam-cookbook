@@ -62,6 +62,7 @@ async def lifespan(app: FastAPI):
         database_url=os.getenv("DATABASE_URL"),
         secret_key=os.getenv("SECRET_KEY"),
         enable_auth_hosting=True,
+        enable_third_party_provider=False,
         auto_create_tables=True,
         default_org_id=default_org_id,
     )

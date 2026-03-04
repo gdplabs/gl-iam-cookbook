@@ -10,8 +10,8 @@ dependencies = [
   "python-dotenv>=1.0.0,<2.0.0",
   "pydantic-settings>=2.0.0,<3.0.0",
   "httpx>=0.27.0,<1.0.0",
-  "gl-iam[fastapi,stackauth]",
+  "gl-iam[fastapi,stackauth,postgresql]",
 ]
 
 [tool.uv.sources]
-gl-iam = { git = "https://github.com/GDP-ADMIN/gl-sdk.git", subdirectory = "libs/gl-iam", branch = "main" }
+gl-iam = { git = "https://github.com/GDP-ADMIN/gl-sdk.git", subdirectory = "libs/gl-iam", branch = "feature/gl-iam-agent-iam" }
