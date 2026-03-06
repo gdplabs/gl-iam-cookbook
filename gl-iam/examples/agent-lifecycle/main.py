@@ -15,7 +15,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, Header, HTTPException, Query
 from pydantic import BaseModel
 
 from gl_iam import (
@@ -84,8 +84,12 @@ async def lifespan(app: FastAPI):
         default_org_id=default_org_id,
     )
     provider = PostgreSQLProvider(config)
-    gateway = IAMGateway.from_fullstack_provider(
-        provider,
+    gateway = IAMGateway(
+        auth_provider=provider,
+        user_store=provider,
+        session_provider=provider,
+        organization_provider=provider,
+        agent_provider=provider,
         audit_callback=audit_callback,
     )
     set_iam_gateway(gateway, default_organization_id=default_org_id)
@@ -340,6 +344,7 @@ async def list_agents(
 async def delegate(
     request: DelegateRequest,
     user: User = Depends(get_current_user),
+    authorization: str = Header(),
 ):
     """
     Delegate to an agent. Demonstrates how delegation fails for
@@ -347,11 +352,14 @@ async def delegate(
     """
     gateway = get_iam_gateway()
 
+    # Extract the raw JWT from the Authorization header
+    token = authorization.split(" ", 1)[1] if " " in authorization else authorization
+
     task = TaskContext(id="lifecycle-task", purpose="Lifecycle demo")
     scope = DelegationScope(scopes=request.scopes)
 
     result = await gateway.delegate_to_agent(
-        principal_token=user.id,
+        principal_token=token,
         agent_id=request.agent_id,
         task=task,
         scope=scope,

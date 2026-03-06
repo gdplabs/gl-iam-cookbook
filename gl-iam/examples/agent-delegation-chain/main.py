@@ -12,7 +12,7 @@ import os
 from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, Header, HTTPException, Query
 from pydantic import BaseModel
 
 from gl_iam import (
@@ -214,6 +214,7 @@ async def setup_chain(user: User = Depends(get_current_user)):
 async def delegate_to_orchestrator(
     orchestrator_id: str,
     user: User = Depends(get_current_user),
+    authorization: str = Header(),
 ):
     """
     User delegates broad authority to the orchestrator.
@@ -221,6 +222,9 @@ async def delegate_to_orchestrator(
     This is the first hop in the chain: User -> Orchestrator.
     """
     gateway = get_iam_gateway()
+
+    # Extract the raw JWT from the Authorization header
+    token = authorization.split(" ", 1)[1] if " " in authorization else authorization
 
     task = TaskContext(
         id="chain-task-001",
@@ -235,7 +239,7 @@ async def delegate_to_orchestrator(
     )
 
     result = await gateway.delegate_to_agent(
-        principal_token=user.id,
+        principal_token=token,
         agent_id=orchestrator_id,
         task=task,
         scope=scope,

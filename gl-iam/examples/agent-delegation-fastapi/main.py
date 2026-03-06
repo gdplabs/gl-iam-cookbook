@@ -12,7 +12,7 @@ import os
 from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException
 from pydantic import BaseModel
 
 from gl_iam import (
@@ -225,13 +225,13 @@ async def register_agent(
 async def delegate_to_agent(
     request: DelegateRequest,
     user: User = Depends(get_current_user),
+    authorization: str = Header(),
 ):
     """Create a delegation token for an agent."""
     gateway = get_iam_gateway()
 
-    # Get the user's access token from the authorization header
-    # We need to re-authenticate to get a fresh token for delegation
-    org_id = os.getenv("DEFAULT_ORGANIZATION_ID", "default")
+    # Extract the raw JWT from the Authorization header ("Bearer <token>")
+    token = authorization.split(" ", 1)[1] if " " in authorization else authorization
 
     # Build task context and scope
     task = TaskContext(
@@ -245,10 +245,8 @@ async def delegate_to_agent(
         expires_in_seconds=request.expires_in_seconds,
     )
 
-    # Re-authenticate to get a valid token for delegation
-    # In production, you'd use the token from the request
     result = await gateway.delegate_to_agent(
-        principal_token=user.id,
+        principal_token=token,
         agent_id=request.agent_id,
         task=task,
         scope=scope,

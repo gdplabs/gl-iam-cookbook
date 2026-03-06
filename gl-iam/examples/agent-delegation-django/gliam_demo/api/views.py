@@ -169,11 +169,14 @@ def fbv_delegate(request):
     import json
     data = json.loads(request.body)
     gateway = get_iam_gateway()
-    user = request.gl_iam_user
+
+    # Extract the raw JWT from the Authorization header
+    auth_header = request.META.get("HTTP_AUTHORIZATION", "")
+    token = auth_header.split(" ", 1)[1] if " " in auth_header else auth_header
 
     result = run_sync(
         gateway.delegate_to_agent(
-            principal_token=user.id,
+            principal_token=token,
             agent_id=data["agent_id"],
             task=TaskContext(id="django-task", purpose="Django delegation demo"),
             scope=DelegationScope(scopes=data.get("scopes", [])),
@@ -344,11 +347,14 @@ class DRFDelegateView(APIView):
         serializer.is_valid(raise_exception=True)
 
         gateway = get_iam_gateway()
-        user = request.user
+
+        # Extract the raw JWT from the Authorization header
+        auth_header = request.META.get("HTTP_AUTHORIZATION", "")
+        token = auth_header.split(" ", 1)[1] if " " in auth_header else auth_header
 
         result = run_sync(
             gateway.delegate_to_agent(
-                principal_token=user.id,
+                principal_token=token,
                 agent_id=serializer.validated_data["agent_id"],
                 task=TaskContext(id="drf-task", purpose="DRF delegation demo"),
                 scope=DelegationScope(scopes=serializer.validated_data.get("scopes", [])),

@@ -12,7 +12,7 @@ import os
 from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException
 from pydantic import BaseModel
 
 from gl_iam import (
@@ -207,9 +207,13 @@ async def register_agent(
 async def delegate(
     request: DelegateRequest,
     user: User = Depends(get_current_user),
+    authorization: str = Header(),
 ):
     """Create a delegation token for cross-service use."""
     gateway = get_iam_gateway()
+
+    # Extract the raw JWT from the Authorization header
+    token = authorization.split(" ", 1)[1] if " " in authorization else authorization
 
     task = TaskContext(
         id="cross-service-task-001",
@@ -222,7 +226,7 @@ async def delegate(
     )
 
     result = await gateway.delegate_to_agent(
-        principal_token=user.id,
+        principal_token=token,
         agent_id=request.agent_id,
         task=task,
         scope=scope,

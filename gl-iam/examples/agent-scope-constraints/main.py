@@ -14,7 +14,7 @@ import os
 from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException
 from pydantic import BaseModel
 
 from gl_iam import (
@@ -75,8 +75,12 @@ async def lifespan(app: FastAPI):
         numeric_lte_validator,
     )
 
-    gateway = IAMGateway.from_fullstack_provider(
-        provider,
+    gateway = IAMGateway(
+        auth_provider=provider,
+        user_store=provider,
+        session_provider=provider,
+        organization_provider=provider,
+        agent_provider=provider,
         resource_constraint_validator=validator,
     )
     set_iam_gateway(gateway, default_organization_id=default_org_id)
@@ -218,6 +222,7 @@ async def setup_agent(user: User = Depends(get_current_user)):
 async def delegate_with_constraints(
     request: DelegateWithConstraintsRequest,
     user: User = Depends(get_current_user),
+    authorization: str = Header(),
 ):
     """
     Create a delegation token with resource constraints.
@@ -228,6 +233,9 @@ async def delegate_with_constraints(
     - {"budget": 100} - numeric LTE
     """
     gateway = get_iam_gateway()
+
+    # Extract the raw JWT from the Authorization header
+    token = authorization.split(" ", 1)[1] if " " in authorization else authorization
 
     task = TaskContext(
         id="constraint-task-001",
@@ -241,7 +249,7 @@ async def delegate_with_constraints(
     )
 
     result = await gateway.delegate_to_agent(
-        principal_token=user.id,
+        principal_token=token,
         agent_id=request.agent_id,
         task=task,
         scope=scope,
