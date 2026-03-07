@@ -54,6 +54,19 @@ Each Django example demonstrates three view patterns:
 | [api-key-hierarchy](examples/api-key-hierarchy/) | API key management with SOLID patterns | 3-tier API keys, scope-based authorization |
 | [third-party-integration](examples/third-party-integration/) | Full GitHub OAuth flow with pluggable connectors | Encrypted storage, multi-account, token revocation |
 
+### Agent Delegation Examples
+
+| Example | Description | Use Case |
+|---------|-------------|----------|
+| [agent-delegation-fastapi](examples/agent-delegation-fastapi/) | Core agent delegation with FastAPI | Register agents, delegate authority, scope-protected endpoints |
+| [agent-delegation-django](examples/agent-delegation-django/) | Core agent delegation with Django | FBV, CBV, and DRF patterns for agent endpoints |
+| [agent-delegation-chain](examples/agent-delegation-chain/) | Multi-hop delegation chains | Scope narrowing, chain inspection, orchestrator→worker delegation |
+| [agent-scope-constraints](examples/agent-scope-constraints/) | Resource constraint validators | String equality, set subset, numeric LTE constraints |
+| [agent-lifecycle](examples/agent-lifecycle/) | Agent suspend, revoke & audit | Lifecycle management, audit event capture |
+| [agent-cross-service](examples/agent-cross-service/) | Cross-service delegation | Two-service setup, minimal gateway for receiving service |
+| [agent-keycloak](examples/agent-keycloak/) | Agent delegation with Keycloak | Keycloak user auth + GL-IAM agent delegation |
+| [agent-stackauth](examples/agent-stackauth/) | Agent delegation with Stack Auth | Stack Auth token bridge to GL-IAM delegation tokens |
+
 ## SIMI Pattern
 
 All examples demonstrate the **Single Interface Multiple Implementation (SIMI)** pattern. The same GL-IAM dependencies work regardless of which provider you use:
