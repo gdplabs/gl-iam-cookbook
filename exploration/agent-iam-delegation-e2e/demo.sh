@@ -154,18 +154,67 @@ scope_table() {
     echo ""
 }
 
-# Execution results display — shows orchestrator, workers, and tools
+# Execution results display — shows d1 through d4 with denied scopes
 execution_results() {
     local response_json=$1
-    local log=$(echo "$response_json" | jq -r '.aip_response.execution_log // []' 2>/dev/null)
-
-    if [ -z "$log" ] || [ "$log" = "null" ] || [ "$log" = "[]" ]; then
-        return
-    fi
 
     echo ""
     echo -e "  ${BOLD}── Execution Results ───────────────────────────────${NC}"
     echo ""
+
+    # All scopes in the system
+    local all_scopes=("calendar:read" "calendar:write" "slack:post" "notion:read" "gmail:send")
+
+    # ── d1: User (ABAC) ──
+    local user_email=$(echo "$response_json" | jq -r '.user.email // empty' 2>/dev/null)
+    local user_role=$(echo "$response_json" | jq -r '.user.role // empty' 2>/dev/null)
+    local user_scopes_json=$(echo "$response_json" | jq -r '.user.scopes // []' 2>/dev/null)
+    local attenuated_json=$(echo "$response_json" | jq -r '.abac.attenuated_scopes // []' 2>/dev/null)
+    local agent_ceiling_json=$(echo "$response_json" | jq -r '.abac.agent_ceiling // []' 2>/dev/null)
+
+    local user_scopes=$(echo "$user_scopes_json" | jq -r '.[]' 2>/dev/null)
+    local attenuated=$(echo "$attenuated_json" | jq -r '.[]' 2>/dev/null)
+    local agent_ceiling=$(echo "$agent_ceiling_json" | jq -r '.[]' 2>/dev/null)
+
+    # Scopes the user has but were dropped by ABAC (not in agent ceiling)
+    local denied_at_d1=""
+    for scope in "${all_scopes[@]}"; do
+        local in_user=false
+        local in_attenuated=false
+        if echo "$user_scopes" | grep -q "^${scope}$" 2>/dev/null; then in_user=true; fi
+        if echo "$attenuated" | grep -q "^${scope}$" 2>/dev/null; then in_attenuated=true; fi
+        if $in_user && ! $in_attenuated; then
+            [ -n "$denied_at_d1" ] && denied_at_d1="${denied_at_d1}, "
+            denied_at_d1="${denied_at_d1}${scope}"
+        fi
+    done
+
+    # Scopes not in user role at all
+    local no_role_scopes=""
+    for scope in "${all_scopes[@]}"; do
+        if ! echo "$user_scopes" | grep -q "^${scope}$" 2>/dev/null; then
+            [ -n "$no_role_scopes" ] && no_role_scopes="${no_role_scopes}, "
+            no_role_scopes="${no_role_scopes}${scope}"
+        fi
+    done
+
+    echo -e "    ${GREEN}✓${NC}  ${BOLD}d1 User${NC}           ${user_email} (${user_role})"
+    local attenuated_str=$(echo "$attenuated_json" | jq -r 'join(", ")' 2>/dev/null)
+    echo -e "       ${DIM}scopes:  ${attenuated_str}${NC}"
+    if [ -n "$no_role_scopes" ]; then
+        echo -e "       ${RED}denied (role ${user_role}):  ${no_role_scopes}${NC}"
+    fi
+    if [ -n "$denied_at_d1" ]; then
+        echo -e "       ${RED}denied (not in agent ceiling):  ${denied_at_d1}${NC}"
+    fi
+
+    # ── d2-d4: From execution_log ──
+    local log=$(echo "$response_json" | jq -r '.aip_response.execution_log // []' 2>/dev/null)
+
+    if [ -z "$log" ] || [ "$log" = "null" ] || [ "$log" = "[]" ]; then
+        echo ""
+        return
+    fi
 
     echo "$log" | jq -c '.[]' 2>/dev/null | while read -r entry; do
         local step=$(echo "$entry" | jq -r '.step')
@@ -200,10 +249,18 @@ execution_results() {
             if [ -n "$error" ]; then
                 echo -e "       ${RED}error:   ${error}${NC}"
             fi
+            # Show scopes denied at worker level (in orchestrator but not delegated to worker)
+            local denied_at_worker=$(echo "$entry" | jq -r '.denied_scopes // [] | join(", ")' 2>/dev/null)
+            if [ -n "$denied_at_worker" ]; then
+                echo -e "       ${RED}denied:  ${denied_at_worker}${NC}"
+            fi
         elif [ "$depth" = "d4" ]; then
             local scope=$(echo "$entry" | jq -r '.scope // empty' 2>/dev/null)
             local worker=$(echo "$entry" | jq -r '.worker // empty' 2>/dev/null)
             echo -e "    ${icon}  ${BOLD}${depth} Tool${NC}           $(printf '%-22s' "$label")  ${DIM}${status}${NC}"
+            if [ -n "$scope" ]; then
+                echo -e "       ${DIM}scope:   ${scope}${NC}"
+            fi
             local error=$(echo "$entry" | jq -r '.error // empty' 2>/dev/null)
             if [ -n "$error" ]; then
                 echo -e "       ${RED}error:   ${error}${NC}"

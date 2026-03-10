@@ -356,11 +356,19 @@ async def run_agent(
 
             worker_token = worker_result.value
             worker_chain_depth = len(worker_token.chain.links)
+
+            # Scopes in orchestrator but not delegated to this worker
+            denied_at_worker = sorted(
+                s for s in effective_scopes
+                if s not in worker_scopes
+            )
+
             execution_log.append({
                 "step": f"d3:{worker_name}",
                 "status": "delegated",
                 "agent_id": worker_agent_id,
                 "scopes": worker_scopes,
+                "denied_scopes": denied_at_worker,
                 "tools": [t["tool"] for t in tools],
             })
 
