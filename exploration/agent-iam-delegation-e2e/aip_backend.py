@@ -201,22 +201,41 @@ KEYWORD_TO_TOOLS = {
 }
 
 
-def plan_tools(user_message: str, available_tools: list[dict]) -> list[dict]:
-    """Simulate agent planning: pick tools based on keywords in user message."""
+def plan_tools(
+    user_message: str, available_tools: list[dict], effective_scopes: set[str],
+) -> tuple[list[dict], list[dict]]:
+    """Simulate agent planning: pick tools based on keywords in user message.
+
+    Returns:
+        (planned_tools, blocked_tools) — blocked_tools are tools the user
+        asked for (keyword match) but the scope wasn't in effective_scopes.
+    """
     available_names = {t["tool"] for t in available_tools}
-    planned_names = set()
+    planned_names: set[str] = set()
+    desired_names: set[str] = set()  # all keyword-matched tools (regardless of scope)
 
     for keyword, tool_names in KEYWORD_TO_TOOLS.items():
         if keyword in user_message.lower():
             for name in tool_names:
+                desired_names.add(name)
                 if name in available_names:
                     planned_names.add(name)
 
     # If no keywords matched, use all available tools (agent decides to use everything)
-    if not planned_names:
+    if not desired_names:
         planned_names = available_names
+        desired_names = {t["tool"] for t in TOOL_REGISTRY.values()}
 
-    return [t for t in available_tools if t["tool"] in planned_names]
+    # Blocked = desired but not available (scope missing)
+    # Map tool name back to scope for the blocked reason
+    tool_to_scope = {v["tool"]: k for k, v in TOOL_REGISTRY.items()}
+    blocked = [
+        {"tool": name, "missing_scope": tool_to_scope.get(name, "unknown")}
+        for name in sorted(desired_names - available_names)
+    ]
+
+    planned = [t for t in available_tools if t["tool"] in planned_names]
+    return planned, blocked
 
 
 # ============================================================================
@@ -255,12 +274,15 @@ async def run_agent(
     available_tools = resolve_available_tools(effective_scopes)
 
     # 4. Simulate agent planning
-    planned_tools = plan_tools(request.user_message, available_tools)
+    planned_tools, blocked_tools = plan_tools(
+        request.user_message, available_tools, effective_scopes,
+    )
     audit_log(
         "agent_planned",
         ref,
         agent_id=agent_id,
         planned_tools=[t["tool"] for t in planned_tools],
+        blocked_tools=[t["tool"] for t in blocked_tools],
     )
 
     # 5. Depth-4 delegation: orchestrator (d2) → worker (d3) → tool (d4)
@@ -288,12 +310,18 @@ async def run_agent(
         "scopes": sorted(effective_scopes),
         "token": token.token,
     })
+    # Parent scope = user's principal_scope (first link in the delegation chain)
+    d2_parent_scopes = sorted(token.chain.links[0].scope.scopes) if token.chain.links else []
     execution_log.append({
         "step": "d2:orchestrator",
         "status": "validated",
         "agent_id": agent_id,
+        "parent_scopes": d2_parent_scopes,
+        "requested_scopes": sorted(effective_scopes),
         "scopes": sorted(effective_scopes),
+        "rejected_scopes": sorted(s for s in d2_parent_scopes if s not in effective_scopes),
         "planned_tools": [t["tool"] for t in planned_tools],
+        "blocked_tools": blocked_tools,
     })
 
     async with httpx.AsyncClient() as client:
@@ -340,10 +368,20 @@ async def run_agent(
                 scope=worker_scope,
             )
 
+            worker_ceiling = WORKER_REGISTRY[worker_name]["scopes"]
+
             if worker_result.is_err:
+                worker_requested_scopes = worker_ceiling
                 execution_log.append({
                     "step": f"d3:{worker_name}",
                     "status": "delegation_failed",
+                    "parent_scopes": sorted(effective_scopes),
+                    "agent_ceiling": sorted(worker_ceiling),
+                    "requested_scopes": sorted(worker_requested_scopes),
+                    "scopes": worker_scopes,
+                    "rejected_scopes": sorted(
+                        s for s in worker_requested_scopes if s not in worker_scopes
+                    ),
                     "error": worker_result.error.message,
                 })
                 for tool_info in tools:
@@ -363,11 +401,20 @@ async def run_agent(
                 if s not in worker_scopes
             )
 
+            # d3 parent = orchestrator's effective scopes
+            # requested = worker's full scope list (from WORKER_REGISTRY)
+            worker_requested_scopes = worker_ceiling
             execution_log.append({
                 "step": f"d3:{worker_name}",
                 "status": "delegated",
                 "agent_id": worker_agent_id,
+                "parent_scopes": sorted(effective_scopes),
+                "agent_ceiling": sorted(worker_ceiling),
+                "requested_scopes": sorted(worker_requested_scopes),
                 "scopes": worker_scopes,
+                "rejected_scopes": sorted(
+                    s for s in worker_requested_scopes if s not in worker_scopes
+                ),
                 "denied_scopes": denied_at_worker,
                 "tools": [t["tool"] for t in tools],
             })
@@ -418,9 +465,15 @@ async def run_agent(
                 )
 
                 if sub_result.is_err:
+                    d4_parent = worker_scopes
                     execution_log.append({
                         "step": f"d4:{tool_name}",
                         "status": "delegation_failed",
+                        "parent_scopes": sorted(d4_parent),
+                        "agent_ceiling": sorted(worker_ceiling),
+                        "requested_scopes": [required_scope],
+                        "scope": required_scope,
+                        "rejected_scopes": sorted(s for s in d4_parent if s != required_scope),
                         "worker": worker_name,
                         "error": sub_result.error.message,
                     })
@@ -460,6 +513,9 @@ async def run_agent(
                         headers={"X-Delegation-Token": sub_token.token},
                         timeout=10.0,
                     )
+                    # d4 parent = worker's granted scopes
+                    d4_parent = worker_scopes
+                    d4_rejected = sorted(s for s in d4_parent if s != required_scope)
                     if resp.status_code == 200:
                         result_data = resp.json()
                         result_data["status"] = "executed"
@@ -467,7 +523,11 @@ async def run_agent(
                         execution_log.append({
                             "step": f"d4:{tool_name}",
                             "status": "executed",
+                            "parent_scopes": sorted(d4_parent),
+                            "agent_ceiling": sorted(worker_ceiling),
+                            "requested_scopes": [required_scope],
                             "scope": required_scope,
+                            "rejected_scopes": d4_rejected,
                             "worker": worker_name,
                         })
                     else:
@@ -481,7 +541,11 @@ async def run_agent(
                         execution_log.append({
                             "step": f"d4:{tool_name}",
                             "status": "denied",
+                            "parent_scopes": sorted(d4_parent),
+                            "agent_ceiling": sorted(worker_ceiling),
+                            "requested_scopes": [required_scope],
                             "scope": required_scope,
+                            "rejected_scopes": d4_rejected,
                             "worker": worker_name,
                             "error": error_msg,
                         })

@@ -352,7 +352,7 @@ wheels = [
 [[package]]
 name = "gl-iam"
 version = "0.0.0"
-source = { git = "https://github.com/GDP-ADMIN/gl-sdk.git?subdirectory=libs%2Fgl-iam&branch=release%2Fgl-iam%2Fv0.2.0#3336c47757218ea8c8d237f6393bee744b8fc9e0" }
+source = { git = "https://github.com/GDP-ADMIN/gl-sdk.git?subdirectory=libs%2Fgl-iam&branch=release%2Fgl-iam%2Fv0.2.0#3a4e436de35bc92b1ff9dc3b485baabb03302bc7" }
 dependencies = [
     { name = "email-validator" },
     { name = "pydantic" },

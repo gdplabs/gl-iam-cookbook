@@ -306,6 +306,7 @@ async def run_agent(
         agent_id=request.agent_id,
         task=task,
         scope=scope,
+        principal_scope=DelegationScope(scopes=attenuated_scopes),
     )
 
     if result.is_err:

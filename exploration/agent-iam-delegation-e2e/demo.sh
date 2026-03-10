@@ -154,7 +154,7 @@ scope_table() {
     echo ""
 }
 
-# Execution results display — shows d1 through d4 with denied scopes
+# Execution results display — shows d1 through d4 with full attenuation context
 execution_results() {
     local response_json=$1
 
@@ -168,45 +168,27 @@ execution_results() {
     # ── d1: User (ABAC) ──
     local user_email=$(echo "$response_json" | jq -r '.user.email // empty' 2>/dev/null)
     local user_role=$(echo "$response_json" | jq -r '.user.role // empty' 2>/dev/null)
-    local user_scopes_json=$(echo "$response_json" | jq -r '.user.scopes // []' 2>/dev/null)
+    local user_scopes_str=$(echo "$response_json" | jq -r '.user.scopes // [] | join(", ")' 2>/dev/null)
+    local agent_ceiling_str=$(echo "$response_json" | jq -r '.abac.agent_ceiling // [] | join(", ")' 2>/dev/null)
+    local attenuated_str=$(echo "$response_json" | jq -r '.abac.attenuated_scopes // [] | join(", ")' 2>/dev/null)
+
+    # Compute rejected: all_scopes minus attenuated
     local attenuated_json=$(echo "$response_json" | jq -r '.abac.attenuated_scopes // []' 2>/dev/null)
-    local agent_ceiling_json=$(echo "$response_json" | jq -r '.abac.agent_ceiling // []' 2>/dev/null)
-
-    local user_scopes=$(echo "$user_scopes_json" | jq -r '.[]' 2>/dev/null)
     local attenuated=$(echo "$attenuated_json" | jq -r '.[]' 2>/dev/null)
-    local agent_ceiling=$(echo "$agent_ceiling_json" | jq -r '.[]' 2>/dev/null)
-
-    # Scopes the user has but were dropped by ABAC (not in agent ceiling)
-    local denied_at_d1=""
+    local rejected_d1=""
     for scope in "${all_scopes[@]}"; do
-        local in_user=false
-        local in_attenuated=false
-        if echo "$user_scopes" | grep -q "^${scope}$" 2>/dev/null; then in_user=true; fi
-        if echo "$attenuated" | grep -q "^${scope}$" 2>/dev/null; then in_attenuated=true; fi
-        if $in_user && ! $in_attenuated; then
-            [ -n "$denied_at_d1" ] && denied_at_d1="${denied_at_d1}, "
-            denied_at_d1="${denied_at_d1}${scope}"
+        if ! echo "$attenuated" | grep -q "^${scope}$" 2>/dev/null; then
+            [ -n "$rejected_d1" ] && rejected_d1="${rejected_d1}, "
+            rejected_d1="${rejected_d1}${scope}"
         fi
     done
+    [ -z "$rejected_d1" ] && rejected_d1="—"
 
-    # Scopes not in user role at all
-    local no_role_scopes=""
-    for scope in "${all_scopes[@]}"; do
-        if ! echo "$user_scopes" | grep -q "^${scope}$" 2>/dev/null; then
-            [ -n "$no_role_scopes" ] && no_role_scopes="${no_role_scopes}, "
-            no_role_scopes="${no_role_scopes}${scope}"
-        fi
-    done
-
-    echo -e "    ${GREEN}✓${NC}  ${BOLD}d1 User${NC}           ${user_email} (${user_role})"
-    local attenuated_str=$(echo "$attenuated_json" | jq -r 'join(", ")' 2>/dev/null)
-    echo -e "       ${DIM}scopes:  ${attenuated_str}${NC}"
-    if [ -n "$no_role_scopes" ]; then
-        echo -e "       ${RED}denied (role ${user_role}):  ${no_role_scopes}${NC}"
-    fi
-    if [ -n "$denied_at_d1" ]; then
-        echo -e "       ${RED}denied (not in agent ceiling):  ${denied_at_d1}${NC}"
-    fi
+    echo -e "    ${GREEN}✓${NC}  ${BOLD}d1 User ${CYAN}→${NC}${BOLD} Orchestrator${NC}      ${user_email} (${user_role})"
+    echo -e "       ${DIM}role scopes:      ${user_scopes_str}${NC}"
+    echo -e "       ${DIM}agent ceiling:    ${agent_ceiling_str}${NC}"
+    echo -e "       ${GREEN}allowed:          ${attenuated_str}${NC}"
+    echo -e "       ${RED}excluded:         ${rejected_d1}${NC}"
 
     # ── d2-d4: From execution_log ──
     local log=$(echo "$response_json" | jq -r '.aip_response.execution_log // []' 2>/dev/null)
@@ -229,41 +211,61 @@ execution_results() {
             icon="${RED}✗${NC}"
         fi
 
+        # Common fields for all depths
+        local parent_str=$(echo "$entry" | jq -r '.parent_scopes // [] | join(", ")' 2>/dev/null)
+        local requested_str=$(echo "$entry" | jq -r '.requested_scopes // [] | join(", ")' 2>/dev/null)
+        # granted = .scopes (array) for d2/d3, .scope (string) for d4
+        local granted_str=$(echo "$entry" | jq -r '(.scopes // null) as $arr | (.scope // null) as $str | if $arr != null and ($arr | type) == "array" then ($arr | join(", ")) elif $str != null then $str else "—" end' 2>/dev/null)
+        local rejected_str=$(echo "$entry" | jq -r '.rejected_scopes // [] | join(", ")' 2>/dev/null)
+        [ -z "$rejected_str" ] && rejected_str="—"
+        [ -z "$parent_str" ] && parent_str="—"
+        [ -z "$requested_str" ] && requested_str="—"
+        [ -z "$granted_str" ] && granted_str="—"
+
+        # Agent ceiling (for d3 and d4)
+        local ceiling_str=$(echo "$entry" | jq -r '.agent_ceiling // [] | join(", ")' 2>/dev/null)
+        [ -z "$ceiling_str" ] && ceiling_str="—"
+
         if [ "$depth" = "d2" ]; then
-            local scopes=$(echo "$entry" | jq -r '.scopes | join(", ")' 2>/dev/null)
-            local planned=$(echo "$entry" | jq -r '.planned_tools | join(", ")' 2>/dev/null)
-            echo -e "    ${icon}  ${BOLD}${depth} Orchestrator${NC}   ${DIM}${status}${NC}"
-            echo -e "       ${DIM}scopes:  ${scopes}${NC}"
-            echo -e "       ${DIM}planned: ${planned}${NC}"
-        elif [ "$depth" = "d3" ]; then
-            local scopes=$(echo "$entry" | jq -r '.scopes // [] | join(", ")' 2>/dev/null)
-            local tools=$(echo "$entry" | jq -r '.tools // [] | join(", ")' 2>/dev/null)
-            echo -e "    ${icon}  ${BOLD}${depth} Worker${NC}         ${label}  ${DIM}${status}${NC}"
-            if [ -n "$scopes" ]; then
-                echo -e "       ${DIM}scopes:  ${scopes}${NC}"
+            local planned=$(echo "$entry" | jq -r '.planned_tools // [] | join(", ")' 2>/dev/null)
+            local blocked_count=$(echo "$entry" | jq -r '.blocked_tools // [] | length' 2>/dev/null)
+            if [ "$blocked_count" -gt 0 ] 2>/dev/null; then
+                local d2_icon="${YELLOW}⚠${NC}"
+                echo -e "    ${d2_icon}  ${BOLD}${depth} Orchestrator${NC} ${DIM}${status} — planned: ${planned}${NC}"
+                echo "$entry" | jq -c '.blocked_tools[]' 2>/dev/null | while read -r bt; do
+                    local bt_tool=$(echo "$bt" | jq -r '.tool')
+                    local bt_scope=$(echo "$bt" | jq -r '.missing_scope')
+                    echo -e "       ${RED}blocked: ${bt_tool} (missing scope: ${bt_scope})${NC}"
+                done
+            else
+                echo -e "    ${icon}  ${BOLD}${depth} Orchestrator${NC} ${DIM}${status} — planned: ${planned}${NC}"
             fi
+        elif [ "$depth" = "d3" ]; then
+            local tools=$(echo "$entry" | jq -r '.tools // [] | join(", ")' 2>/dev/null)
+            echo -e "    ${icon}  ${BOLD}${depth} Orchestrator ${CYAN}→${NC}${BOLD} ${label}${NC}  ${DIM}${status}${NC}"
+            echo -e "       ${DIM}parent scope:     ${parent_str}${NC}"
+            echo -e "       ${DIM}agent ceiling:    ${ceiling_str}${NC}"
+            echo -e "       ${DIM}requested scope:  ${requested_str}${NC}"
+            echo -e "       ${GREEN}allowed:          ${granted_str}${NC}"
+            echo -e "       ${RED}excluded:         ${rejected_str}${NC}"
             if [ -n "$tools" ]; then
-                echo -e "       ${DIM}tools:   ${tools}${NC}"
+                echo -e "       ${DIM}tools:            ${tools}${NC}"
             fi
             local error=$(echo "$entry" | jq -r '.error // empty' 2>/dev/null)
             if [ -n "$error" ]; then
-                echo -e "       ${RED}error:   ${error}${NC}"
-            fi
-            # Show scopes denied at worker level (in orchestrator but not delegated to worker)
-            local denied_at_worker=$(echo "$entry" | jq -r '.denied_scopes // [] | join(", ")' 2>/dev/null)
-            if [ -n "$denied_at_worker" ]; then
-                echo -e "       ${RED}denied:  ${denied_at_worker}${NC}"
+                echo -e "       ${RED}error:            ${error}${NC}"
             fi
         elif [ "$depth" = "d4" ]; then
-            local scope=$(echo "$entry" | jq -r '.scope // empty' 2>/dev/null)
-            local worker=$(echo "$entry" | jq -r '.worker // empty' 2>/dev/null)
-            echo -e "    ${icon}  ${BOLD}${depth} Tool${NC}           $(printf '%-22s' "$label")  ${DIM}${status}${NC}"
-            if [ -n "$scope" ]; then
-                echo -e "       ${DIM}scope:   ${scope}${NC}"
-            fi
+            local worker=$(echo "$entry" | jq -r '.worker // "worker"' 2>/dev/null)
+            echo -e "    ${icon}  ${BOLD}${depth} ${worker} ${CYAN}→${NC}${BOLD} ${label}${NC}  ${DIM}${status}${NC}"
+            echo -e "       ${DIM}parent scope:     ${parent_str}${NC}"
+            echo -e "       ${DIM}agent ceiling:    ${ceiling_str}${NC}"
+            echo -e "       ${DIM}requested scope:  ${requested_str}${NC}"
+            echo -e "       ${GREEN}allowed:          ${granted_str}${NC}"
+            echo -e "       ${RED}excluded:         ${rejected_str}${NC}"
             local error=$(echo "$entry" | jq -r '.error // empty' 2>/dev/null)
             if [ -n "$error" ]; then
-                echo -e "       ${RED}error:   ${error}${NC}"
+                echo -e "       ${RED}error:            ${error}${NC}"
             fi
         fi
     done
