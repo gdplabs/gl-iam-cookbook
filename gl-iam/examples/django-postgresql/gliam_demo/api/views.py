@@ -86,22 +86,21 @@ def register(request):
     gateway = get_iam_gateway()
     org_id = os.getenv("DEFAULT_ORGANIZATION_ID", "default")
 
-    user = run_sync(
-        gateway.user_store.create_user(
+    result = run_sync(
+        gateway.create_user_with_password(
             UserCreateInput(
                 email=serializer.validated_data["email"],
                 display_name=serializer.validated_data.get("display_name")
                 or serializer.validated_data["email"].split("@")[0],
             ),
+            password=serializer.validated_data["password"],
             organization_id=org_id,
         )
     )
 
-    run_sync(
-        gateway.user_store.set_user_password(
-            user.id, serializer.validated_data["password"], org_id
-        )
-    )
+    if not result.is_ok:
+        return JsonResponse({"error": result.error.message}, status=400)
+    user = result.value
 
     return JsonResponse(
         {
@@ -443,22 +442,23 @@ class RegisterAPIView(APIView):
         gateway = get_iam_gateway()
         org_id = os.getenv("DEFAULT_ORGANIZATION_ID", "default")
 
-        user = run_sync(
-            gateway.user_store.create_user(
+        result = run_sync(
+            gateway.create_user_with_password(
                 UserCreateInput(
                     email=serializer.validated_data["email"],
                     display_name=serializer.validated_data.get("display_name")
                     or serializer.validated_data["email"].split("@")[0],
                 ),
+                password=serializer.validated_data["password"],
                 organization_id=org_id,
             )
         )
 
-        run_sync(
-            gateway.user_store.set_user_password(
-                user.id, serializer.validated_data["password"], org_id
+        if not result.is_ok:
+            return Response(
+                {"error": result.error.message}, status=status.HTTP_400_BAD_REQUEST
             )
-        )
+        user = result.value
 
         response_serializer = UserResponseSerializer(
             {

@@ -115,15 +115,19 @@ async def register(request: RegisterRequest):
     gateway = get_iam_gateway()
     org_id = os.getenv("DEFAULT_ORGANIZATION_ID", "default")
 
-    user = await gateway.user_store.create_user(
+    result = await gateway.create_user_with_password(
         UserCreateInput(
             email=request.email,
             display_name=request.display_name or request.email.split("@")[0],
         ),
+        password=request.password,
         organization_id=org_id,
     )
 
-    await gateway.user_store.set_user_password(user.id, request.password, org_id)
+    if not result.is_ok:
+        raise HTTPException(status_code=400, detail=result.error.message)
+    else:
+        user = result.value
 
     return UserResponse(id=user.id, email=user.email, display_name=user.display_name)
 

@@ -161,15 +161,18 @@ async def register(request: RegisterRequest):
     gateway = get_iam_gateway()
     org_id = os.getenv("DEFAULT_ORGANIZATION_ID", "default")
 
-    user = await gateway.user_store.create_user(
+    result = await gateway.create_user_with_password(
         UserCreateInput(
             email=request.email,
             display_name=request.display_name or request.email.split("@")[0],
         ),
+        password=request.password,
         organization_id=org_id,
     )
 
-    await gateway.user_store.set_user_password(user.id, request.password, org_id)
+    if not result.is_ok:
+        raise HTTPException(status_code=400, detail=result.error.message)
+    user = result.value
 
     return {"id": user.id, "email": user.email, "display_name": user.display_name}
 
@@ -247,7 +250,11 @@ async def suspend_agent(
     result = await gateway.suspend_agent(agent_id, organization_id=org_id)
 
     if result.is_ok:
-        return {"agent_id": agent_id, "status": "suspended", "message": "Agent suspended successfully"}
+        return {
+            "agent_id": agent_id,
+            "status": "suspended",
+            "message": "Agent suspended successfully",
+        }
     else:
         raise HTTPException(status_code=400, detail=result.error.message)
 
@@ -264,7 +271,11 @@ async def revoke_agent(
     result = await gateway.revoke_agent(agent_id, organization_id=org_id)
 
     if result.is_ok:
-        return {"agent_id": agent_id, "status": "revoked", "message": "Agent revoked permanently"}
+        return {
+            "agent_id": agent_id,
+            "status": "revoked",
+            "message": "Agent revoked permanently",
+        }
     else:
         raise HTTPException(status_code=400, detail=result.error.message)
 
@@ -291,7 +302,11 @@ async def reactivate_agent(
     result = await agent_provider.reactivate_agent(agent_id, organization_id=org_id)
 
     if result.is_ok:
-        return {"agent_id": agent_id, "status": "active", "message": "Agent reactivated successfully"}
+        return {
+            "agent_id": agent_id,
+            "status": "active",
+            "message": "Agent reactivated successfully",
+        }
     else:
         raise HTTPException(status_code=400, detail=result.error.message)
 
@@ -331,8 +346,12 @@ async def list_agents(
                 "name": agent.name,
                 "agent_type": agent.agent_type.value,
                 "status": agent.status.value,
-                "created_at": agent.created_at.isoformat() if agent.created_at else None,
-                "revoked_at": agent.revoked_at.isoformat() if agent.revoked_at else None,
+                "created_at": agent.created_at.isoformat()
+                if agent.created_at
+                else None,
+                "revoked_at": agent.revoked_at.isoformat()
+                if agent.revoked_at
+                else None,
             }
             for agent in agents
         ],

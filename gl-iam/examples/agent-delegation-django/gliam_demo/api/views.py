@@ -65,23 +65,29 @@ def register_user(request):
         return JsonResponse({"error": "Method not allowed"}, status=405)
 
     import json
+
     data = json.loads(request.body)
     gateway = get_iam_gateway()
     org_id = os.getenv("DEFAULT_ORGANIZATION_ID", "default")
 
-    user = run_sync(
-        gateway.user_store.create_user(
+    result = run_sync(
+        gateway.create_user_with_password(
             UserCreateInput(
                 email=data["email"],
                 display_name=data.get("display_name", data["email"].split("@")[0]),
             ),
+            password=data["password"],
             organization_id=org_id,
         )
     )
 
-    run_sync(gateway.user_store.set_user_password(user.id, data["password"], org_id))
+    if not result.is_ok:
+        return JsonResponse({"error": result.error.message}, status=400)
+    user = result.value
 
-    return JsonResponse({"id": user.id, "email": user.email, "display_name": user.display_name})
+    return JsonResponse(
+        {"id": user.id, "email": user.email, "display_name": user.display_name}
+    )
 
 
 @csrf_exempt
@@ -91,22 +97,27 @@ def login_user(request):
         return JsonResponse({"error": "Method not allowed"}, status=405)
 
     import json
+
     data = json.loads(request.body)
     gateway = get_iam_gateway()
     org_id = os.getenv("DEFAULT_ORGANIZATION_ID", "default")
 
     result = run_sync(
         gateway.authenticate(
-            credentials=PasswordCredentials(email=data["email"], password=data["password"]),
+            credentials=PasswordCredentials(
+                email=data["email"], password=data["password"]
+            ),
             organization_id=org_id,
         )
     )
 
     if result.is_ok:
-        return JsonResponse({
-            "access_token": result.token.access_token,
-            "token_type": result.token.token_type,
-        })
+        return JsonResponse(
+            {
+                "access_token": result.token.access_token,
+                "token_type": result.token.token_type,
+            }
+        )
     else:
         return JsonResponse({"error": result.error.message}, status=401)
 
@@ -122,6 +133,7 @@ def fbv_register_agent(request):
         return JsonResponse({"error": "Method not allowed"}, status=405)
 
     import json
+
     data = json.loads(request.body)
     gateway = get_iam_gateway()
     user = request.gl_iam_user
@@ -133,7 +145,9 @@ def fbv_register_agent(request):
         "tool": AgentType.TOOL,
         "autonomous": AgentType.AUTONOMOUS,
     }
-    agent_type = agent_type_map.get(data.get("agent_type", "worker").lower(), AgentType.WORKER)
+    agent_type = agent_type_map.get(
+        data.get("agent_type", "worker").lower(), AgentType.WORKER
+    )
 
     result = run_sync(
         gateway.register_agent(
@@ -149,12 +163,14 @@ def fbv_register_agent(request):
 
     if result.is_ok:
         agent = result.value
-        return JsonResponse({
-            "id": agent.id,
-            "name": agent.name,
-            "agent_type": agent.agent_type.value,
-            "status": agent.status.value,
-        })
+        return JsonResponse(
+            {
+                "id": agent.id,
+                "name": agent.name,
+                "agent_type": agent.agent_type.value,
+                "status": agent.status.value,
+            }
+        )
     else:
         return JsonResponse({"error": result.error.message}, status=400)
 
@@ -167,6 +183,7 @@ def fbv_delegate(request):
         return JsonResponse({"error": "Method not allowed"}, status=405)
 
     import json
+
     data = json.loads(request.body)
     gateway = get_iam_gateway()
 
@@ -185,11 +202,13 @@ def fbv_delegate(request):
 
     if result.is_ok:
         delegation = result.value
-        return JsonResponse({
-            "delegation_token": delegation.token,
-            "agent_id": delegation.agent_id,
-            "scopes": delegation.scope.scopes,
-        })
+        return JsonResponse(
+            {
+                "delegation_token": delegation.token,
+                "agent_id": delegation.agent_id,
+                "scopes": delegation.scope.scopes,
+            }
+        )
     else:
         return JsonResponse({"error": result.error.message}, status=400)
 
@@ -198,36 +217,42 @@ def fbv_delegate(request):
 def fbv_agent_documents(request):
     """Agent endpoint requiring docs:read scope (FBV decorator)."""
     agent = request.gl_iam_agent
-    return JsonResponse({
-        "pattern": "FBV",
-        "agent": agent.name,
-        "documents": [
-            {"id": "doc-1", "title": "FBV Document"},
-        ],
-    })
+    return JsonResponse(
+        {
+            "pattern": "FBV",
+            "agent": agent.name,
+            "documents": [
+                {"id": "doc-1", "title": "FBV Document"},
+            ],
+        }
+    )
 
 
 @require_delegation_chain
 def fbv_agent_chain(request):
     """Agent endpoint requiring a delegation chain (FBV decorator)."""
     chain = request.gl_iam_delegation_chain
-    return JsonResponse({
-        "pattern": "FBV",
-        "depth": chain.depth,
-        "effective_scopes": list(chain.effective_scopes()),
-    })
+    return JsonResponse(
+        {
+            "pattern": "FBV",
+            "depth": chain.depth,
+            "effective_scopes": list(chain.effective_scopes()),
+        }
+    )
 
 
 @require_agent_type(AgentType.WORKER)
 def fbv_worker_only(request):
     """Agent endpoint restricted to WORKER type (FBV decorator)."""
     agent = request.gl_iam_agent
-    return JsonResponse({
-        "pattern": "FBV",
-        "agent": agent.name,
-        "agent_type": agent.agent_type.value,
-        "message": "Only WORKER agents can access this",
-    })
+    return JsonResponse(
+        {
+            "pattern": "FBV",
+            "agent": agent.name,
+            "agent_type": agent.agent_type.value,
+            "message": "Only WORKER agents can access this",
+        }
+    )
 
 
 # ============================================================================
@@ -245,13 +270,15 @@ class CBVAgentDocuments(AgentScopeRequiredMixin, View):
     def get(self, request):
         """Get documents for the agent."""
         agent = request.gl_iam_agent
-        return JsonResponse({
-            "pattern": "CBV",
-            "agent": agent.name,
-            "documents": [
-                {"id": "doc-1", "title": "CBV Document"},
-            ],
-        })
+        return JsonResponse(
+            {
+                "pattern": "CBV",
+                "agent": agent.name,
+                "documents": [
+                    {"id": "doc-1", "title": "CBV Document"},
+                ],
+            }
+        )
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -261,11 +288,13 @@ class CBVAgentChain(DelegationChainRequiredMixin, View):
     def get(self, request):
         """Get delegation chain info."""
         chain = request.gl_iam_delegation_chain
-        return JsonResponse({
-            "pattern": "CBV",
-            "depth": chain.depth,
-            "effective_scopes": list(chain.effective_scopes()),
-        })
+        return JsonResponse(
+            {
+                "pattern": "CBV",
+                "depth": chain.depth,
+                "effective_scopes": list(chain.effective_scopes()),
+            }
+        )
 
 
 # ============================================================================
@@ -282,22 +311,23 @@ class DRFRegisterView(APIView):
         gateway = get_iam_gateway()
         org_id = os.getenv("DEFAULT_ORGANIZATION_ID", "default")
 
-        user = run_sync(
-            gateway.user_store.create_user(
+        result = run_sync(
+            gateway.create_user_with_password(
                 UserCreateInput(
                     email=serializer.validated_data["email"],
                     display_name=serializer.validated_data.get("display_name")
                     or serializer.validated_data["email"].split("@")[0],
                 ),
+                password=serializer.validated_data["password"],
                 organization_id=org_id,
             )
         )
 
-        run_sync(
-            gateway.user_store.set_user_password(
-                user.id, serializer.validated_data["password"], org_id
+        if not result.is_ok:
+            return Response(
+                {"error": result.error.message}, status=status.HTTP_400_BAD_REQUEST
             )
-        )
+        user = result.value
 
         return Response(
             {"id": user.id, "email": user.email, "display_name": user.display_name},
@@ -327,12 +357,16 @@ class DRFLoginView(APIView):
         )
 
         if result.is_ok:
-            return Response({
-                "access_token": result.token.access_token,
-                "token_type": result.token.token_type,
-            })
+            return Response(
+                {
+                    "access_token": result.token.access_token,
+                    "token_type": result.token.token_type,
+                }
+            )
         else:
-            return Response({"error": result.error.message}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response(
+                {"error": result.error.message}, status=status.HTTP_401_UNAUTHORIZED
+            )
 
 
 class DRFDelegateView(APIView):
@@ -357,19 +391,25 @@ class DRFDelegateView(APIView):
                 principal_token=token,
                 agent_id=serializer.validated_data["agent_id"],
                 task=TaskContext(id="drf-task", purpose="DRF delegation demo"),
-                scope=DelegationScope(scopes=serializer.validated_data.get("scopes", [])),
+                scope=DelegationScope(
+                    scopes=serializer.validated_data.get("scopes", [])
+                ),
             )
         )
 
         if result.is_ok:
             delegation = result.value
-            return Response({
-                "delegation_token": delegation.token,
-                "agent_id": delegation.agent_id,
-                "scopes": delegation.scope.scopes,
-            })
+            return Response(
+                {
+                    "delegation_token": delegation.token,
+                    "agent_id": delegation.agent_id,
+                    "scopes": delegation.scope.scopes,
+                }
+            )
         else:
-            return Response({"error": result.error.message}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": result.error.message}, status=status.HTTP_400_BAD_REQUEST
+            )
 
 
 class DRFAgentDocuments(APIView):
@@ -381,13 +421,15 @@ class DRFAgentDocuments(APIView):
     def get(self, request):
         """Get documents for the agent."""
         agent = request.user.agent
-        return Response({
-            "pattern": "DRF",
-            "agent": agent.name,
-            "documents": [
-                {"id": "doc-1", "title": "DRF Document"},
-            ],
-        })
+        return Response(
+            {
+                "pattern": "DRF",
+                "agent": agent.name,
+                "documents": [
+                    {"id": "doc-1", "title": "DRF Document"},
+                ],
+            }
+        )
 
 
 class DRFAgentWorkerOnly(APIView):
@@ -399,12 +441,14 @@ class DRFAgentWorkerOnly(APIView):
     def get(self, request):
         """Worker-only endpoint."""
         agent = request.user.agent
-        return Response({
-            "pattern": "DRF",
-            "agent": agent.name,
-            "agent_type": agent.agent_type.value,
-            "message": "Only WORKER agents can access this",
-        })
+        return Response(
+            {
+                "pattern": "DRF",
+                "agent": agent.name,
+                "agent_type": agent.agent_type.value,
+                "message": "Only WORKER agents can access this",
+            }
+        )
 
 
 class DRFAgentChain(APIView):
@@ -416,11 +460,13 @@ class DRFAgentChain(APIView):
     def get(self, request):
         """Get delegation chain info."""
         chain = request.user.chain
-        return Response({
-            "pattern": "DRF",
-            "depth": chain.depth,
-            "effective_scopes": list(chain.effective_scopes()),
-        })
+        return Response(
+            {
+                "pattern": "DRF",
+                "depth": chain.depth,
+                "effective_scopes": list(chain.effective_scopes()),
+            }
+        )
 
 
 class DRFAgentConstraint(APIView):
@@ -432,9 +478,11 @@ class DRFAgentConstraint(APIView):
     def get(self, request):
         """Constraint-protected endpoint."""
         agent = request.user.agent
-        return Response({
-            "pattern": "DRF",
-            "agent": agent.name,
-            "tenant_id": "acme",
-            "message": "Resource constraint validated",
-        })
+        return Response(
+            {
+                "pattern": "DRF",
+                "agent": agent.name,
+                "tenant_id": "acme",
+                "message": "Resource constraint validated",
+            }
+        )
