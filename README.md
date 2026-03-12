@@ -52,7 +52,9 @@ gl-iam-cookbook/
         ├── agent-lifecycle/          # Agent suspend, revoke & audit
         ├── agent-cross-service/      # Cross-service delegation
         ├── agent-keycloak/           # Agent delegation with Keycloak
-        └── agent-stackauth/          # Agent delegation with Stack Auth
+        ├── agent-stackauth/          # Agent delegation with Stack Auth
+        ├── sso-token-exchange/       # SSO with HMAC token exchange (Option A)
+        └── sso-jwt-bridge/           # SSO with JWT bridge (Option B)
 ```
 
 ## Examples
@@ -110,6 +112,13 @@ This example demonstrates migrating from legacy BOSA Core Auth to GL-IAM, includ
 |---------|-------------|----------|
 | [api-key-hierarchy](gl-iam/examples/api-key-hierarchy/) | API key management with SOLID patterns | 3-tier API keys, scope-based authorization |
 | [third-party-integration](gl-iam/examples/third-party-integration/) | Full GitHub OAuth flow with pluggable connectors | Encrypted credential storage, multi-account support, token revocation |
+
+### SSO Partner Registry Examples
+
+| Example | Description | Features |
+|---------|-------------|----------|
+| [sso-token-exchange](gl-iam/examples/sso-token-exchange/) | Server-side token exchange SSO (Option A) | HMAC signature validation, one-time tokens, JIT user provisioning |
+| [sso-jwt-bridge](gl-iam/examples/sso-jwt-bridge/) | JWT-signed token SSO (Option B) | Shared secret JWT, stateless verification, simpler setup |
 
 ### Agent Delegation Examples
 
