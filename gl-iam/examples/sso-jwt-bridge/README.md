@@ -2,6 +2,28 @@
 
 JWT-signed token SSO using a shared secret between the partner and your application. Simpler than Option A but with fewer security controls.
 
+## Real-World Context
+
+This example is based on a real product requirement: **Lokadata x GLChat SSO integration**.
+
+- **Lokadata** has its own website with its own login system
+- **GLChat** is embedded as an AI chat widget (iframe) inside Lokadata's website
+- **Problem**: Users had to log in to Lokadata first, then separately log in to GLChat — a poor user experience
+- **Solution**: When a user logs in to Lokadata, they should be automatically authenticated in the GLChat widget
+
+Option B (JWT Bridge) is the **simpler alternative** to [Option A (Token Exchange)](../sso-token-exchange/). In this approach, Lokadata signs a short-lived JWT with a shared secret — no server-to-server token request is needed.
+
+> See the full architecture document: [Lokadata x GLChat SSO Architecture](https://github.com/gdplabs/gl-iam-cookbook/blob/main/docs/Lokadata-GLChat-SSO-Architecture.md)
+
+### When to use Option B?
+
+Option B is suitable when:
+- You have a **single trusted partner** (e.g., only Lokadata embeds GLChat)
+- You want the **simplest possible integration** with minimal moving parts
+- You don't need per-partner key rotation or partner lifecycle management
+
+For production with multiple partners, see [Option A (Token Exchange)](../sso-token-exchange/).
+
 ## Overview
 
 This example demonstrates a **stateless SSO approach** where the partner signs a short-lived JWT with a shared secret. No partner registry, HMAC signatures, or one-time token storage is needed.

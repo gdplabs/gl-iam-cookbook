@@ -2,6 +2,27 @@
 
 Server-side token exchange SSO using GL-IAM's PartnerRegistryProvider with HMAC-SHA256 signature validation and one-time tokens.
 
+## Real-World Context
+
+This example is based on a real product requirement: **Lokadata x GLChat SSO integration**.
+
+- **Lokadata** has its own website with its own login system
+- **GLChat** is embedded as an AI chat widget (iframe) inside Lokadata's website
+- **Problem**: Users had to log in to Lokadata first, then separately log in to GLChat — a poor user experience
+- **Solution**: When a user logs in to Lokadata, they should be automatically authenticated in the GLChat widget
+
+In this architecture, Lokadata acts as the **Identity Provider (IdP)** that pushes user identity to GLChat. The cookbook example simulates this flow: `partner_client.py` represents the Lokadata backend, and `sso_receiver.py` represents the GLChat backend using GL-IAM.
+
+> See the full architecture document: [Lokadata x GLChat SSO Architecture](https://github.com/gdplabs/gl-iam-cookbook/blob/main/docs/Lokadata-GLChat-SSO-Architecture.md)
+
+### Why Option A for this case?
+
+Option A (Token Exchange) is recommended for Lokadata x GLChat because:
+- **Multiple partners**: GLChat may be embedded by other partner websites in the future, each needing their own consumer key
+- **Key rotation**: Partners can rotate their consumer secrets without downtime
+- **Partner lifecycle**: Partners can be deactivated without code changes
+- **Audit trail**: Every partner registration and SSO attempt is tracked
+
 ## Overview
 
 This example demonstrates **IdP-Initiated SSO** where an external partner system authenticates users and sends them to your application. The flow has two phases:

@@ -69,10 +69,12 @@ Each Django example demonstrates three view patterns:
 
 ### SSO Partner Registry Examples
 
+Based on a real product requirement: **Lokadata x GLChat SSO** — enabling automatic user authentication when GLChat is embedded as a widget inside a partner website.
+
 | Example | Description | Use Case |
 |---------|-------------|----------|
-| [sso-token-exchange](examples/sso-token-exchange/) | Server-side HMAC token exchange SSO (Option A) | Multiple partners, key rotation, partner lifecycle |
-| [sso-jwt-bridge](examples/sso-jwt-bridge/) | JWT-signed token SSO (Option B) | Single trusted partner, simple setup |
+| [sso-token-exchange](examples/sso-token-exchange/) | Server-side HMAC token exchange SSO (Option A - Recommended) | Multiple partners, key rotation, partner lifecycle |
+| [sso-jwt-bridge](examples/sso-jwt-bridge/) | JWT-signed token SSO (Option B - Simpler) | Single trusted partner, simple setup |
 
 ## SIMI Pattern
 

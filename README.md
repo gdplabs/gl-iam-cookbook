@@ -115,10 +115,12 @@ This example demonstrates migrating from legacy BOSA Core Auth to GL-IAM, includ
 
 ### SSO Partner Registry Examples
 
+Based on a real product requirement: **Lokadata x GLChat SSO** — enabling automatic user authentication when GLChat is embedded as a widget inside a partner website.
+
 | Example | Description | Features |
 |---------|-------------|----------|
-| [sso-token-exchange](gl-iam/examples/sso-token-exchange/) | Server-side token exchange SSO (Option A) | HMAC signature validation, one-time tokens, JIT user provisioning |
-| [sso-jwt-bridge](gl-iam/examples/sso-jwt-bridge/) | JWT-signed token SSO (Option B) | Shared secret JWT, stateless verification, simpler setup |
+| [sso-token-exchange](gl-iam/examples/sso-token-exchange/) | Server-side token exchange SSO (Option A - Recommended) | HMAC signature validation, one-time tokens, JIT user provisioning, multi-partner support |
+| [sso-jwt-bridge](gl-iam/examples/sso-jwt-bridge/) | JWT-signed token SSO (Option B - Simpler) | Shared secret JWT, stateless verification, single trusted partner |
 
 ### Agent Delegation Examples
 
