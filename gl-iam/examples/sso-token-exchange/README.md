@@ -69,7 +69,7 @@ Additionally, you need:
 
 3. **Configure environment** (optional)
 
-   The setup script creates `.env` from `.env.example` and generates a Fernet encryption key. To customize:
+   The setup script creates `.env` from `.env.example` and generates an encryption key. To customize:
 
    ```bash
    # Edit .env with your settings

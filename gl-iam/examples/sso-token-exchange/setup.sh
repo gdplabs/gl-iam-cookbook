@@ -13,15 +13,15 @@ if [ ! -f .env ]; then
     echo "Creating .env from .env.example..."
     cp .env.example .env
 
-    # Generate a Fernet encryption key
-    FERNET_KEY=$(python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())" 2>/dev/null || echo "your-fernet-encryption-key-here")
-    if [ "$FERNET_KEY" != "your-fernet-encryption-key-here" ]; then
+    # Generate an encryption key
+    FERNET_KEY=$(python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())" 2>/dev/null || echo "your-encryption-key-here")
+    if [ "$FERNET_KEY" != "your-encryption-key-here" ]; then
         if [[ "$OSTYPE" == "darwin"* ]]; then
-            sed -i '' "s|your-fernet-encryption-key-here|$FERNET_KEY|" .env
+            sed -i '' "s|your-encryption-key-here|$FERNET_KEY|" .env
         else
-            sed -i "s|your-fernet-encryption-key-here|$FERNET_KEY|" .env
+            sed -i "s|your-encryption-key-here|$FERNET_KEY|" .env
         fi
-        echo "Generated Fernet encryption key."
+        echo "Generated encryption key."
     fi
 
     echo "Created .env file. You can customize it if needed."

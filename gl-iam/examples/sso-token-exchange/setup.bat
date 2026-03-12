@@ -11,7 +11,7 @@ if not exist .env (
     echo Creating .env from .env.example...
     copy .env.example .env
     echo Created .env file. You can customize it if needed.
-    echo NOTE: Generate a Fernet key with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+    echo NOTE: Generate an encryption key with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
     echo       Then update ENCRYPTION_KEY in .env
 ) else (
     echo .env file already exists, skipping...
