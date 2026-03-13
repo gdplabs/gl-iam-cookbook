@@ -222,17 +222,39 @@ HMAC-SHA256(consumer_secret, "timestamp|consumer_key|payload")
 
 The partner computes this with their consumer secret (received during registration). GL-IAM decrypts the stored secret and performs constant-time comparison.
 
-### Token Exchange Sequence
+### Who Calls What? (Production Architecture)
+
+In production, there are **three separate systems** involved. The `partner_client.py` script simulates both the partner backend and the GLChat widget since there's no real iframe in this demo.
 
 ```
-1. Partner registers once:
-   POST /admin/partners → { consumer_key, consumer_secret }
+                          Lokadata Backend              GLChat Widget (iframe)        GLChat Backend
+                          (partner server)              (JS in browser)              (sso_receiver.py)
+                          ─────────────────             ─────────────────            ─────────────────
+Step 1 (one-time):        POST /admin/partners  ──────────────────────────────────>  Register partner
+                          ← consumer_key + secret ◄────────────────────────────────
 
-2. For each SSO login:
-   Partner → POST /api/v1/sso/token (HMAC signed) → one-time token
-   Widget  → POST /api/v1/sso/authenticate (token) → JWT
-   Widget  → GET /api/v1/me (JWT) → user profile
+Step 2:                   Compute HMAC signature
+                          (local, no network call)
+
+Step 3 (server-to-srv):   POST /api/v1/sso/token ────────────────────────────────>  Validate HMAC
+                          ← one-time sso_token ◄──────────────────────────────────  Generate token
+
+                          Load iframe:
+                          <iframe src="glchat.com
+                          /widget?sso_token=xxx">
+                                    │
+                                    ▼
+Step 4:                              Read sso_token from URL
+                                     POST /api/v1/sso/authenticate ───────────>  Consume token
+                                     ← session JWT ◄──────────────────────────  Create user + session
+                                     Store JWT in JS memory
+
+Step 5:                              GET /api/v1/me (Bearer JWT) ─────────────>  Validate JWT
+                                     ← user profile ◄─────────────────────────  Return user
+                                     Render chat UI ✓
 ```
+
+**Key point**: The GLChat widget calls its **own backend** (same-origin: `glchat.com` → `glchat.com`), so no CORS is needed. The session JWT is stored in JavaScript memory, never exposed in URLs or logs.
 
 ### Production Considerations
 

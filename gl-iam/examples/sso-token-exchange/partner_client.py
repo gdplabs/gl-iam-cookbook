@@ -1,18 +1,19 @@
-"""SSO Partner Client — simulates a partner system calling the SSO receiver.
+"""SSO Token Exchange partner client — simulates the full SSO flow.
 
-This script demonstrates the full SSO flow from the partner's perspective:
-1. Register as an SSO partner (one-time setup via admin API)
-2. Compute HMAC-SHA256 signature for a user payload
-3. Call POST /api/v1/sso/token to get a one-time token
-4. Call POST /api/v1/sso/authenticate to exchange for a JWT
-5. Call GET /api/v1/me to prove the SSO session works
+This script plays THREE roles (since there's no real browser/iframe):
+  - [GLCHAT ADMIN]     GLChat platform admin: registers the partner (step 1)
+  - [PARTNER BACKEND]  Lokadata's server: computes HMAC, requests token (steps 2-3)
+  - [GLCHAT WIDGET]    GLChat's iframe JS: exchanges token for session (steps 4-5)
+
+In production, these are separate systems:
+  GLChat admin      → admin API        → GLChat backend (step 1, one-time setup)
+  Lokadata backend  → server-to-server → GLChat backend (steps 2-3)
+  GLChat widget JS  → same-origin call → GLChat backend (steps 4-5)
 
 Usage:
-    # With a running sso_receiver.py on port 8000:
     uv run partner_client.py
-
-    # Or with a pre-existing consumer key and secret:
     uv run partner_client.py --consumer-key sso_xxx --consumer-secret yyy
+    uv run partner_client.py --delay 0
 """
 
 import argparse
@@ -20,18 +21,39 @@ import hashlib
 import hmac
 import json
 import sys
+import time
 from datetime import datetime, timezone
 
 import httpx
 
 BASE_URL = "http://localhost:8000"
+DEFAULT_STEP_DELAY = 2
+
+# ANSI colors for step titles
+CYAN = "\033[96m"
+GREEN = "\033[92m"
+YELLOW = "\033[93m"
+MAGENTA = "\033[95m"
+RED = "\033[91m"
+BOLD = "\033[1m"
+RESET = "\033[0m"
+
+# Color per role
+ROLE_COLORS = {
+    "GLCHAT ADMIN": CYAN,
+    "PARTNER BACKEND": YELLOW,
+    "GLCHAT WIDGET": GREEN,
+    "SECURITY": RED,
+}
+
+
+def print_step_title(step: int, role: str, title: str):
+    color = ROLE_COLORS.get(role, "")
+    print(f"\n{color}{BOLD}── Step {step} [{role}]: {title} ──{RESET}")
 
 
 def compute_hmac_signature(consumer_key: str, consumer_secret: str, payload: str, timestamp: str) -> str:
-    """Compute HMAC-SHA256 signature matching GL-IAM's expected format.
-
-    Format: HMAC-SHA256(secret, "timestamp|consumer_key|payload")
-    """
+    """HMAC-SHA256(secret, "timestamp|consumer_key|payload")"""
     message = f"{timestamp}|{consumer_key}|{payload}"
     return hmac.new(
         consumer_secret.encode("utf-8"),
@@ -40,60 +62,129 @@ def compute_hmac_signature(consumer_key: str, consumer_secret: str, payload: str
     ).hexdigest()
 
 
+def print_request(method: str, url: str, body: dict | None = None, headers: dict | None = None):
+    print(f"\n  >>> {method} {url}")
+    if headers:
+        for k, v in headers.items():
+            print(f"      {k}: {v[:60]}{'...' if len(v) > 60 else ''}")
+    if body:
+        for k, v in body.items():
+            display_v = str(v)
+            if len(display_v) > 60:
+                display_v = display_v[:57] + "..."
+            print(f"      {k}: {display_v}")
+
+
+def print_response(status: int, body: dict):
+    tag = "OK" if 200 <= status < 300 else "ERROR"
+    print(f"  <<< {status} {tag}")
+    for k, v in body.items():
+        display_v = str(v)
+        if len(display_v) > 60:
+            display_v = display_v[:57] + "..."
+        print(f"      {k}: {display_v}")
+
+
 def main():
     parser = argparse.ArgumentParser(description="SSO Partner Client Simulator")
     parser.add_argument("--consumer-key", help="Pre-existing consumer key")
     parser.add_argument("--consumer-secret", help="Pre-existing consumer secret")
     parser.add_argument("--base-url", default=BASE_URL, help="SSO receiver base URL")
+    parser.add_argument("--delay", type=int, default=DEFAULT_STEP_DELAY, help="Delay between steps (default: 2)")
     args = parser.parse_args()
+
+    delay = args.delay
+
+    def pause():
+        if delay > 0:
+            time.sleep(delay)
 
     base_url = args.base_url
     client = httpx.Client(base_url=base_url, timeout=30)
 
-    print("=" * 60)
-    print("SSO Partner Client — Token Exchange Flow")
-    print("=" * 60)
+    print("=" * 70)
+    print("  SSO Token Exchange — Full Flow Demo (Option A)")
+    print()
+    print("  This script simulates THREE roles:")
+    print("    [GLCHAT ADMIN]     GLChat platform admin (step 1)")
+    print("    [PARTNER BACKEND]  Lokadata server (steps 2-3)")
+    print("    [GLCHAT WIDGET]    GLChat iframe JavaScript (steps 4-5)")
+    print()
+    print("  In production, the admin registers partners (step 1),")
+    print("  the partner backend requests SSO tokens (steps 2-3),")
+    print("  and the GLChat widget exchanges them for sessions (steps 4-5).")
+    print("=" * 70)
 
     # Step 0: Health check
-    print("\n--- Step 0: Health check ---")
+    print_step_title(0, "GLCHAT ADMIN", "Health check")
+    print_request("GET", f"{base_url}/health")
     resp = client.get("/health")
-    print(f"Status: {resp.status_code}, Body: {resp.json()}")
+    print_response(resp.status_code, resp.json())
     if resp.status_code != 200:
-        print("ERROR: Server is not healthy. Is sso_receiver.py running?")
+        print("  ERROR: Is sso_receiver.py running?")
         sys.exit(1)
 
-    # Step 1: Register partner (or use pre-configured credentials)
+    pause()
+
+    # Step 1: Register partner (GLChat admin does this, not the partner)
+    print_step_title(1, "GLCHAT ADMIN", "Register Lokadata as SSO partner")
     if args.consumer_key and args.consumer_secret:
         consumer_key = args.consumer_key
         consumer_secret = args.consumer_secret
-        print(f"\n--- Step 1: Using pre-configured credentials ---")
-        print(f"Consumer Key: {consumer_key}")
+        print("  (Skipping — using pre-configured credentials.)")
+        print(f"  Consumer Key: {consumer_key}")
     else:
-        print("\n--- Step 1: Register as SSO partner ---")
-        resp = client.post(
-            "/admin/partners",
-            json={
-                "partner_name": "Lokadata Portal",
-                "allowed_origins": ["https://lokadata.example.com"],
-                "sso_mode": "idp_initiated",
-                "user_provisioning": "jit",
-                "metadata": {"contact": "admin@lokadata.example.com"},
-            },
-        )
-        print(f"Status: {resp.status_code}")
-        if resp.status_code != 200:
-            print(f"Error: {resp.json()}")
+        print("  This is done by the GLChat platform admin, NOT by Lokadata.")
+        print("  The admin registers Lokadata and sends them the credentials.")
+
+        register_body = {
+            "partner_name": "Lokadata Portal",
+            "allowed_origins": ["https://lokadata.example.com"],
+            "sso_mode": "idp_initiated",
+            "user_provisioning": "jit",
+            "metadata": {"contact": "admin@lokadata.example.com"},
+        }
+        print_request("POST", f"{base_url}/admin/partners", body=register_body)
+        resp = client.post("/admin/partners", json=register_body)
+
+        if resp.status_code == 200:
+            partner = resp.json()
+            consumer_key = partner["consumer_key"]
+            consumer_secret = partner["consumer_secret"]
+            print_response(resp.status_code, partner)
+            print("  Admin sends consumer_key + consumer_secret to Lokadata securely.")
+            print("  (In production, this endpoint requires platform admin auth.)")
+        elif resp.status_code == 400 and "already exists" in resp.json().get("detail", ""):
+            print(f"  <<< 400 (Partner already registered — rotating secret instead)")
+            # Partner exists from a previous run. List partners to get ID, then rotate.
+            list_resp = client.get("/admin/partners")
+            partners = list_resp.json()
+            existing = next((p for p in partners if p["partner_name"] == "Lokadata Portal"), None)
+            if not existing:
+                print("  ERROR: Partner exists but not found in list.")
+                sys.exit(1)
+            print(f"  Found existing partner: {existing['consumer_key']}")
+            print("  Rotating consumer_secret...")
+            rotate_resp = client.post(f"/admin/partners/{existing['id']}/rotate")
+            if rotate_resp.status_code != 200:
+                print_response(rotate_resp.status_code, rotate_resp.json())
+                sys.exit(1)
+            rotated = rotate_resp.json()
+            consumer_key = rotated["consumer_key"]
+            consumer_secret = rotated["consumer_secret"]
+            print(f"  New consumer_key: {consumer_key}")
+            print(f"  New consumer_secret: {consumer_secret[:8]}... (rotated)")
+        else:
+            print_response(resp.status_code, resp.json())
             sys.exit(1)
 
-        partner = resp.json()
-        consumer_key = partner["consumer_key"]
-        consumer_secret = partner["consumer_secret"]
-        print(f"Partner ID: {partner['id']}")
-        print(f"Consumer Key: {consumer_key}")
-        print(f"Consumer Secret: {consumer_secret[:8]}... (save this!)")
+    pause()
 
-    # Step 2: Prepare user payload and compute HMAC signature
-    print("\n--- Step 2: Compute HMAC signature ---")
+    # Step 2: Compute HMAC signature
+    print_step_title(2, "PARTNER BACKEND", "Compute HMAC signature")
+    print("  User 'Alice' just logged into Lokadata.")
+    print("  Signing her identity with our consumer_secret.")
+
     user_payload = {
         "email": "alice@lokadata.example.com",
         "display_name": "Alice from Lokadata",
@@ -103,76 +194,92 @@ def main():
     }
     payload_str = json.dumps(user_payload, separators=(",", ":"))
     timestamp = datetime.now(timezone.utc).isoformat()
-
     signature = compute_hmac_signature(consumer_key, consumer_secret, payload_str, timestamp)
-    print(f"Payload: {payload_str}")
-    print(f"Timestamp: {timestamp}")
-    print(f"Signature: {signature[:16]}...")
 
-    # Step 3: Request one-time token
-    print("\n--- Step 3: Request one-time token (POST /api/v1/sso/token) ---")
-    resp = client.post(
-        "/api/v1/sso/token",
-        json={
-            "consumer_key": consumer_key,
-            "signature": signature,
-            "timestamp": timestamp,
-            "payload": payload_str,
-        },
-    )
-    print(f"Status: {resp.status_code}")
+    print(f"  User: {user_payload['email']} (external_id: {user_payload['external_id']})")
+    print(f"  Signature: {signature[:32]}...")
+
+    pause()
+
+    # Step 3: Request one-time token (server-to-server)
+    print_step_title(3, "PARTNER BACKEND", "Request one-time SSO token")
+    print("  Server-to-server call to GLChat backend.")
+
+    print_request("POST", f"{base_url}/api/v1/sso/token", body={
+        "consumer_key": consumer_key,
+        "signature": f"{signature[:32]}...",
+        "timestamp": timestamp,
+        "payload": f"{payload_str[:40]}...",
+    })
+    resp = client.post("/api/v1/sso/token", json={
+        "consumer_key": consumer_key,
+        "signature": signature,
+        "timestamp": timestamp,
+        "payload": payload_str,
+    })
+
     if resp.status_code != 200:
-        print(f"Error: {resp.json()}")
+        print_response(resp.status_code, resp.json())
         sys.exit(1)
 
     token_data = resp.json()
     one_time_token = token_data["token"]
-    print(f"One-time token: {one_time_token[:16]}...")
-    print(f"Expires in: {token_data['expires_in']}s")
+    print_response(resp.status_code, token_data)
+    print(f"  Got one-time token (expires in {token_data['expires_in']}s).")
+    print(f"\n  Now we load the GLChat widget iframe with this token:")
+    print(f'  <iframe src="https://glchat.com/widget?sso_token={one_time_token[:16]}...">')
 
-    # Step 4: Exchange token for JWT session
-    print("\n--- Step 4: Exchange token for JWT (POST /api/v1/sso/authenticate) ---")
-    resp = client.post(
-        "/api/v1/sso/authenticate",
-        json={"token": one_time_token},
-    )
-    print(f"Status: {resp.status_code}")
+    pause()
+
+    # Step 4: Widget exchanges token for session JWT
+    print_step_title(4, "GLCHAT WIDGET", "Exchange token for session")
+    print("  The GLChat iframe JS reads sso_token from URL params")
+    print("  and calls its OWN backend (same-origin, no CORS).")
+
+    print_request("POST", f"{base_url}/api/v1/sso/authenticate", body={"token": one_time_token})
+    resp = client.post("/api/v1/sso/authenticate", json={"token": one_time_token})
+
     if resp.status_code != 200:
-        print(f"Error: {resp.json()}")
+        print_response(resp.status_code, resp.json())
         sys.exit(1)
 
     auth_data = resp.json()
     jwt_token = auth_data["access_token"]
-    print(f"JWT: {jwt_token[:32]}...")
-    print(f"Token type: {auth_data['token_type']}")
+    print_response(resp.status_code, auth_data)
+    print("  Widget stores the session JWT in memory (never in URL).")
 
-    # Step 5: Access protected endpoint
-    print("\n--- Step 5: Access /api/v1/me with JWT ---")
-    resp = client.get(
-        "/api/v1/me",
-        headers={"Authorization": f"Bearer {jwt_token}"},
-    )
-    print(f"Status: {resp.status_code}")
+    pause()
+
+    # Step 5: Widget uses session JWT
+    print_step_title(5, "GLCHAT WIDGET", "Access protected API")
+    print("  Widget uses the session JWT for all subsequent API calls.")
+
+    print_request("GET", f"{base_url}/api/v1/me",
+                  headers={"Authorization": f"Bearer {jwt_token}"})
+    resp = client.get("/api/v1/me", headers={"Authorization": f"Bearer {jwt_token}"})
+
     if resp.status_code == 200:
         me = resp.json()
-        print(f"User ID: {me['id']}")
-        print(f"Email: {me['email']}")
-        print(f"Display Name: {me['display_name']}")
+        print_response(resp.status_code, me)
+        print(f"\n  SSO complete! Alice sees: 'Welcome, {me.get('display_name')}'")
     else:
-        print(f"Error: {resp.json()}")
+        print_response(resp.status_code, resp.json())
+        sys.exit(1)
 
-    # Verify token replay fails
-    print("\n--- Step 6: Verify token replay is rejected ---")
-    resp = client.post(
-        "/api/v1/sso/authenticate",
-        json={"token": one_time_token},
-    )
-    print(f"Status: {resp.status_code} (expected 401)")
-    print(f"Body: {resp.json()}")
+    pause()
 
-    print("\n" + "=" * 60)
-    print("SSO flow completed successfully!")
-    print("=" * 60)
+    # Step 6: Verify replay protection
+    print_step_title(6, "SECURITY", "Verify token replay is rejected")
+    print("  Trying to reuse the same one-time token...")
+
+    print_request("POST", f"{base_url}/api/v1/sso/authenticate", body={"token": one_time_token})
+    resp = client.post("/api/v1/sso/authenticate", json={"token": one_time_token})
+    print_response(resp.status_code, resp.json())
+    print("  Replay rejected — token was already consumed.")
+
+    print("\n" + "=" * 70)
+    print("  Done. Alice logged in once (Lokadata) and got GLChat access.")
+    print("=" * 70 + "\n")
 
 
 if __name__ == "__main__":

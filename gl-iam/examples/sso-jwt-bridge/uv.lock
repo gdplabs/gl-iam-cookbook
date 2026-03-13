@@ -331,7 +331,7 @@ wheels = [
 [[package]]
 name = "gl-iam"
 version = "0.0.0"
-source = { git = "https://github.com/GDP-ADMIN/gl-sdk.git?subdirectory=libs%2Fgl-iam&branch=f%2Fidp-initiated-sso#edf956005e715a3478bb48aa303d9366e10a8470" }
+source = { git = "https://github.com/GDP-ADMIN/gl-sdk.git?subdirectory=libs%2Fgl-iam&branch=main#e779cd82edd791a62aa1abd070f15eb29423a2ba" }
 dependencies = [
     { name = "email-validator" },
     { name = "pydantic" },
@@ -745,7 +745,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "fastapi", specifier = ">=0.115.0,<0.116.0" },
-    { name = "gl-iam", extras = ["fastapi", "postgresql"], git = "https://github.com/GDP-ADMIN/gl-sdk.git?subdirectory=libs%2Fgl-iam&branch=f%2Fidp-initiated-sso" },
+    { name = "gl-iam", extras = ["fastapi", "postgresql"], git = "https://github.com/GDP-ADMIN/gl-sdk.git?subdirectory=libs%2Fgl-iam&branch=main" },
     { name = "httpx", specifier = ">=0.27.0,<0.28.0" },
     { name = "pyjwt", specifier = ">=2.0.0,<3.0.0" },
     { name = "python-dotenv", specifier = ">=1.0.0,<2.0.0" },

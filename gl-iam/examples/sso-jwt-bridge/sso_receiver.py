@@ -15,6 +15,7 @@ Tradeoff vs Option A (sso-token-exchange):
 - Less secure: no per-partner key rotation, no partner deactivation, shared secret
 """
 
+import logging
 import os
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
@@ -32,6 +33,42 @@ from gl_iam.providers.postgresql import PostgreSQLConfig, PostgreSQLProvider
 
 load_dotenv()
 
+# Configure logging with clear formatting
+logging.basicConfig(
+    level=logging.INFO,
+    format="\n%(message)s",
+)
+logger = logging.getLogger("sso-jwt-bridge")
+
+
+def log_step(step: str, description: str):
+    """Log a clearly formatted step with explanation."""
+    logger.info(
+        "┌─────────────────────────────────────────────────────────────────\n"
+        "│ 🔹 %s\n"
+        "│\n"
+        "│   %s\n"
+        "└─────────────────────────────────────────────────────────────────",
+        step,
+        description.replace("\n", "\n│   "),
+    )
+
+
+def log_gliam(action: str, detail: str = ""):
+    """Log a GL-IAM SDK operation."""
+    msg = f"│   [GL-IAM] {action}"
+    if detail:
+        msg += f" → {detail}"
+    logger.info(msg)
+
+
+def log_app(action: str, detail: str = ""):
+    """Log an application-level operation."""
+    msg = f"│   [APP]    {action}"
+    if detail:
+        msg += f" → {detail}"
+    logger.info(msg)
+
 
 # ============================================================================
 # Application Setup
@@ -40,6 +77,13 @@ load_dotenv()
 async def lifespan(app: FastAPI):
     """Initialize GL-IAM gateway with PostgreSQL provider."""
     default_org_id = os.getenv("DEFAULT_ORGANIZATION_ID", "default")
+
+    logger.info(
+        "=" * 70 + "\n"
+        "  SSO JWT Bridge Receiver — Starting up\n"
+        "  (GLChat backend using GL-IAM)\n"
+        "=" * 70
+    )
 
     # --- GL-IAM ---
     config = PostgreSQLConfig(
@@ -60,8 +104,26 @@ async def lifespan(app: FastAPI):
     set_iam_gateway(gateway, default_organization_id=default_org_id)
     # --- End GL-IAM ---
 
+    logger.info(
+        "┌─────────────────────────────────────────────────────────────────\n"
+        "│ ✅ GL-IAM gateway initialized\n"
+        "│\n"
+        "│   Provider:       PostgreSQL\n"
+        "│   Organization:   %s\n"
+        "│   Auth hosting:   enabled\n"
+        "│   Partner issuer: %s\n"
+        "│\n"
+        "│   Ready to receive SSO JWT authentication requests.\n"
+        "│   The partner (e.g., Lokadata) signs a JWT with the shared\n"
+        "│   secret and sends it here for verification.\n"
+        "└─────────────────────────────────────────────────────────────────",
+        default_org_id,
+        os.getenv("PARTNER_ISSUER", "partner-portal"),
+    )
+
     yield
     await provider.close()
+    logger.info("GL-IAM gateway shut down.")
 
 
 app = FastAPI(title="SSO JWT Bridge Receiver", lifespan=lifespan)
@@ -97,6 +159,7 @@ class UserResponse(BaseModel):
 @app.get("/health")
 async def health():
     """Public health check endpoint."""
+    logger.info("Health check requested → healthy")
     return {"status": "healthy"}
 
 
@@ -117,7 +180,18 @@ async def sso_jwt_authenticate(request: SSOJwtAuthenticateRequest):
     if not sso_secret:
         raise HTTPException(status_code=500, detail="SSO_SHARED_SECRET not configured")
 
+    # ── Step A: Verify partner JWT ──────────────────────────────────
+    log_step(
+        "POST /api/v1/sso/jwt-authenticate — Received SSO request",
+        "A partner widget is attempting to authenticate a user.\n"
+        "The partner signed a JWT with the shared secret containing\n"
+        "the user's identity claims (email, name, external ID).\n\n"
+        "Now we verify the JWT signature and extract the claims.",
+    )
+
     # --- Application code: Verify partner JWT ---
+    log_app("Verifying partner JWT signature", f"algorithm=HS256, expected issuer={expected_issuer}")
+
     try:
         claims = pyjwt.decode(
             request.partner_jwt,
@@ -127,12 +201,20 @@ async def sso_jwt_authenticate(request: SSOJwtAuthenticateRequest):
             options={"require": ["exp", "iss", "sub", "email"]},
         )
     except pyjwt.ExpiredSignatureError:
+        log_app("JWT verification FAILED", "Token has expired")
         raise HTTPException(status_code=401, detail="Partner JWT has expired")
     except pyjwt.InvalidIssuerError:
+        log_app("JWT verification FAILED", f"Issuer mismatch (expected: {expected_issuer})")
         raise HTTPException(status_code=401, detail="Invalid JWT issuer")
     except pyjwt.InvalidTokenError as e:
+        log_app("JWT verification FAILED", str(e))
         raise HTTPException(status_code=401, detail=f"Invalid partner JWT: {e}")
     # --- End application code ---
+
+    log_app(
+        "JWT verification PASSED",
+        f"sub={claims.get('sub')}, email={claims.get('email')}, iss={claims.get('iss')}",
+    )
 
     gateway = get_iam_gateway()
     org_id = os.getenv("DEFAULT_ORGANIZATION_ID", "default")
@@ -140,6 +222,16 @@ async def sso_jwt_authenticate(request: SSOJwtAuthenticateRequest):
     email = claims.get("email")
     if not email:
         raise HTTPException(status_code=400, detail="JWT missing 'email' claim")
+
+    # ── Step B: JIT User Provisioning ───────────────────────────────
+    log_step(
+        "JIT User Provisioning",
+        "Now we use GL-IAM to find or create a GLChat user for this\n"
+        "external identity. If the user has logged in before via SSO,\n"
+        "we find their existing account. Otherwise, we create a new one.\n\n"
+        "This is called 'Just-In-Time' (JIT) provisioning — no need to\n"
+        "pre-create user accounts in GLChat.",
+    )
 
     # --- GL-IAM: JIT user provisioning ---
     external_identity = ExternalIdentity(
@@ -156,6 +248,11 @@ async def sso_jwt_authenticate(request: SSOJwtAuthenticateRequest):
         authenticated_at=datetime.now(timezone.utc),
     )
 
+    log_gliam(
+        "get_user_by_external_identity()",
+        f"Looking up user with external_id={claims.get('sub')}, provider={expected_issuer}",
+    )
+
     existing_user = await gateway.user_store.get_user_by_external_identity(
         external_identity=external_identity,
         organization_id=org_id,
@@ -163,7 +260,10 @@ async def sso_jwt_authenticate(request: SSOJwtAuthenticateRequest):
 
     if existing_user:
         user = existing_user
+        log_gliam("User found", f"id={user.id}, email={user.email} (returning user)")
     else:
+        log_gliam("User NOT found", "First-time SSO login — creating new GLChat account")
+
         user = await gateway.user_store.create_user(
             UserCreateInput(
                 email=email,
@@ -171,11 +271,24 @@ async def sso_jwt_authenticate(request: SSOJwtAuthenticateRequest):
             ),
             organization_id=org_id,
         )
+        log_gliam("create_user()", f"Created user id={user.id}, email={user.email}")
+
         await gateway.user_store.link_external_identity(
             user_id=user.id,
             external_identity=external_identity,
             organization_id=org_id,
         )
+        log_gliam("link_external_identity()", f"Linked external_id={claims.get('sub')} → user_id={user.id}")
+
+    # ── Step C: Create Session ──────────────────────────────────────
+    log_step(
+        "Create GLChat Session",
+        "The user is now verified and provisioned in GLChat.\n"
+        "GL-IAM creates a session JWT that the widget will use\n"
+        "to access protected GLChat APIs.",
+    )
+
+    log_gliam("create_session()", f"Creating session for user_id={user.id}")
 
     token = await gateway.session_provider.create_session(
         user=user,
@@ -183,6 +296,27 @@ async def sso_jwt_authenticate(request: SSOJwtAuthenticateRequest):
         metadata={"auth_method": "sso_jwt", "issuer": expected_issuer},
     )
     # --- End GL-IAM ---
+
+    log_gliam("Session created", f"token_type={token.token_type}, token={token.access_token[:20]}...")
+
+    logger.info(
+        "┌─────────────────────────────────────────────────────────────────\n"
+        "│ ✅ SSO JWT Authentication Complete\n"
+        "│\n"
+        "│   Partner:     %s\n"
+        "│   External ID: %s\n"
+        "│   Email:       %s\n"
+        "│   GLChat User: %s\n"
+        "│   Session:     %s...\n"
+        "│\n"
+        "│   The widget can now use this session JWT to access GLChat APIs.\n"
+        "└─────────────────────────────────────────────────────────────────",
+        expected_issuer,
+        claims.get("sub"),
+        email,
+        user.id,
+        token.access_token[:20],
+    )
 
     return TokenResponse(
         access_token=token.access_token,
@@ -199,6 +333,14 @@ async def get_me(user: User = Depends(get_current_user)):
 
     Uses GL-IAM's get_current_user dependency to validate the JWT.
     """
+    log_step(
+        "GET /api/v1/me — Protected Endpoint",
+        "The widget is accessing a protected endpoint using the session JWT.\n"
+        "GL-IAM's get_current_user dependency automatically validates the\n"
+        "Bearer token and extracts the authenticated user.",
+    )
+    log_gliam("get_current_user()", f"Validated session → user_id={user.id}, email={user.email}")
+
     return UserResponse(id=user.id, email=user.email, display_name=user.display_name)
 
 

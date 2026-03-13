@@ -198,6 +198,34 @@ The partner signs a JWT with these required claims:
 | `first_name` | No | User's first name |
 | `last_name` | No | User's last name |
 
+### Who Calls What? (Production Architecture)
+
+In production, there are **three separate systems** involved. The `partner_client.py` script simulates both the partner backend and the GLChat widget since there's no real iframe in this demo.
+
+```
+                          Lokadata Backend              GLChat Widget (iframe)        GLChat Backend
+                          (partner server)              (JS in browser)              (sso_receiver.py)
+                          ─────────────────             ─────────────────            ─────────────────
+Step 1:                   Sign JWT with shared secret
+                          (local, no network call)
+
+                          Load iframe:
+                          <iframe src="glchat.com
+                          /widget?auth_token=<jwt>">
+                                    │
+                                    ▼
+Step 2:                              Read auth_token from URL
+                                     POST /api/v1/sso/jwt-authenticate ───────>  Verify JWT sig
+                                     ← session JWT ◄──────────────────────────  Create user + session
+                                     Store JWT in JS memory
+
+Step 3:                              GET /api/v1/me (Bearer JWT) ─────────────>  Validate JWT
+                                     ← user profile ◄─────────────────────────  Return user
+                                     Render chat UI ✓
+```
+
+**Key point**: The GLChat widget calls its **own backend** (same-origin: `glchat.com` → `glchat.com`), so no CORS is needed. The session JWT is stored in JavaScript memory, never exposed in URLs or logs.
+
 ### Production Considerations
 
 - **Use a strong shared secret**: At least 32 characters, stored securely (e.g., AWS Secrets Manager)
