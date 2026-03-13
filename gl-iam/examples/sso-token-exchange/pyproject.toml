@@ -1,0 +1,16 @@
+[project]
+name = "sso-token-exchange"
+version = "0.0.0"
+description = "GL-IAM SSO Token Exchange example (IdP-Initiated SSO with HMAC signatures)"
+requires-python = ">=3.11,<3.14"
+readme = "README.md"
+dependencies = [
+  "fastapi>=0.115.0,<0.116.0",
+  "uvicorn>=0.34.0,<0.35.0",
+  "python-dotenv>=1.0.0,<2.0.0",
+  "httpx>=0.27.0,<0.28.0",
+  "gl-iam[fastapi,postgresql]",
+]
+
+[tool.uv.sources]
+gl-iam = { git = "https://github.com/GDP-ADMIN/gl-sdk.git", subdirectory = "libs/gl-iam", branch = "f/idp-initiated-sso" }

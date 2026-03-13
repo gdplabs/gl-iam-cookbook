@@ -1,0 +1,240 @@
+# SSO JWT Bridge (Option B — Simpler)
+
+JWT-signed token SSO using a shared secret between the partner and your application. Simpler than Option A but with fewer security controls.
+
+## Real-World Context
+
+This example is based on a real product requirement: **Lokadata x GLChat SSO integration**.
+
+- **Lokadata** has its own website with its own login system
+- **GLChat** is embedded as an AI chat widget (iframe) inside Lokadata's website
+- **Problem**: Users had to log in to Lokadata first, then separately log in to GLChat — a poor user experience
+- **Solution**: When a user logs in to Lokadata, they should be automatically authenticated in the GLChat widget
+
+Option B (JWT Bridge) is the **simpler alternative** to [Option A (Token Exchange)](../sso-token-exchange/). In this approach, Lokadata signs a short-lived JWT with a shared secret — no server-to-server token request is needed.
+
+> See the full architecture document: [Lokadata x GLChat SSO Architecture](https://github.com/gdplabs/gl-iam-cookbook/blob/main/docs/Lokadata-GLChat-SSO-Architecture.md)
+
+### When to use Option B?
+
+Option B is suitable when:
+- You have a **single trusted partner** (e.g., only Lokadata embeds GLChat)
+- You want the **simplest possible integration** with minimal moving parts
+- You don't need per-partner key rotation or partner lifecycle management
+
+For production with multiple partners, see [Option A (Token Exchange)](../sso-token-exchange/).
+
+## Overview
+
+This example demonstrates a **stateless SSO approach** where the partner signs a short-lived JWT with a shared secret. No partner registry, HMAC signatures, or one-time token storage is needed.
+
+```
+Partner System                    SSO Receiver (port 8000)
++-----------------+              +----------------------------+
+| partner_client  |              | sso_receiver.py            |
+|                 |              |                            |
+| 1. Sign JWT     |  POST /sso/ | 2. App: verify JWT sig     |
+|    with shared  | jwt-auth    | 3. GL-IAM: create user     |
+|    secret       |  ---------> | 4. GL-IAM: create session  |
+|                 |  <-- JWT -- |                            |
+|                 |              |                            |
+| 5. Access API   |  GET /me    | 6. GL-IAM: validate JWT    |
+|    with JWT     |  ---------> |                            |
++-----------------+              +----------------------------+
+                                          |
+                                  +-------+-------+
+                                  |  PostgreSQL   |
+                                  |  (shared DB)  |
+                                  +---------------+
+```
+
+### Tradeoffs vs Option A (sso-token-exchange)
+
+| Feature | Option A (Token Exchange) | Option B (JWT Bridge) |
+|---------|---------------------------|------------------------|
+| Setup complexity | More complex | Simpler |
+| Per-partner key rotation | Yes | No (shared secret) |
+| Partner deactivation | Yes | No |
+| Partner audit trail | Yes (registry) | No |
+| Token replay protection | Yes (one-time tokens) | Relies on JWT `exp` |
+| Dependencies | GL-IAM PartnerRegistry | PyJWT only |
+
+**Use Option B when**: You have a single trusted partner and want the simplest possible integration.
+**Use Option A when**: You need multiple partners, key rotation, or partner lifecycle management.
+
+## Prerequisites
+
+Please refer to prerequisites [here](../../README.md).
+
+Additionally, you need:
+
+- PostgreSQL database running locally
+
+## Getting Started
+
+1. **Clone the repository & open the directory**
+
+   ```bash
+   git clone https://github.com/GDP-ADMIN/gl-iam-cookbook.git
+   cd gl-iam-cookbook/gl-iam/examples/sso-jwt-bridge/
+   ```
+
+2. **Install dependencies**
+
+   **For Unix-based systems (Linux, macOS):**
+
+   ```bash
+   ./setup.sh
+   ```
+
+   **For Windows:**
+
+   ```cmd
+   setup.bat
+   ```
+
+   Or manually: `uv sync`
+
+3. **Configure environment** (optional)
+
+   The setup script creates `.env` from `.env.example`. To customize:
+
+   ```bash
+   # Edit .env with your settings
+   ```
+
+   > **Important**: The `SSO_SHARED_SECRET` must be identical in the receiver's `.env` and the partner client's `--secret` argument.
+
+4. **Start PostgreSQL** (if not running)
+
+   ```bash
+   docker run -d --name postgres \
+     -e POSTGRES_PASSWORD=postgres \
+     -e POSTGRES_DB=gliam \
+     -p 5432:5432 \
+     postgres:15
+   ```
+
+5. **Run the SSO receiver**
+
+   ```bash
+   uv run sso_receiver.py
+   ```
+
+   Output:
+
+   ```
+   INFO:     Uvicorn running on http://0.0.0.0:8000
+   ```
+
+## Test the API
+
+### Option A: Run the partner client script
+
+In a second terminal:
+
+```bash
+cd gl-iam-cookbook/gl-iam/examples/sso-jwt-bridge/
+uv run partner_client.py
+```
+
+### Option B: Manual curl commands
+
+```bash
+# 1. Health check
+curl http://localhost:8000/health
+
+# 2. Generate a partner JWT (using Python one-liner)
+PARTNER_JWT=$(python3 -c "
+import jwt, time
+claims = {
+    'iss': 'partner-portal',
+    'sub': 'lok-user-002',
+    'email': 'bob@lokadata.example.com',
+    'display_name': 'Bob from Lokadata',
+    'iat': int(time.time()),
+    'exp': int(time.time()) + 60,
+}
+print(jwt.encode(claims, 'shared-secret-between-partner-and-glchat-min-32-chars', algorithm='HS256'))
+")
+
+echo "Partner JWT: $PARTNER_JWT"
+
+# 3. Exchange partner JWT for session JWT
+TOKEN=$(curl -s -X POST http://localhost:8000/api/v1/sso/jwt-authenticate \
+  -H "Content-Type: application/json" \
+  -d "{\"partner_jwt\": \"${PARTNER_JWT}\"}" | jq -r '.access_token')
+
+echo $TOKEN
+
+# 4. Access protected endpoint
+curl -s http://localhost:8000/api/v1/me \
+  -H "Authorization: Bearer $TOKEN" | jq .
+```
+
+## Understanding the Code
+
+### GL-IAM vs Application Code
+
+| Component | GL-IAM SDK? | Description |
+|-----------|:-----------:|-------------|
+| JWT signature verification | **No** (app) | `PyJWT.decode()` with shared secret |
+| User lookup by external ID | Yes | `get_user_by_external_identity()` |
+| JIT user creation | Yes | `create_user()` + `link_external_identity()` |
+| Session creation (JWT) | Yes | `create_session()` returns session JWT |
+| JWT validation (session) | Yes | `get_current_user` FastAPI dependency |
+
+### Partner JWT Claims
+
+The partner signs a JWT with these required claims:
+
+| Claim | Required | Description |
+|-------|:--------:|-------------|
+| `iss` | Yes | Issuer — must match `PARTNER_ISSUER` env var |
+| `sub` | Yes | External user ID at the partner |
+| `email` | Yes | User's email address |
+| `exp` | Yes | Expiry (keep short, e.g. 60 seconds) |
+| `display_name` | No | User's display name |
+| `first_name` | No | User's first name |
+| `last_name` | No | User's last name |
+
+### Who Calls What? (Production Architecture)
+
+In production, there are **three separate systems** involved. The `partner_client.py` script simulates both the partner backend and the GLChat widget since there's no real iframe in this demo.
+
+```
+                          Lokadata Backend              GLChat Widget (iframe)        GLChat Backend
+                          (partner server)              (JS in browser)              (sso_receiver.py)
+                          ─────────────────             ─────────────────            ─────────────────
+Step 1:                   Sign JWT with shared secret
+                          (local, no network call)
+
+                          Load iframe:
+                          <iframe src="glchat.com
+                          /widget?auth_token=<jwt>">
+                                    │
+                                    ▼
+Step 2:                              Read auth_token from URL
+                                     POST /api/v1/sso/jwt-authenticate ───────>  Verify JWT sig
+                                     ← session JWT ◄──────────────────────────  Create user + session
+                                     Store JWT in JS memory
+
+Step 3:                              GET /api/v1/me (Bearer JWT) ─────────────>  Validate JWT
+                                     ← user profile ◄─────────────────────────  Return user
+                                     Render chat UI ✓
+```
+
+**Key point**: The GLChat widget calls its **own backend** (same-origin: `glchat.com` → `glchat.com`), so no CORS is needed. The session JWT is stored in JavaScript memory, never exposed in URLs or logs.
+
+### Production Considerations
+
+- **Use a strong shared secret**: At least 32 characters, stored securely (e.g., AWS Secrets Manager)
+- **Keep JWT expiry short**: 30-60 seconds prevents replay attacks
+- **HTTPS only**: Always use TLS for JWT transport
+- **Consider Option A for multiple partners**: If you need per-partner secrets, rotation, or deactivation
+- **Validate `iss` claim strictly**: Prevents cross-partner token misuse
+
+## Reference
+
+- [GL-IAM GitBook](https://gdplabs.gitbook.io/sdk/gl-iam)
+- [SSO Token Exchange (Option A)](../sso-token-exchange/) — Recommended for production with multiple partners

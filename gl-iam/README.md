@@ -67,6 +67,15 @@ Each Django example demonstrates three view patterns:
 | [agent-keycloak](examples/agent-keycloak/) | Agent delegation with Keycloak | Keycloak user auth + GL-IAM agent delegation |
 | [agent-stackauth](examples/agent-stackauth/) | Agent delegation with Stack Auth | Stack Auth token bridge to GL-IAM delegation tokens |
 
+### SSO Partner Registry Examples
+
+Based on a real product requirement: **Lokadata x GLChat SSO** — enabling automatic user authentication when GLChat is embedded as a widget inside a partner website.
+
+| Example | Description | Use Case |
+|---------|-------------|----------|
+| [sso-token-exchange](examples/sso-token-exchange/) | Server-side HMAC token exchange SSO (Option A - Recommended) | Multiple partners, key rotation, partner lifecycle |
+| [sso-jwt-bridge](examples/sso-jwt-bridge/) | JWT-signed token SSO (Option B - Simpler) | Single trusted partner, simple setup |
+
 ## SIMI Pattern
 
 All examples demonstrate the **Single Interface Multiple Implementation (SIMI)** pattern. The same GL-IAM dependencies work regardless of which provider you use:
