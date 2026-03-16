@@ -143,6 +143,9 @@ def main():
             "sso_mode": "idp_initiated",
             "user_provisioning": "jit",
             "metadata": {"contact": "admin@lokadata.example.com"},
+            # Security restrictions: only @lokadata.example.com emails allowed
+            "allowed_email_domains": ["lokadata.example.com"],
+            "max_users": 1000,
         }
         print_request("POST", f"{base_url}/admin/partners", body=register_body)
         resp = client.post("/admin/partners", json=register_body)
@@ -164,8 +167,11 @@ def main():
                 print("  ERROR: Partner exists but not found in list.")
                 sys.exit(1)
             print(f"  Found existing partner: {existing['consumer_key']}")
-            print("  Rotating consumer_secret...")
-            rotate_resp = client.post(f"/admin/partners/{existing['id']}/rotate")
+            print("  Rotating consumer_secret (with 1-hour grace period)...")
+            rotate_resp = client.post(
+                f"/admin/partners/{existing['id']}/rotate",
+                json={"grace_period_seconds": 3600},
+            )
             if rotate_resp.status_code != 200:
                 print_response(rotate_resp.status_code, rotate_resp.json())
                 sys.exit(1)

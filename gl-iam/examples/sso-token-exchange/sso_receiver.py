@@ -208,6 +208,11 @@ class PartnerCreateRequest(BaseModel):
     sso_mode: str = "idp_initiated"
     user_provisioning: str = "jit"
     metadata: dict | None = None
+    # Security restrictions (all optional, default None = no restriction)
+    allowed_email_domains: list[str] | None = None
+    allowed_source_ips: list[str] | None = None
+    max_users: int | None = None
+    allowed_roles: list[str] | None = None
 
 
 class PartnerResponse(BaseModel):
@@ -218,6 +223,8 @@ class PartnerResponse(BaseModel):
     consumer_key: str
     consumer_secret: str  # Shown only once!
     is_active: bool
+    allowed_email_domains: list[str] | None = None
+    max_users: int | None = None
 
 
 class PartnerListItem(BaseModel):
@@ -228,6 +235,8 @@ class PartnerListItem(BaseModel):
     consumer_key: str
     is_active: bool
     sso_mode: str
+    allowed_email_domains: list[str] | None = None
+    max_users: int | None = None
     created_at: str | None
 
 
@@ -286,6 +295,10 @@ async def register_partner(request: PartnerCreateRequest):
             sso_mode=SSOMode(request.sso_mode),
             user_provisioning=SSOUserProvisioning(request.user_provisioning),
             metadata=request.metadata,
+            allowed_email_domains=request.allowed_email_domains,
+            allowed_source_ips=request.allowed_source_ips,
+            max_users=request.max_users,
+            allowed_roles=request.allowed_roles,
         )
     )
     # --- End GL-IAM ---
@@ -321,6 +334,8 @@ async def register_partner(request: PartnerCreateRequest):
         consumer_key=reg.consumer_key,
         consumer_secret=reg.consumer_secret,
         is_active=reg.partner.is_active,
+        allowed_email_domains=reg.partner.allowed_email_domains,
+        max_users=reg.partner.max_users,
     )
 
 
@@ -360,31 +375,56 @@ async def list_partners():
             consumer_key=p.consumer_key,
             is_active=p.is_active,
             sso_mode=p.sso_mode.value,
+            allowed_email_domains=p.allowed_email_domains,
+            max_users=p.max_users,
             created_at=p.created_at.isoformat() if p.created_at else None,
         )
         for p in partners
     ]
 
 
+class RotateSecretRequest(BaseModel):
+    """Optional request body for secret rotation with grace period."""
+
+    grace_period_seconds: int | None = None  # None = immediate invalidation
+
+
 @app.post("/admin/partners/{partner_id}/rotate", response_model=PartnerResponse)
-async def rotate_secret(partner_id: str):
+async def rotate_secret(partner_id: str, request: RotateSecretRequest | None = None):
     """Rotate a partner's consumer secret.
 
     In production, protect this with admin authentication.
     Returns the new consumer_secret (shown only once!).
+
+    Optionally pass grace_period_seconds to keep the old secret valid
+    during the transition (max 604800 = 7 days). This enables zero-downtime
+    rotation in distributed deployments.
     """
-    log_step(
-        f"POST /admin/partners/{partner_id}/rotate — Rotate Consumer Secret",
-        "Rotating a partner's consumer secret. The old secret is invalidated\n"
-        "immediately. The partner must update their configuration with the\n"
-        "new secret to continue sending SSO requests.",
-    )
+    grace_period = request.grace_period_seconds if request else None
+
+    if grace_period:
+        log_step(
+            f"POST /admin/partners/{partner_id}/rotate — Rotate Consumer Secret (grace period: {grace_period}s)",
+            "Rotating a partner's consumer secret with a grace period.\n"
+            f"The old secret remains valid for {grace_period} seconds,\n"
+            "allowing distributed systems to transition without downtime.",
+        )
+    else:
+        log_step(
+            f"POST /admin/partners/{partner_id}/rotate — Rotate Consumer Secret (immediate)",
+            "Rotating a partner's consumer secret. The old secret is invalidated\n"
+            "immediately. The partner must update their configuration with the\n"
+            "new secret to continue sending SSO requests.",
+        )
 
     gateway = get_iam_gateway()
 
     # --- GL-IAM ---
-    log_gliam("rotate_consumer_secret()", f"partner_id={partner_id}")
-    result = await gateway.partner_registry.rotate_consumer_secret(partner_id)
+    log_gliam("rotate_consumer_secret()", f"partner_id={partner_id}, grace_period_seconds={grace_period}")
+    result = await gateway.partner_registry.rotate_consumer_secret(
+        partner_id,
+        grace_period_seconds=grace_period,
+    )
     # --- End GL-IAM ---
 
     if result.is_err:
@@ -392,7 +432,7 @@ async def rotate_secret(partner_id: str):
         raise HTTPException(status_code=404, detail=result.error.message)
 
     reg = result.value
-    log_gliam("Rotation SUCCESS", f"New consumer_key={reg.consumer_key}")
+    log_gliam("Rotation SUCCESS", f"New consumer_key={reg.consumer_key}, grace_period={grace_period}")
 
     return PartnerResponse(
         id=reg.partner.id,
@@ -400,6 +440,8 @@ async def rotate_secret(partner_id: str):
         consumer_key=reg.consumer_key,
         consumer_secret=reg.consumer_secret,
         is_active=reg.partner.is_active,
+        allowed_email_domains=reg.partner.allowed_email_domains,
+        max_users=reg.partner.max_users,
     )
 
 
@@ -434,9 +476,19 @@ async def sso_generate_token(request: SSOTokenRequest):
     gateway = get_iam_gateway()
 
     # --- GL-IAM: Validate the partner's HMAC signature ---
+    # Extract email from payload for domain validation (if partner has allowed_email_domains configured)
+    import json as _json
+
+    _payload_email = None
+    try:
+        _payload_data = _json.loads(request.payload)
+        _payload_email = _payload_data.get("email")
+    except (ValueError, AttributeError):
+        pass
+
     log_gliam(
         "validate_partner_signature()",
-        f"consumer_key={request.consumer_key}",
+        f"consumer_key={request.consumer_key}, email={_payload_email}",
     )
 
     result = await gateway.partner_registry.validate_partner_signature(
@@ -444,6 +496,7 @@ async def sso_generate_token(request: SSOTokenRequest):
         signature=request.signature,
         payload=request.payload,
         timestamp=request.timestamp,
+        email=_payload_email,  # Validates against partner's allowed_email_domains
     )
 
     if result.is_err:
