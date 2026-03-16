@@ -63,20 +63,34 @@ uv run python manage.py runserver
 ```
 gl-iam/
 ├── examples/
-│   ├── fastapi-postgresql/      # FastAPI + self-managed PostgreSQL
-│   ├── fastapi-keycloak/        # FastAPI + Keycloak enterprise SSO
-│   ├── fastapi-stackauth/       # FastAPI + Stack Auth
-│   ├── django-postgresql/       # Django + self-managed PostgreSQL
-│   ├── django-keycloak/         # Django + Keycloak enterprise SSO
-│   ├── django-stackauth/        # Django + Stack Auth
-│   ├── aip-integration/         # AI Agent Platform basic setup
-│   ├── aip-integration-advanced/ # AI Agent Platform advanced patterns
-│   ├── aip-server-integration/  # Add GL-IAM to existing AIP server
-│   ├── rbac-showcase/           # RBAC demo with multi-provider support
-│   ├── bosa-migration/          # BOSA Core Auth → GL-IAM migration
-│   └── api-key-hierarchy/       # API key management with SOLID patterns
+│   ├── fastapi-postgresql/        # FastAPI + self-managed PostgreSQL
+│   ├── fastapi-keycloak/          # FastAPI + Keycloak enterprise SSO
+│   ├── fastapi-stackauth/         # FastAPI + Stack Auth
+│   ├── django-postgresql/         # Django + self-managed PostgreSQL
+│   ├── django-keycloak/           # Django + Keycloak enterprise SSO
+│   ├── django-stackauth/          # Django + Stack Auth
+│   ├── aip-integration/           # AI Agent Platform basic setup
+│   ├── aip-integration-advanced/  # AI Agent Platform advanced patterns
+│   ├── aip-server-integration/    # Add GL-IAM to existing AIP server
+│   ├── rbac-showcase/             # RBAC demo with multi-provider support
+│   ├── bosa-migration/            # BOSA Core Auth → GL-IAM migration
+│   ├── api-key-hierarchy/         # API key management with SOLID patterns
+│   ├── agent-cross-service/       # Agent cross-service authentication
+│   ├── agent-delegation-chain/    # Agent delegation chain pattern
+│   ├── agent-delegation-django/   # Agent delegation with Django
+│   ├── agent-delegation-fastapi/  # Agent delegation with FastAPI
+│   ├── agent-keycloak/            # Agent authentication with Keycloak
+│   ├── agent-lifecycle/           # Agent lifecycle management
+│   ├── agent-scope-constraints/   # Agent scope constraint patterns
+│   ├── agent-stackauth/           # Agent authentication with Stack Auth
+│   ├── dpop-keycloak/             # DPoP token binding with Keycloak
+│   ├── sso-jwt-bridge/            # SSO JWT bridge pattern
+│   ├── sso-token-exchange/        # SSO token exchange flow
+│   └── third-party-integration/   # Third-party service integration
 └── explorations/
-    └── token-refresh-for-long-running-agents/  # TokenManager for agents
+    ├── agent-iam-delegation-e2e/              # Agent IAM delegation end-to-end demo
+    ├── keycloak-dpop-mtls-lab/                # DPoP + mTLS concepts lab with Keycloak
+    └── token-refresh-for-long-running-agents/ # TokenManager for agents
 ```
 
 ## Architecture Patterns
