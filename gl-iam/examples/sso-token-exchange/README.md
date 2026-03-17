@@ -24,6 +24,35 @@ Option A (Token Exchange) is recommended for Lokadata x GLChat because:
 - **Security restrictions**: Per-partner email domain allowlists, IP restrictions, user caps, and role constraints
 - **Audit trail**: Every partner registration and SSO attempt is tracked
 
+## Security Model
+
+> **Important**: IdP-Initiated SSO delegates identity assertion to the partner. Unlike OAuth/OIDC where the user proves their identity via a redirect flow, here the partner tells your application "this user is authenticated" — and your application trusts it. Only register partners you fully trust.
+
+**What GL-IAM protects against:**
+- Forged signatures (HMAC-SHA256 with constant-time comparison)
+- Expired requests (timestamp tolerance validation)
+- Unauthorized email domains (`allowed_email_domains` enforcement)
+- Compromised secrets (rotation with grace period, partner deactivation)
+- Secret theft from DB (AES-256-GCM encrypted storage, separate encryption key)
+
+**What your application must protect against:**
+- Replay attacks → Use one-time tokens (Redis `SET EX` + `GETDEL`)
+- Brute-force → Rate limit per `consumer_key` on SSO endpoints
+- IP spoofing → Enforce `partner.allowed_source_ips` at HTTP middleware
+- Over-provisioning → Check `partner.max_users` during JIT user creation
+- Privilege escalation → Restrict roles via `partner.allowed_roles`
+
+**Minimum security configuration when registering a partner:**
+```python
+SSOPartnerCreate(
+    partner_name="Trusted Partner",
+    allowed_email_domains=["partner.com"],  # ALWAYS set this
+    allowed_source_ips=["203.0.113.0/24"],  # Restrict to known IPs
+    max_users=500,                           # Cap provisioned accounts
+    allowed_roles=["member"],                # Never auto-grant admin
+)
+```
+
 ## Overview
 
 This example demonstrates **IdP-Initiated SSO** where an external partner system authenticates users and sends them to your application. The flow has two phases:

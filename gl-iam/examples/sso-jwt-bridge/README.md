@@ -17,12 +17,21 @@ Option B (JWT Bridge) is the **simpler alternative** to [Option A (Token Exchang
 
 ### When to use Option B?
 
+> **Warning**: Option B has **fewer security controls** than Option A. Use it only for development, prototyping, or single-partner setups where you fully trust the partner and accept the tradeoffs below.
+
 Option B is suitable when:
 - You have a **single trusted partner** (e.g., only Lokadata embeds GLChat)
 - You want the **simplest possible integration** with minimal moving parts
 - You don't need per-partner key rotation or partner lifecycle management
 
-For production with multiple partners, see [Option A (Token Exchange)](../sso-token-exchange/).
+**Option B does NOT provide:**
+- Per-partner key rotation (shared secret is static until manually changed)
+- Partner deactivation (no way to disable a partner without changing the secret)
+- Email domain restrictions (any email can be asserted)
+- IP allowlisting (any source can send the JWT)
+- Audit trail (no partner registry to track SSO attempts)
+
+**For production with multiple partners, always use [Option A (Token Exchange)](../sso-token-exchange/).**
 
 ## Overview
 
