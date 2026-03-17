@@ -13,7 +13,7 @@ This example is based on a real product requirement: **Lokadata x GLChat SSO int
 
 Option B (JWT Bridge) is the **simpler alternative** to [Option A (Token Exchange)](../sso-token-exchange/). In this approach, Lokadata signs a short-lived JWT with a shared secret — no server-to-server token request is needed.
 
-> See the full architecture document: [Lokadata x GLChat SSO Architecture](https://github.com/gdplabs/gl-iam-cookbook/blob/main/docs/Lokadata-GLChat-SSO-Architecture.md)
+> See the full architecture document: [Lokadata x GLChat SSO Architecture](https://docs.google.com/document/d/1MxumgZeVdmEp1c3XJ0y9ECCC-dxC6goYKxwDxsSlECI/edit?tab=t.0#heading=h.viqp1y1q0fm9)
 
 ### When to use Option B?
 
