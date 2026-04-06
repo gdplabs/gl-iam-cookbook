@@ -36,6 +36,7 @@ from gl_iam.fastapi import (
     require_org_admin,
     set_iam_gateway,
 )
+from gl_iam.core.exceptions import AuthenticationError, AuthorizationError
 from gl_iam.providers.postgresql import (
     AuditEventModel,
     PostgreSQLConfig,
@@ -112,6 +113,21 @@ app = FastAPI(
     description="GL-IAM Audit Trail — Production Setup",
     lifespan=lifespan,
 )
+
+
+# ============================================================================
+# Exception Handlers
+# ============================================================================
+@app.exception_handler(AuthenticationError)
+async def authentication_error_handler(request, exc):
+    from fastapi.responses import JSONResponse
+    return JSONResponse(status_code=401, content={"detail": str(exc)})
+
+
+@app.exception_handler(AuthorizationError)
+async def authorization_error_handler(request, exc):
+    from fastapi.responses import JSONResponse
+    return JSONResponse(status_code=403, content={"detail": str(exc)})
 
 
 # ============================================================================
@@ -277,7 +293,7 @@ async def get_audit_log(
     from sqlalchemy.ext.asyncio import AsyncSession
 
     prov: PostgreSQLProvider = app.state.provider
-    async with AsyncSession(prov._async_engine) as session:
+    async with AsyncSession(prov.engine) as session:
         # Build query with optional filters
         query = select(AuditEventModel).order_by(AuditEventModel.timestamp.desc())
         count_query = select(func.count()).select_from(AuditEventModel)
