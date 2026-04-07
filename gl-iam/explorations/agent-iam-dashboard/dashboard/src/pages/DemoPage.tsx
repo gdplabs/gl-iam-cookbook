@@ -3,6 +3,8 @@ import { ScenarioPicker } from "@/components/scenario/ScenarioPicker";
 import { ScenarioRunner } from "@/components/scenario/ScenarioRunner";
 import { DelegationFlow } from "@/components/delegation/DelegationFlow";
 import { ScopeAttenuationTable } from "@/components/delegation/ScopeAttenuationTable";
+import { CredentialPolicyPanel } from "@/components/delegation/CredentialPolicyPanel";
+import { ChatSimulation } from "@/components/results/ChatSimulation";
 import { ExecutionLog } from "@/components/results/ExecutionLog";
 import { ToolResultCard } from "@/components/results/ToolResultCard";
 import { TokenInspector } from "@/components/token/TokenInspector";
@@ -82,9 +84,20 @@ export function DemoPage({
         <ScrollArea className="h-[calc(100vh-120px)]">
           {currentResult ? (
             <div className="space-y-6 pr-2">
+              <ChatSimulation result={currentResult} />
+              <Separator />
               <DelegationFlow result={currentResult} />
               <Separator />
               <ScopeAttenuationTable result={currentResult} />
+
+              <Separator />
+              <CredentialPolicyPanel
+                agentName={
+                  currentResult.aip_response?.delegation_chain
+                    .find((e) => e.depth === 2)
+                    ?.agent_id?.split(":").pop()
+                }
+              />
 
               {currentResult.aip_response &&
                 currentResult.aip_response.execution_log.length > 0 && (

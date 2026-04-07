@@ -782,6 +782,7 @@ async def run_scenario(scenario_id: str):
                     "expected_outcome": scenario["expected_outcome"],
                     "brd_refs": scenario["brd_refs"],
                     "concepts": scenario["concepts"],
+                    "access_type": scenario.get("resource_context", {}).get("access_type"),
                 },
                 **result,
             }
@@ -801,6 +802,7 @@ async def run_scenario(scenario_id: str):
                     "expected_outcome": scenario["expected_outcome"],
                     "brd_refs": scenario["brd_refs"],
                     "concepts": scenario["concepts"],
+                    "access_type": scenario.get("resource_context", {}).get("access_type"),
                 },
                 "delegation_ref": f"dlg-{uuid.uuid4().hex[:12]}",
                 "outcome": "rejected",
@@ -837,6 +839,7 @@ async def run_scenario(scenario_id: str):
                     "expected_outcome": scenario["expected_outcome"],
                     "brd_refs": scenario["brd_refs"],
                     "concepts": scenario["concepts"],
+                    "access_type": scenario.get("resource_context", {}).get("access_type"),
                 },
                 "delegation_ref": f"dlg-{uuid.uuid4().hex[:12]}",
                 "outcome": "rejected",
@@ -855,6 +858,7 @@ async def run_scenario(scenario_id: str):
                 "expected_outcome": scenario["expected_outcome"],
                 "brd_refs": scenario["brd_refs"],
                 "concepts": scenario["concepts"],
+                "access_type": scenario.get("resource_context", {}).get("access_type"),
             },
             **result,
         }
