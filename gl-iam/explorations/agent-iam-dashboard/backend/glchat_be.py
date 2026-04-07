@@ -458,6 +458,9 @@ async def run_agent(
     )
 
     # --- Step 3: Forward to AIP Backend ---
+    # Enrich resource_context with user_role for credential routing at connectors
+    enriched_context = {**resource_context, "_user_role": role}
+
     async with httpx.AsyncClient() as client:
         try:
             resp = await client.post(
@@ -465,7 +468,7 @@ async def run_agent(
                 json={
                     "user_message": request.user_message,
                     "tool_inputs": request.tool_inputs,
-                    "resource_context": resource_context,
+                    "resource_context": enriched_context,
                 },
                 headers={"X-Delegation-Token": delegation.token},
                 timeout=30.0,
@@ -583,7 +586,7 @@ async def autonomous_run(request: RunAgentRequest):
 
 
 # =============================================================================
-# Scenario Endpoints (for Dashboard)
+# Scenario & Interactive Endpoints (for Dashboard)
 # =============================================================================
 @app.get("/scenarios")
 async def list_scenarios():
@@ -598,17 +601,207 @@ async def get_scenario(scenario_id: str):
     return {"id": scenario_id, **scenario}
 
 
+@app.get("/demo/users")
+async def list_demo_users():
+    """Return 3 role archetypes: Admin, Member, Guest (cross-tenant)."""
+    # Pick one representative user per role archetype
+    archetypes = [
+        {"role": "admin",  "email": "onlee@tenantA.com",      "label": "Pak On (Admin)"},
+        {"role": "member", "email": "attendee@tenantA.com",   "label": "Maylina (Member)"},
+        {"role": "viewer", "email": "guest@tenantA.com",      "label": "Guest (Not Logged In)"},
+    ]
+    result = []
+    for arch in archetypes:
+        email = arch["email"]
+        mock = MOCK_USERS.get(email, {})
+        role = arch["role"]
+        result.append({
+            "email": email,
+            "display_name": arch["label"],
+            "role": role,
+            "tenant": mock.get("tenant", "tenantA"),
+            "features": mock.get("features", []),
+            "is_super_user": mock.get("is_super_user", False),
+            "scopes": ROLE_SCOPES.get(role, {}).get("scopes", []),
+        })
+    return result
+
+
+@app.get("/demo/orchestrators")
+async def list_orchestrator_agents():
+    """Return registered orchestrator/autonomous agents (for interactive picker)."""
+    result = []
+    for agent_name, agent_id in REGISTERED_AGENTS.items():
+        config = AGENT_CONFIGS.get(agent_name)
+        if config:
+            result.append({
+                "id": agent_id,
+                "name": agent_name,
+                "type": config["type"],
+                "product": config.get("product", ""),
+                "allowed_scopes": config["allowed_scopes"],
+            })
+    return result
+
+
+# Deduplicated action catalog — maps action key to base scenario ID.
+# The interactive-run endpoint resolves the correct variant based on user role.
+ACTION_CATALOG: dict[str, dict] = {
+    # scheduling-agent
+    "check-own-calendar": {
+        "agent": "scheduling-agent",
+        "title": "Check own calendar schedule",
+        "message": "Give me a list of my meetings today",
+        "description": "Read-only access to the user's own calendar.",
+        "concepts": ["Delegated Access", "Auto-Approval (Read-Only)"],
+        "base_scenario": "UC-GLCHAT-01.1",
+    },
+    "check-ceo-calendar": {
+        "agent": "scheduling-agent",
+        "title": "Check Pak On (CEO) calendar schedule",
+        "message": "Give me a list of Pak On's meetings today",
+        "description": "Access CEO's calendar. All logged-in roles can use Agent OAuth (whitelisted). Guest rejected.",
+        "concepts": ["Delegated Access", "Resource Constraint", "Agent OAuth"],
+        "base_scenario": "UC-GLCHAT-01.2",
+    },
+    "check-internal-colleague-calendar": {
+        "agent": "scheduling-agent",
+        "title": "Check internal colleague's calendar",
+        "message": "Give me a list of Sandy's meetings today",
+        "description": "Access an internal org colleague's calendar. Admin and Member can use Agent OAuth. Guest rejected.",
+        "concepts": ["Delegated Access", "Resource Constraint", "Org Boundary"],
+        "base_scenario": "UC-GLCHAT-01.3",
+    },
+    "check-external-colleague-calendar": {
+        "agent": "scheduling-agent",
+        "title": "Check external org colleague's calendar",
+        "message": "Give me a list of Charlie's meetings today",
+        "description": "Access an external org user's calendar. Only Admin can use Agent OAuth (wildcard access). Member rejected.",
+        "concepts": ["Delegated Access", "Resource Constraint", "Org Boundary"],
+        "base_scenario": "UC-GLCHAT-01.4",
+    },
+    "schedule-own-meeting": {
+        "agent": "scheduling-agent",
+        "title": "Schedule meeting on own calendar",
+        "message": "Schedule a 1-hour sync with Sandy and Petry this Friday at 3pm",
+        "description": "Write action on own calendar.",
+        "concepts": ["Delegated Access", "Approval Boundary (Write)"],
+        "base_scenario": "UC-GLCHAT-02.1",
+    },
+    "write-colleague-calendar": {
+        "agent": "scheduling-agent",
+        "title": "Write to colleague's calendar",
+        "message": "Add a dentist appointment to Sandy's calendar tomorrow at 10am",
+        "description": "Attempt to write to another user's calendar. Rejected for all roles.",
+        "concepts": ["Resource Constraint", "Write Protection"],
+        "base_scenario": "UC-GLCHAT-02.2",
+    },
+    "scheduled-task": {
+        "agent": "scheduling-agent",
+        "title": "Scheduled task (daily meeting list)",
+        "message": "Send daily meeting list (scheduled task)",
+        "description": "Pre-authorized recurring task. Tests account validity at execution time.",
+        "concepts": ["Pre-authorised Revalidation"],
+        "base_scenario": "UC-GLCHAT-03.1",
+    },
+    # de-pm-agent
+    "create-mom": {
+        "agent": "de-pm-agent",
+        "title": "Create Minutes of Meeting",
+        "message": "Create minutes of meeting for GL IAM standup",
+        "description": "DE PM creates MoM on Meemo and Google Docs.",
+        "concepts": ["Implicit Consent", "Agent's Own Access"],
+        "base_scenario": "UC-DE-01.1",
+    },
+    "share-mom": {
+        "agent": "de-pm-agent",
+        "title": "Share MoM with attendees",
+        "message": "Share the GL IAM standup MoM with all attendees",
+        "description": "Share meeting notes. Only organiser can share.",
+        "concepts": ["Delegated Access", "Resource Ownership"],
+        "base_scenario": "UC-DE-02.1",
+    },
+    "access-mom": {
+        "agent": "de-pm-agent",
+        "title": "Access/summarize MoM",
+        "message": "Summarize yesterday's GL IAM standup",
+        "description": "Read MoM. Access depends on attendee status and role.",
+        "concepts": ["Delegated Access", "Hierarchical Access"],
+        "base_scenario": "UC-DE-03.1",
+    },
+    "send-invoice": {
+        "agent": "de-pm-agent",
+        "title": "Send Invoice",
+        "message": "Send all AWS invoices April 2026",
+        "description": "Feature-level access control. Only entitled users can send invoices.",
+        "concepts": ["Feature-Level Access Control"],
+        "base_scenario": "UC-DE-06.1",
+    },
+    # weekly-report-agent
+    "weekly-report": {
+        "agent": "weekly-report-agent",
+        "title": "Send weekly report",
+        "message": "Send final weekly report for onlee@tenantA.com",
+        "description": "Autonomous agent sends compiled weekly report.",
+        "concepts": ["Agent's Own Identity", "Autonomous Execution"],
+        "base_scenario": "UC-AIP-01.1",
+    },
+    "draft-report": {
+        "agent": "weekly-report-agent",
+        "title": "Send draft report",
+        "message": "Send draft weekly report to onlee@tenantA.com",
+        "description": "Autonomous agent creates and sends draft for employee to fill.",
+        "concepts": ["Agent's Own Identity", "Agent Resource Access"],
+        "base_scenario": "UC-AIP-02.1",
+    },
+}
+
+# Map (action_key, role) -> scenario_id override
+# If not in this map, use the base_scenario from ACTION_CATALOG
+ACTION_ROLE_OVERRIDES: dict[tuple[str, str], str] = {
+    # Member (Petry) variants
+    ("check-own-calendar", "member"): "UC-GLCHAT-01.1-M",
+    ("check-ceo-calendar", "member"): "UC-GLCHAT-01.2-M",
+    ("check-internal-colleague-calendar", "member"): "UC-GLCHAT-01.3-M",
+    ("check-external-colleague-calendar", "member"): "UC-GLCHAT-01.4-M",
+    ("schedule-own-meeting", "member"): "UC-GLCHAT-02.1-M",
+    ("write-colleague-calendar", "member"): "UC-GLCHAT-02.2-M",
+}
+
+
+@app.get("/demo/actions")
+async def list_actions():
+    """Return deduplicated actions grouped by agent. No spoilers."""
+    grouped: dict[str, list[dict]] = {}
+    for action_key, action in ACTION_CATALOG.items():
+        agent = action["agent"]
+        if agent not in grouped:
+            grouped[agent] = []
+        grouped[agent].append({
+            "id": action_key,
+            "title": action["title"],
+            "message": action["message"],
+            "description": action["description"],
+            "concepts": action["concepts"],
+        })
+    return grouped
+
+
 @app.post("/demo/setup")
 async def demo_setup():
     """One-click setup: register all demo users + agents. Returns tokens and IDs."""
     gateway = get_iam_gateway()
     org_id = os.getenv("DEFAULT_ORGANIZATION_ID", "default")
 
-    # Collect unique users from scenarios
+    # Collect unique users from scenarios + role archetypes
     users_to_register = set()
     for scenario in SCENARIOS.values():
         if scenario.get("user_email"):
             users_to_register.add(scenario["user_email"])
+    # Always register archetype users for the interactive picker
+    users_to_register.add("onlee@tenantA.com")      # Admin (Pak On)
+    users_to_register.add("attendee@tenantA.com")   # Member (Petry)
+    users_to_register.add("guest@tenantA.com")      # Guest (not logged in)
 
     # Register users (or login if already exists)
     registered = {}
@@ -860,6 +1053,124 @@ async def run_scenario(scenario_id: str):
                 "concepts": scenario["concepts"],
                 "access_type": scenario.get("resource_context", {}).get("access_type"),
             },
+            **result,
+        }
+
+
+class InteractiveRunRequest(BaseModel):
+    user_email: str
+    agent_name: str
+    scenario_id: str  # This is now the action_key from ACTION_CATALOG
+
+
+@app.post("/demo/interactive-run")
+async def interactive_run(request: InteractiveRunRequest):
+    """Run an action with a specific user. Resolves the correct scenario variant
+    based on user role via ACTION_ROLE_OVERRIDES."""
+
+    # Resolve action -> scenario
+    action = ACTION_CATALOG.get(request.scenario_id)
+    if not action:
+        raise HTTPException(status_code=404, detail=f"Action '{request.scenario_id}' not found")
+
+    agent_id = REGISTERED_AGENTS.get(request.agent_name)
+    if not agent_id:
+        raise HTTPException(status_code=400, detail=f"Agent '{request.agent_name}' not registered")
+
+    user_reg = REGISTERED_USERS.get(request.user_email)
+    mock = MOCK_USERS.get(request.user_email, {})
+
+    # Determine user role
+    user_role = "member"
+    user_tenant = "tenantA"
+    for uid, info in USER_ROLE_DB.items():
+        if info.get("email") == request.user_email:
+            user_role = info.get("role", "member")
+            user_tenant = info.get("tenant", "tenantA")
+            break
+
+    # Resolve scenario: check role override, fall back to base
+    scenario_id = ACTION_ROLE_OVERRIDES.get(
+        (request.scenario_id, user_role),
+        action["base_scenario"],
+    )
+    scenario = SCENARIOS.get(scenario_id)
+    if not scenario:
+        raise HTTPException(status_code=500, detail=f"Resolved scenario '{scenario_id}' not found")
+
+    logger.info(f"Interactive run: user={request.user_email} role={user_role} action={request.scenario_id} -> scenario={scenario_id}")
+
+    def make_scenario_meta():
+        return {
+            "title": action["title"],
+            "description": action["description"],
+            "message": scenario.get("message", action.get("message", "")),
+            "product": scenario.get("product", ""),
+            "concepts": action["concepts"],
+            "access_type": scenario.get("resource_context", {}).get("access_type"),
+            "resolved_scenario": scenario_id,
+            "user_role": user_role,
+        }
+
+    # Check deactivated
+    if not mock.get("active", True):
+        return {
+            "scenario_id": scenario_id,
+            "scenario": make_scenario_meta(),
+            "delegation_ref": f"dlg-{uuid.uuid4().hex[:12]}",
+            "outcome": "rejected",
+            "reason": "Account is deactivated. Authorization is no longer valid.",
+            "user": {"email": request.user_email, "role": user_role, "active": False},
+            "aip_response": None,
+        }
+
+    if not user_reg or not user_reg.get("token"):
+        raise HTTPException(status_code=400, detail=f"User '{request.user_email}' not registered or logged in")
+
+    # Check tenant boundary
+    agent_config = AGENT_CONFIGS.get(request.agent_name, {})
+    agent_tenant = agent_config.get("tenant", "tenantA")
+
+    if user_tenant != agent_tenant:
+        return {
+            "scenario_id": scenario_id,
+            "scenario": make_scenario_meta(),
+            "delegation_ref": f"dlg-{uuid.uuid4().hex[:12]}",
+            "outcome": "rejected",
+            "reason": f"Tenant boundary violation. User ({user_tenant}) cannot invoke agent ({agent_tenant}).",
+            "user": {"email": request.user_email, "role": user_role, "tenant": user_tenant},
+            "aip_response": None,
+        }
+
+    async with httpx.AsyncClient() as client:
+        resp = await client.post(
+            "http://localhost:8000/chat/run-agent",
+            json={
+                "agent_id": agent_id,
+                "user_message": scenario["message"],
+                "tool_inputs": scenario.get("tool_inputs", {}),
+                "resource_context": scenario.get("resource_context", {}),
+            },
+            headers={"Authorization": f"Bearer {user_reg['token']}"},
+            timeout=30.0,
+        )
+
+        if resp.status_code == 403:
+            error_detail = resp.json().get("detail", "Forbidden")
+            return {
+                "scenario_id": scenario_id,
+                "scenario": make_scenario_meta(),
+                "delegation_ref": f"dlg-{uuid.uuid4().hex[:12]}",
+                "outcome": "rejected",
+                "reason": error_detail,
+                "user": {"email": request.user_email, "role": user_role},
+                "aip_response": None,
+            }
+
+        result = resp.json()
+        return {
+            "scenario_id": scenario_id,
+            "scenario": make_scenario_meta(),
             **result,
         }
 

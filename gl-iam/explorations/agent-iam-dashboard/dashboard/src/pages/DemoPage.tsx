@@ -1,6 +1,6 @@
+import { useState } from "react";
 import { SetupPanel } from "@/components/setup/SetupPanel";
-import { ScenarioPicker } from "@/components/scenario/ScenarioPicker";
-import { ScenarioRunner } from "@/components/scenario/ScenarioRunner";
+import { ScenarioBuilder } from "@/components/scenario/ScenarioBuilder";
 import { DelegationFlow } from "@/components/delegation/DelegationFlow";
 import { ScopeAttenuationTable } from "@/components/delegation/ScopeAttenuationTable";
 import { CredentialPolicyPanel } from "@/components/delegation/CredentialPolicyPanel";
@@ -37,13 +37,13 @@ export function DemoPage({
   reset,
   setupResult,
   allHealthy,
-  scenarios,
-  currentScenario,
-  currentResult,
-  run,
-  setCurrentScenario,
-  error,
+  error: parentError,
 }: DemoPageProps) {
+  const [currentResult, setCurrentResult] = useState<ScenarioRunResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const displayError = error || parentError;
+
   return (
     <div className="flex gap-4 pt-4">
       {/* Left panel */}
@@ -51,30 +51,20 @@ export function DemoPage({
         <SetupPanel
           phase={phase}
           setup={setup}
-          reset={reset}
+          reset={async () => { await reset(); setCurrentResult(null); setError(null); }}
           setupResult={setupResult}
           allHealthy={allHealthy}
         />
 
-        {scenarios && (
-          <ScenarioPicker
-            scenarios={scenarios}
-            currentScenario={currentScenario}
-            onSelect={setCurrentScenario}
-          />
-        )}
-
-        <ScenarioRunner
-          currentScenario={currentScenario}
-          scenarios={scenarios}
-          onRun={run}
+        <ScenarioBuilder
           phase={phase}
-          currentResult={currentResult ?? null}
+          onResult={(result) => { setCurrentResult(result); setError(null); }}
+          onError={setError}
         />
 
-        {error && (
+        {displayError && (
           <div className="rounded-md border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-400">
-            {error}
+            {displayError}
           </div>
         )}
       </div>
@@ -160,7 +150,7 @@ export function DemoPage({
               <p className="text-sm text-muted-foreground">
                 {phase === "idle"
                   ? "Initialize the demo environment to get started."
-                  : "Select and run a scenario to see results."}
+                  : "Pick a user, agent, and action — then run the scenario."}
               </p>
             </div>
           )}

@@ -10,16 +10,55 @@ interface ChatSimulationProps {
 
 export function ChatSimulation({ result }: ChatSimulationProps) {
   const scenarioId = result.scenario_id ?? "";
-  const userMessage = result.aip_response?.user_message ?? result.scenario?.title ?? "";
-  const userName = result.user?.email?.split("@")[0] ?? "System";
+  const userMessage = result.aip_response?.user_message
+    ?? result.scenario?.message
+    ?? result.scenario?.title ?? "";
+  const userDisplayName = result.user?.email
+    ? (result.user.email.startsWith("onlee") ? "Pak On"
+      : result.user.email.startsWith("attendee") ? "Maylina"
+      : result.user.email.startsWith("guest") ? "Guest"
+      : result.user.email.split("@")[0])
+    : "System";
+  const userName = userDisplayName;
   const userRole = result.user?.role;
   const agentName = result.scenario?.product === "aip"
     ? "Weekly Report Agent"
     : result.scenario?.product === "de"
       ? "DE PM Agent"
       : "Scheduling Agent";
-  const response = getHypotheticalResponse(scenarioId);
-  const outcome = result.outcome ?? result.aip_response?.outcome;
+  const aipOutcome = result.aip_response?.outcome;
+  const outcome = result.outcome === "rejected" ? "rejected"
+    : aipOutcome === "rejected" ? "rejected"
+    : aipOutcome ?? result.outcome;
+
+  // Determine actual response based on what happened
+  let response: string;
+  if (result.outcome === "rejected" && result.reason) {
+    // Rejected at ABAC/tenant level
+    response = `I'm sorry, I cannot complete this request.\n\n**Reason:** ${result.reason}`;
+  } else if (result.aip_response?.tool_results) {
+    const denied = result.aip_response.tool_results.filter(
+      (tr) => tr.status === "denied" || tr.status === "delegation_failed"
+    );
+    const executed = result.aip_response.tool_results.filter(
+      (tr) => tr.status === "executed"
+    );
+
+    if (denied.length > 0 && executed.length === 0) {
+      // All tools denied
+      const reasons = denied.map((tr) => `- **${tr.tool}**: ${tr.error ?? "denied"}`).join("\n");
+      response = `I'm sorry, I cannot complete this request. The required tools were denied:\n\n${reasons}`;
+    } else if (denied.length > 0 && executed.length > 0) {
+      // Partial — some tools worked, some denied
+      const hypothetical = getHypotheticalResponse(scenarioId);
+      const deniedList = denied.map((tr) => `- **${tr.tool}**: ${tr.error ?? "denied"}`).join("\n");
+      response = `${hypothetical}\n\n_Note: Some actions were denied:_\n${deniedList}`;
+    } else {
+      response = getHypotheticalResponse(scenarioId);
+    }
+  } else {
+    response = getHypotheticalResponse(scenarioId);
+  }
 
   const outcomeColor =
     outcome === "success" || outcome === "delegated"

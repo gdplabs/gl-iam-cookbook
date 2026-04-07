@@ -84,6 +84,38 @@ def get_delegation_ref(token: DelegationToken) -> str:
     return token.task.metadata.get("delegation_ref", token.task.id)
 
 
+def get_resource_context(token: DelegationToken) -> dict:
+    """Extract resource_context from delegation token metadata."""
+    return token.task.metadata.get("resource_context", {})
+
+
+def check_user_oauth_required(request_input: dict, tool_name: str) -> str | None:
+    """Check if this tool requires User OAuth but the user is a guest (no OAuth).
+
+    Returns an error message if rejected, None if OK.
+
+    Credential routing rule: tools with access_type="user" require User OAuth.
+    Guest users (role=viewer) have no User OAuth token,
+    so their personal resource access (own calendar, own docs) is rejected.
+    """
+    access_type = request_input.get("access_type", "user")
+    user_role = request_input.get("_user_role", "")
+
+    # If access_type is "agent", the agent's own OAuth is used — always OK
+    if access_type == "agent":
+        return None
+
+    # If access_type is "user", check if this is a guest/viewer user
+    # Guest users have no User OAuth token — they can't access personal resources
+    if user_role == "viewer":
+        return (
+            f"This action requires your personal OAuth credentials to access your own resources, "
+            f"but you are not logged in. Please log in to use {tool_name}."
+        )
+
+    return None
+
+
 # =============================================================================
 # GLChat Tools (existing)
 # =============================================================================
@@ -95,9 +127,45 @@ async def calendar_list_events(
     token: DelegationToken = Depends(get_delegation_token),
 ):
     ref = get_delegation_ref(token)
-    audit_log("connectors", "tool_call_allowed", ref, tool="calendar.list_events", agent_id=agent.id)
 
-    target = request.input.get("target_calendar", "alice@tenantA.com")
+    target = request.input.get("target_calendar", "onlee@tenantA.com")
+
+    # Credential routing check: User OAuth required for own calendar
+    oauth_error = check_user_oauth_required(request.input, "calendar.list_events")
+    if oauth_error:
+        audit_log("connectors", "tool_call_denied", ref,
+                  tool="calendar.list_events", reason="no_user_oauth")
+        raise HTTPException(status_code=403, detail=oauth_error)
+
+    # Resource constraint check: agent_calendar_access
+    access_constraint = request.input.get("agent_calendar_access")
+    access_type = request.input.get("access_type", "user")
+    if access_type == "agent" and access_constraint is not None:
+        if access_constraint == "*":
+            pass  # Admin wildcard — any calendar
+        elif isinstance(access_constraint, list):
+            # Check if target is in whitelist (exact match or org pattern)
+            allowed = False
+            for pattern in access_constraint:
+                if pattern.startswith("@"):
+                    # Org pattern: "@tenantA.com" matches any email in that domain
+                    if target.endswith(pattern):
+                        allowed = True
+                        break
+                elif target == pattern:
+                    allowed = True
+                    break
+            if not allowed:
+                audit_log("connectors", "tool_call_denied", ref,
+                          tool="calendar.list_events", reason="resource_constraint",
+                          target=target, constraint=access_constraint)
+                raise HTTPException(
+                    status_code=403,
+                    detail=f"Agent OAuth access denied for {target}. "
+                           f"Your role only allows access to: {', '.join(str(p) for p in access_constraint)}",
+                )
+
+    audit_log("connectors", "tool_call_allowed", ref, tool="calendar.list_events", agent_id=agent.id)
     events = CALENDARS.get(target, [
         {"id": "evt-1", "title": "Sprint Planning", "time": "2026-04-07T09:00:00Z"},
         {"id": "evt-2", "title": "Design Review", "time": "2026-04-07T14:00:00Z"},
@@ -115,6 +183,13 @@ async def calendar_create_event(
     token: DelegationToken = Depends(get_delegation_token),
 ):
     ref = get_delegation_ref(token)
+
+    # Credential routing check
+    oauth_error = check_user_oauth_required(request.input, "calendar.create_event")
+    if oauth_error:
+        audit_log("connectors", "tool_call_denied", ref,
+                  tool="calendar.create_event", reason="no_user_oauth")
+        raise HTTPException(status_code=403, detail=oauth_error)
 
     # Resource constraint: check write_to_others
     if request.input.get("write_to_others"):

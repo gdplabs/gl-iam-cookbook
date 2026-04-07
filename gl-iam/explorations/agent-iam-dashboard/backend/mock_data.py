@@ -18,8 +18,8 @@ TENANTS = {
 # =============================================================================
 USERS = {
     # GLChat users (tenantA)
-    "alice@tenantA.com": {
-        "display_name": "Alice",
+    "onlee@tenantA.com": {
+        "display_name": "Pak On",
         "tenant": "tenantA",
         "role": "admin",
         "active": True,
@@ -42,6 +42,14 @@ USERS = {
         "features": [],
         "is_super_user": False,
     },
+    "guest@tenantA.com": {
+        "display_name": "Guest",
+        "tenant": "tenantA",
+        "role": "viewer",
+        "active": True,
+        "features": [],
+        "is_super_user": False,
+    },
     # DE users
     "organiser@tenantA.com": {
         "display_name": "Organiser (Sandy)",
@@ -52,7 +60,7 @@ USERS = {
         "is_super_user": False,
     },
     "attendee@tenantA.com": {
-        "display_name": "Attendee (Petry)",
+        "display_name": "Attendee (Maylina)",
         "tenant": "tenantA",
         "role": "member",
         "active": True,
@@ -117,7 +125,7 @@ USERS = {
 MEEMO_ACCOUNTS = {
     "organiser@tenantA.com": {"active": True},
     "attendee@tenantA.com": {"active": True},
-    "alice@tenantA.com": {"active": True},
+    "onlee@tenantA.com": {"active": True},
     # NOTE: "no-meemo@tenantA.com" intentionally NOT here (UC-DE-01.2)
 }
 
@@ -125,17 +133,22 @@ MEEMO_ACCOUNTS = {
 # Calendars — user-owned resources
 # =============================================================================
 CALENDARS = {
-    "alice@tenantA.com": [
+    "onlee@tenantA.com": [
         {"id": "evt-1", "title": "Sprint Planning", "time": "2026-04-07T09:00:00Z"},
         {"id": "evt-2", "title": "Design Review", "time": "2026-04-07T14:00:00Z"},
         {"id": "evt-3", "title": "1:1 with Manager", "time": "2026-04-08T10:00:00Z"},
     ],
-    "pakon@tenantA.com": [
+    "onlee@tenantA.com": [
         {"id": "evt-4", "title": "Board Meeting", "time": "2026-04-07T10:00:00Z"},
         {"id": "evt-5", "title": "Strategy Review", "time": "2026-04-07T15:00:00Z"},
     ],
     "organiser@tenantA.com": [
         {"id": "evt-6", "title": "GL IAM Standup", "time": "2026-04-07T09:30:00Z"},
+        {"id": "evt-7", "title": "SDK Planning", "time": "2026-04-07T11:00:00Z"},
+    ],
+    "charlie@tenantB.com": [
+        {"id": "evt-8", "title": "External Partner Sync", "time": "2026-04-07T13:00:00Z"},
+        {"id": "evt-9", "title": "Cross-Org Review", "time": "2026-04-07T16:00:00Z"},
     ],
 }
 
@@ -149,7 +162,7 @@ MEETINGS = {
         "attendees": [
             "organiser@tenantA.com",
             "attendee@tenantA.com",
-            "alice@tenantA.com",
+            "onlee@tenantA.com",
             "charlie@tenantB.com",  # external attendee
         ],
         "tenant": "tenantA",
@@ -173,7 +186,7 @@ MOMS = {
         "content": "Discussed delegation token design, scope attenuation, and audit trail implementation.",
         "sensitive_fields": ["attendee_emails"],
         "organiser": "organiser@tenantA.com",
-        "attendees": ["organiser@tenantA.com", "attendee@tenantA.com", "alice@tenantA.com"],
+        "attendees": ["organiser@tenantA.com", "attendee@tenantA.com", "onlee@tenantA.com"],
         "tenant": "tenantA",
     },
     "mom-002": {
@@ -212,7 +225,7 @@ MOMS = {
 # Weekly Reports (AIP use case)
 # =============================================================================
 WEEKLY_REPORTS = {
-    "alice@tenantA.com": {
+    "onlee@tenantA.com": {
         "filled": True,
         "content": "Completed delegation token MVP. Started integration tests.",
         "email_active": True,

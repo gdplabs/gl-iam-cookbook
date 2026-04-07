@@ -44,8 +44,25 @@ export function SetupPanel({ phase, setup, reset, setupResult, allHealthy }: Set
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
   const [expandedAgent, setExpandedAgent] = useState<string | null>(null);
 
-  const userCount = setupResult ? Object.values(setupResult.users).filter(u => !u.error && !u.skipped).length : 0;
-  const agentCount = setupResult ? Object.values(setupResult.agents).filter(a => !a.error).length : 0;
+  // Show only the 3 role archetypes
+  const ARCHETYPE_EMAILS = ["onlee@tenantA.com", "attendee@tenantA.com", "guest@tenantA.com"];
+  const ARCHETYPE_LABELS: Record<string, string> = {
+    "onlee@tenantA.com": "Pak On",
+    "attendee@tenantA.com": "Maylina",
+    "guest@tenantA.com": "Guest",
+  };
+  // Show only orchestrator/autonomous agents (not workers)
+  const ORCHESTRATOR_AGENTS = ["scheduling-agent", "de-pm-agent", "weekly-report-agent"];
+
+  const archetypeUsers = setupResult
+    ? ARCHETYPE_EMAILS.filter(e => setupResult.users[e] && !setupResult.users[e].error)
+    : [];
+  const orchAgents = setupResult
+    ? ORCHESTRATOR_AGENTS.filter(a => setupResult.agents[a] && !setupResult.agents[a].error)
+    : [];
+
+  const userCount = archetypeUsers.length;
+  const agentCount = orchAgents.length;
 
   return (
     <Card size="sm">
@@ -74,79 +91,64 @@ export function SetupPanel({ phase, setup, reset, setupResult, allHealthy }: Set
 
             {showDetails && (
               <div className="space-y-4 pt-1">
-                {/* Users */}
+                {/* Users — only archetypes */}
                 <div>
                   <h4 className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1.5">
                     <User className="size-3" /> Users
                   </h4>
                   <div className="space-y-1">
-                    {Object.entries(setupResult.users)
-                      .filter(([, u]) => !u.error && !u.skipped)
-                      .map(([email, user]) => {
-                        const role = user.role ?? "member";
-                        const scopes = ROLE_SCOPES[role]?.scopes ?? [];
-                        const isExpanded = expandedUser === email;
-                        return (
-                          <div key={email} className="text-xs bg-muted/30 rounded overflow-hidden">
-                            <button
-                              onClick={() => setExpandedUser(isExpanded ? null : email)}
-                              className="w-full flex items-center justify-between px-2 py-1.5 hover:bg-muted/50 transition-colors"
-                            >
-                              <div className="flex items-center gap-1.5 truncate">
-                                <span className="text-foreground truncate">{email.split("@")[0]}</span>
-                                <span className="text-muted-foreground">@{email.split("@")[1]}</span>
+                    {archetypeUsers.map((email) => {
+                      const user = setupResult.users[email]!;
+                      const role = user.role ?? "member";
+                      const scopes = ROLE_SCOPES[role]?.scopes ?? [];
+                      const label = ARCHETYPE_LABELS[email] ?? email.split("@")[0];
+                      const isExpanded = expandedUser === email;
+                      return (
+                        <div key={email} className="text-xs bg-muted/30 rounded overflow-hidden">
+                          <button
+                            onClick={() => setExpandedUser(isExpanded ? null : email)}
+                            className="w-full flex items-center justify-between px-2 py-1.5 hover:bg-muted/50 transition-colors"
+                          >
+                            <span className="text-foreground truncate">{label}</span>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${ROLE_COLORS[role]}`}>
+                                {role}
+                              </Badge>
+                              {isExpanded ? <ChevronUp className="size-2.5" /> : <ChevronDown className="size-2.5" />}
+                            </div>
+                          </button>
+                          {isExpanded && (
+                            <div className="px-2 pb-2 pt-1 border-t border-border/50">
+                              <div className="flex items-center gap-1 mb-1.5 text-muted-foreground">
+                                <Shield className="size-2.5" />
+                                <span className="text-[10px]">Scopes ({scopes.length})</span>
                               </div>
-                              <div className="flex items-center gap-1.5 shrink-0">
-                                <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${ROLE_COLORS[role]}`}>
-                                  {role}
-                                </Badge>
-                                {isExpanded ? <ChevronUp className="size-2.5" /> : <ChevronDown className="size-2.5" />}
+                              <div className="flex flex-wrap gap-1">
+                                {scopes.map((scope) => (
+                                  <Badge key={scope} variant="outline" className="text-[9px] px-1 py-0 bg-muted/50 text-muted-foreground border-border">
+                                    {scope}
+                                  </Badge>
+                                ))}
                               </div>
-                            </button>
-                            {isExpanded && (
-                              <div className="px-2 pb-2 pt-1 border-t border-border/50">
-                                <div className="flex items-center gap-1 mb-1.5 text-muted-foreground">
-                                  <Shield className="size-2.5" />
-                                  <span className="text-[10px]">Scopes ({scopes.length})</span>
-                                </div>
-                                <div className="flex flex-wrap gap-1">
-                                  {scopes.map((scope) => (
-                                    <Badge key={scope} variant="outline" className="text-[9px] px-1 py-0 bg-muted/50 text-muted-foreground border-border">
-                                      {scope}
-                                    </Badge>
-                                  ))}
-                                </div>
-                                <p className="text-[10px] text-muted-foreground mt-1.5 italic">
-                                  {ROLE_SCOPES[role]?.description}
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    {/* Deactivated users */}
-                    {Object.entries(setupResult.users)
-                      .filter(([, u]) => u.skipped)
-                      .map(([email]) => (
-                        <div key={email} className="flex items-center justify-between text-xs bg-muted/30 rounded px-2 py-1.5 opacity-50">
-                          <span className="text-foreground truncate mr-2 line-through">{email.split("@")[0]}</span>
-                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-red-500/20 text-red-300 border-red-500/30">
-                            deactivated
-                          </Badge>
+                              <p className="text-[10px] text-muted-foreground mt-1.5 italic">
+                                {ROLE_SCOPES[role]?.description}
+                              </p>
+                            </div>
+                          )}
                         </div>
-                      ))}
+                      );
+                    })}
                   </div>
                 </div>
 
-                {/* Agents */}
+                {/* Agents — only orchestrators */}
                 <div>
                   <h4 className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1.5">
                     <Bot className="size-3" /> Agents
                   </h4>
                   <div className="space-y-1">
-                    {Object.entries(setupResult.agents)
-                      .filter(([, a]) => !a.error)
-                      .map(([name, agent]) => {
+                    {orchAgents.map((name) => {
+                      const agent = setupResult.agents[name]!;
                         const agentType = agent.type ?? "orchestrator";
                         const isExpanded = expandedAgent === name;
                         return (

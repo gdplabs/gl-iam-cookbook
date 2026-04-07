@@ -354,6 +354,9 @@ async def run_agent(
                     })
                 continue
 
+            # Forward user_role from parent token for credential routing checks
+            parent_user_role = token.task.metadata.get("user_role", "")
+
             worker_task = TaskContext(
                 id=token.task.id,
                 purpose=f"Worker dispatch: {worker_name}",
@@ -361,6 +364,7 @@ async def run_agent(
                     "delegation_ref": ref,
                     "worker": worker_name,
                     "resource_context": request.resource_context,
+                    "user_role": parent_user_role,
                 },
             )
             worker_scope = DelegationScope(scopes=worker_scopes, expires_in_seconds=600)
@@ -429,8 +433,11 @@ async def run_agent(
                 tool_input = request.tool_inputs.get(tool_name, {})
                 required_scope = tool_scope_map.get(tool_name, "")
 
-                # Merge resource_context into tool input
-                merged_input = {**tool_input, **request.resource_context}
+                # Merge resource_context (which includes _user_role) into tool input
+                merged_input = {
+                    **tool_input,
+                    **request.resource_context,
+                }
 
                 sub_task = TaskContext(
                     id=token.task.id,
@@ -440,6 +447,7 @@ async def run_agent(
                         "tool": tool_name,
                         "worker": worker_name,
                         "resource_context": request.resource_context,
+                        "user_role": parent_user_role,
                     },
                 )
                 sub_scope = DelegationScope(scopes=[required_scope], expires_in_seconds=300)
