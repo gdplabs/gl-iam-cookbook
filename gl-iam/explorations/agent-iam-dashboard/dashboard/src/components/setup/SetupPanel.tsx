@@ -45,11 +45,11 @@ export function SetupPanel({ phase, setup, reset, setupResult, allHealthy }: Set
   const [expandedAgent, setExpandedAgent] = useState<string | null>(null);
 
   // Show only the 3 role archetypes
-  const ARCHETYPE_EMAILS = ["onlee@tenantA.com", "attendee@tenantA.com", "guest@tenantA.com"];
+  const ARCHETYPE_EMAILS = ["onlee@gdplabs.id", "maylina@gdplabs.id", "guest@gdplabs.id"];
   const ARCHETYPE_LABELS: Record<string, string> = {
-    "onlee@tenantA.com": "Pak On",
-    "attendee@tenantA.com": "Maylina",
-    "guest@tenantA.com": "Guest",
+    "onlee@gdplabs.id": "Pak On",
+    "maylina@gdplabs.id": "Maylina",
+    "guest@gdplabs.id": "Guest",
   };
   // Show only orchestrator/autonomous agents (not workers)
   const ORCHESTRATOR_AGENTS = ["scheduling-agent", "de-pm-agent", "weekly-report-agent"];

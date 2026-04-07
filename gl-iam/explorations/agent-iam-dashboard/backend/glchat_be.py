@@ -30,6 +30,9 @@ from gl_iam import (
     IAMGateway,
     TaskContext,
     User,
+    composite_validator,
+    string_equality_validator,
+    set_subset_validator,
 )
 from gl_iam.core.types import PasswordCredentials, UserCreateInput
 from gl_iam.fastapi import (
@@ -61,7 +64,7 @@ ROLE_SCOPES: dict[str, dict] = {
         "scopes": [
             "calendar:read", "calendar:write", "slack:post", "notion:read", "gmail:send",
             "meemo:read", "meemo:write", "gdoc:read", "gdoc:write", "gdoc:share",
-            "invoice:send",
+            "invoice:send", "directory:lookup",
         ],
         "description": "Full access - all platform scopes",
     },
@@ -69,12 +72,12 @@ ROLE_SCOPES: dict[str, dict] = {
         "scopes": [
             "calendar:read", "calendar:write", "notion:read",
             "meemo:read", "meemo:write", "gdoc:read", "gdoc:write", "gdoc:share",
-            "gmail:send",
+            "gmail:send", "directory:lookup",
         ],
         "description": "Standard access - no slack, no invoice by default",
     },
     "viewer": {
-        "scopes": ["calendar:read", "notion:read", "meemo:read", "gdoc:read"],
+        "scopes": ["calendar:read", "notion:read", "meemo:read", "gdoc:read", "directory:lookup"],
         "description": "Read-only access",
     },
 }
@@ -84,8 +87,8 @@ AGENT_CONFIGS = {
     "scheduling-agent": {
         "type": "orchestrator",
         "product": "glchat",
-        "allowed_scopes": ["calendar:read", "calendar:write", "slack:post", "notion:read"],
-        "tenant": "tenantA",
+        "allowed_scopes": ["calendar:read", "calendar:write", "slack:post", "notion:read", "directory:lookup"],
+        "tenant": "GLC",
     },
     "de-pm-agent": {
         "type": "orchestrator",
@@ -94,13 +97,13 @@ AGENT_CONFIGS = {
             "meemo:read", "meemo:write", "gdoc:read", "gdoc:write", "gdoc:share",
             "gmail:send", "calendar:read", "invoice:send",
         ],
-        "tenant": "tenantA",
+        "tenant": "GLC",
     },
     "weekly-report-agent": {
         "type": "autonomous",
         "product": "aip",
         "allowed_scopes": ["gdoc:read", "gdoc:write", "gdoc:share", "gmail:send"],
-        "tenant": "tenantA",
+        "tenant": "GLC",
     },
 }
 
@@ -125,6 +128,10 @@ WORKER_CONFIGS = {
         "type": "worker",
         "allowed_scopes": ["invoice:send", "gmail:send"],
     },
+    "directory-worker": {
+        "type": "worker",
+        "allowed_scopes": ["directory:lookup"],
+    },
 }
 
 # Store registered agent/user IDs for scenario execution
@@ -148,6 +155,11 @@ async def lifespan(app: FastAPI):
     )
     provider = PostgreSQLProvider(config)
     gateway = IAMGateway.from_fullstack_provider(provider)
+    # Register resource constraint validator for delegation token enforcement
+    gateway._resource_constraint_validator = composite_validator(
+        string_equality_validator,
+        set_subset_validator,
+    )
     set_iam_gateway(gateway, default_organization_id=default_org_id)
     yield
     await provider.close()
@@ -170,7 +182,7 @@ class RegisterRequest(BaseModel):
     password: str = DEFAULT_PASSWORD
     display_name: str | None = None
     role: str = "member"
-    tenant: str = "tenantA"
+    tenant: str = "GLC"
     features: list[str] = []
 
 
@@ -341,7 +353,7 @@ async def run_agent(
         )
 
     # --- Step 0b: Tenant enforcement ---
-    user_tenant = user_info.get("tenant", "tenantA")
+    user_tenant = user_info.get("tenant", "GLC")
     agents = await gateway.list_agents(owner_user_id=None)
     agent = next((a for a in agents if a.id == request.agent_id), None)
     if not agent:
@@ -349,7 +361,7 @@ async def run_agent(
 
     # Check agent config for tenant
     agent_config = AGENT_CONFIGS.get(agent.name, {})
-    agent_tenant = agent_config.get("tenant", "tenantA")
+    agent_tenant = agent_config.get("tenant", "GLC")
     if user_tenant != agent_tenant:
         audit_log(
             "glchat_be", "tenant_boundary_violation", delegation_ref,
@@ -373,13 +385,10 @@ async def run_agent(
     # Apply role-based scope attenuation: intersection of user scopes and agent ceiling
     attenuated_scopes = [s for s in agent.allowed_scopes if s in user_scopes]
 
-    # --- Step 1b: Resource constraint checks ---
+    # --- Step 1b: Resource context ---
     resource_context = request.resource_context
-    resource_rejection = None
-
-    # Check write-to-others resource constraint (UC-GLCHAT-02.2)
-    if resource_context.get("write_to_others"):
-        resource_rejection = "Write access to another user's calendar is not permitted."
+    # Note: write_to_others is NOT rejected here — it flows through the delegation
+    # chain and is enforced at the connector/tool level via resource constraints.
 
     audit_log(
         "glchat_be", "abac_applied", delegation_ref,
@@ -387,24 +396,7 @@ async def run_agent(
         user_features=user_features,
         agent_id=request.agent_id, agent_ceiling=agent.allowed_scopes,
         attenuated_scopes=attenuated_scopes,
-        resource_rejection=resource_rejection,
     )
-
-    if resource_rejection:
-        return {
-            "delegation_ref": delegation_ref,
-            "delegation_token": None,
-            "user": {"id": user.id, "email": user.email, "role": role, "scopes": user_scopes},
-            "abac": {
-                "user_scopes": user_scopes,
-                "agent_ceiling": agent.allowed_scopes,
-                "attenuated_scopes": attenuated_scopes,
-                "rule": ROLE_SCOPES[role]["description"],
-            },
-            "outcome": "rejected",
-            "reason": resource_rejection,
-            "aip_response": None,
-        }
 
     if not attenuated_scopes:
         return {
@@ -435,8 +427,35 @@ async def run_agent(
         },
     )
 
+    # Build resource constraints based on role
+    constraints: dict[str, object] = {
+        "tenant_id": user_info.get("tenant", "GLC"),
+        "user_email": user.email,
+    }
+    # Agent calendar access constraint (role-based)
+    if role == "admin":
+        constraints["agent_calendar_access"] = "*"       # read: any calendar
+        constraints["agent_calendar_write_access"] = "*"  # write: any calendar
+    elif role == "member":
+        constraints["agent_calendar_access"] = ["onlee@gdplabs.id", "org:GLC"]  # read: CEO + anyone in GLC org
+        constraints["agent_calendar_write_access"] = ["onlee@gdplabs.id"]            # write: only Pak On
+    else:
+        constraints["agent_calendar_access"] = ["onlee@gdplabs.id"]  # viewer/guest — only Pak On (read)
+        constraints["agent_calendar_write_access"] = []               # no write access
+
+    # Add scenario-specific resource constraints
+    if resource_context.get("target_calendar"):
+        constraints["target_calendar"] = resource_context["target_calendar"]
+    # Note: write_to_others is detected at tool level by comparing
+    # target_calendar vs user_email — not set as a constraint here
+
+    # User features (for feature-level scope)
+    if user_features:
+        constraints["user_features"] = user_features
+
     scope = DelegationScope(
         scopes=attenuated_scopes,
+        resource_constraints=constraints,
         expires_in_seconds=3600,
     )
 
@@ -445,7 +464,10 @@ async def run_agent(
         agent_id=request.agent_id,
         task=task,
         scope=scope,
-        principal_scope=DelegationScope(scopes=attenuated_scopes),
+        principal_scope=DelegationScope(
+            scopes=attenuated_scopes,
+            resource_constraints=constraints,
+        ),
     )
 
     if result.is_err:
@@ -532,8 +554,15 @@ async def autonomous_run(request: RunAgentRequest):
         },
     )
 
+    autonomous_constraints: dict[str, object] = {
+        "tenant_id": "GLC",
+        "autonomous": True,
+        "agent_calendar_access": "*",
+    }
+
     scope = DelegationScope(
         scopes=agent.allowed_scopes,
+        resource_constraints=autonomous_constraints,
         expires_in_seconds=3600,
     )
 
@@ -542,7 +571,10 @@ async def autonomous_run(request: RunAgentRequest):
         agent_id=request.agent_id,
         task=task,
         scope=scope,
-        principal_scope=DelegationScope(scopes=agent.allowed_scopes),
+        principal_scope=DelegationScope(
+            scopes=agent.allowed_scopes,
+            resource_constraints=autonomous_constraints,
+        ),
     )
 
     if result.is_err:
@@ -606,9 +638,9 @@ async def list_demo_users():
     """Return 3 role archetypes: Admin, Member, Guest (cross-tenant)."""
     # Pick one representative user per role archetype
     archetypes = [
-        {"role": "admin",  "email": "onlee@tenantA.com",      "label": "Pak On (Admin)"},
-        {"role": "member", "email": "attendee@tenantA.com",   "label": "Maylina (Member)"},
-        {"role": "viewer", "email": "guest@tenantA.com",      "label": "Guest (Not Logged In)"},
+        {"role": "admin",  "email": "onlee@gdplabs.id",      "label": "Pak On (Admin)"},
+        {"role": "member", "email": "maylina@gdplabs.id",   "label": "Maylina (Member)"},
+        {"role": "viewer", "email": "guest@gdplabs.id",      "label": "Guest (Not Logged In)"},
     ]
     result = []
     for arch in archetypes:
@@ -619,7 +651,7 @@ async def list_demo_users():
             "email": email,
             "display_name": arch["label"],
             "role": role,
-            "tenant": mock.get("tenant", "tenantA"),
+            "tenant": mock.get("tenant", "GLC"),
             "features": mock.get("features", []),
             "is_super_user": mock.get("is_super_user", False),
             "scopes": ROLE_SCOPES.get(role, {}).get("scopes", []),
@@ -675,7 +707,7 @@ ACTION_CATALOG: dict[str, dict] = {
     "check-external-colleague-calendar": {
         "agent": "scheduling-agent",
         "title": "Check external org colleague's calendar",
-        "message": "Give me a list of Charlie's meetings today",
+        "message": "Give me a list of Petry's meetings today",
         "description": "Access an external org user's calendar. Only Admin can use Agent OAuth (wildcard access). Member rejected.",
         "concepts": ["Delegated Access", "Resource Constraint", "Org Boundary"],
         "base_scenario": "UC-GLCHAT-01.4",
@@ -741,7 +773,7 @@ ACTION_CATALOG: dict[str, dict] = {
     "weekly-report": {
         "agent": "weekly-report-agent",
         "title": "Send weekly report",
-        "message": "Send final weekly report for onlee@tenantA.com",
+        "message": "Send final weekly report for onlee@gdplabs.id",
         "description": "Autonomous agent sends compiled weekly report.",
         "concepts": ["Agent's Own Identity", "Autonomous Execution"],
         "base_scenario": "UC-AIP-01.1",
@@ -749,7 +781,7 @@ ACTION_CATALOG: dict[str, dict] = {
     "draft-report": {
         "agent": "weekly-report-agent",
         "title": "Send draft report",
-        "message": "Send draft weekly report to onlee@tenantA.com",
+        "message": "Send draft weekly report to onlee@gdplabs.id",
         "description": "Autonomous agent creates and sends draft for employee to fill.",
         "concepts": ["Agent's Own Identity", "Agent Resource Access"],
         "base_scenario": "UC-AIP-02.1",
@@ -799,9 +831,9 @@ async def demo_setup():
         if scenario.get("user_email"):
             users_to_register.add(scenario["user_email"])
     # Always register archetype users for the interactive picker
-    users_to_register.add("onlee@tenantA.com")      # Admin (Pak On)
-    users_to_register.add("attendee@tenantA.com")   # Member (Petry)
-    users_to_register.add("guest@tenantA.com")      # Guest (not logged in)
+    users_to_register.add("onlee@gdplabs.id")      # Admin (Pak On)
+    users_to_register.add("maylina@gdplabs.id")   # Member (Petry)
+    users_to_register.add("guest@gdplabs.id")      # Guest (not logged in)
 
     # Register users (or login if already exists)
     registered = {}
@@ -840,7 +872,7 @@ async def demo_setup():
                 user_id = user.id if user else auth_result.user.id
                 USER_ROLE_DB[user_id] = {
                     "role": role,
-                    "tenant": mock.get("tenant", "tenantA"),
+                    "tenant": mock.get("tenant", "GLC"),
                     "features": mock.get("features", []),
                     "email": email,
                     "active": mock.get("active", True),
@@ -851,7 +883,7 @@ async def demo_setup():
                     "email": email,
                     "display_name": mock.get("display_name", email.split("@")[0]),
                     "role": role,
-                    "tenant": mock.get("tenant", "tenantA"),
+                    "tenant": mock.get("tenant", "GLC"),
                     "token": token,
                     "active": True,
                 }
@@ -1082,11 +1114,11 @@ async def interactive_run(request: InteractiveRunRequest):
 
     # Determine user role
     user_role = "member"
-    user_tenant = "tenantA"
+    user_tenant = "GLC"
     for uid, info in USER_ROLE_DB.items():
         if info.get("email") == request.user_email:
             user_role = info.get("role", "member")
-            user_tenant = info.get("tenant", "tenantA")
+            user_tenant = info.get("tenant", "GLC")
             break
 
     # Resolve scenario: check role override, fall back to base
@@ -1129,7 +1161,7 @@ async def interactive_run(request: InteractiveRunRequest):
 
     # Check tenant boundary
     agent_config = AGENT_CONFIGS.get(request.agent_name, {})
-    agent_tenant = agent_config.get("tenant", "tenantA")
+    agent_tenant = agent_config.get("tenant", "GLC")
 
     if user_tenant != agent_tenant:
         return {

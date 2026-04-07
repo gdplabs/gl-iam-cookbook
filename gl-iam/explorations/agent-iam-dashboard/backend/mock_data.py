@@ -9,109 +9,85 @@ that connectors use for resource-level decisions.
 # Tenants
 # =============================================================================
 TENANTS = {
-    "tenantA": {"name": "GDP Labs", "domain": "tenantA.com"},
-    "tenantB": {"name": "External Corp", "domain": "tenantB.com"},
+    "GLC": {"name": "GDP Labs", "domain": "gdplabs.id"},
+    "GLAIR": {"name": "GLAIR", "domain": "gdplabs.id"},
 }
 
 # =============================================================================
 # Users — with roles, features, active status
 # =============================================================================
 USERS = {
-    # GLChat users (tenantA)
-    "onlee@tenantA.com": {
+    # GLChat users (GLC)
+    "onlee@gdplabs.id": {
         "display_name": "Pak On",
-        "tenant": "tenantA",
+        "tenant": "GLC",
         "role": "admin",
         "active": True,
         "features": [],
         "is_super_user": False,
     },
-    "bob@tenantA.com": {
-        "display_name": "Bob",
-        "tenant": "tenantA",
-        "role": "member",
-        "active": True,
-        "features": [],
-        "is_super_user": False,
-    },
-    "carol@tenantA.com": {
-        "display_name": "Carol",
-        "tenant": "tenantA",
-        "role": "viewer",
-        "active": True,
-        "features": [],
-        "is_super_user": False,
-    },
-    "guest@tenantA.com": {
+    "guest@gdplabs.id": {
         "display_name": "Guest",
-        "tenant": "tenantA",
+        "tenant": "GLC",
         "role": "viewer",
         "active": True,
         "features": [],
         "is_super_user": False,
     },
     # DE users
-    "organiser@tenantA.com": {
-        "display_name": "Organiser (Sandy)",
-        "tenant": "tenantA",
+    "sandy@gdplabs.id": {
+        "display_name": "Sandy",
+        "tenant": "GLC",
         "role": "member",
         "active": True,
         "features": [],
         "is_super_user": False,
     },
-    "attendee@tenantA.com": {
-        "display_name": "Attendee (Maylina)",
-        "tenant": "tenantA",
+    "maylina@gdplabs.id": {
+        "display_name": "Maylina",
+        "tenant": "GLC",
         "role": "member",
         "active": True,
         "features": [],
         "is_super_user": False,
     },
-    "dept-head@tenantA.com": {
+    "dept-head@gdplabs.id": {
         "display_name": "Dept Head (CEO)",
-        "tenant": "tenantA",
+        "tenant": "GLC",
         "role": "admin",
         "active": True,
         "features": [],
         "is_super_user": True,
     },
-    "glc-pm@tenantA.com": {
+    "glc-pm@gdplabs.id": {
         "display_name": "GLC PM",
-        "tenant": "tenantA",
+        "tenant": "GLC",
         "role": "member",
         "active": True,
         "features": ["invoice:send"],
         "is_super_user": False,
     },
-    "other-pm@tenantA.com": {
+    "other-pm@gdplabs.id": {
         "display_name": "Other Team PM",
-        "tenant": "tenantA",
+        "tenant": "GLC",
         "role": "member",
         "active": True,
         "features": [],  # NO invoice:send
         "is_super_user": False,
     },
     # Deactivated user (for UC-GLCHAT-03.2)
-    "deactivated@tenantA.com": {
+    "deactivated@gdplabs.id": {
         "display_name": "Deactivated User",
-        "tenant": "tenantA",
+        "tenant": "GLC",
         "role": "member",
         "active": False,
         "features": [],
         "is_super_user": False,
     },
-    # Cross-tenant user (tenantB)
-    "bob@tenantB.com": {
-        "display_name": "Bob (External)",
-        "tenant": "tenantB",
-        "role": "member",
-        "active": True,
-        "features": [],
-        "is_super_user": False,
-    },
-    "charlie@tenantB.com": {
-        "display_name": "Charlie (External Attendee)",
-        "tenant": "tenantB",
+    # Cross-org user (GLAIR)
+    "petry@gdplabs.id": {
+        "display_name": "Petry (GLAIR)",
+        "tenant": "GLAIR",
         "role": "member",
         "active": True,
         "features": [],
@@ -123,30 +99,26 @@ USERS = {
 # Meemo Accounts — some missing for partial success scenarios
 # =============================================================================
 MEEMO_ACCOUNTS = {
-    "organiser@tenantA.com": {"active": True},
-    "attendee@tenantA.com": {"active": True},
-    "onlee@tenantA.com": {"active": True},
-    # NOTE: "no-meemo@tenantA.com" intentionally NOT here (UC-DE-01.2)
+    "sandy@gdplabs.id": {"active": True},
+    "maylina@gdplabs.id": {"active": True},
+    "onlee@gdplabs.id": {"active": True},
+    # NOTE: "no-meemo@gdplabs.id" intentionally NOT here (UC-DE-01.2)
 }
 
 # =============================================================================
 # Calendars — user-owned resources
 # =============================================================================
 CALENDARS = {
-    "onlee@tenantA.com": [
-        {"id": "evt-1", "title": "Sprint Planning", "time": "2026-04-07T09:00:00Z"},
-        {"id": "evt-2", "title": "Design Review", "time": "2026-04-07T14:00:00Z"},
-        {"id": "evt-3", "title": "1:1 with Manager", "time": "2026-04-08T10:00:00Z"},
+    "onlee@gdplabs.id": [
+        {"id": "evt-1", "title": "Board Meeting", "time": "2026-04-07T10:00:00Z"},
+        {"id": "evt-2", "title": "Strategy Review", "time": "2026-04-07T15:00:00Z"},
+        {"id": "evt-3", "title": "1:1 with CTO", "time": "2026-04-08T10:00:00Z"},
     ],
-    "onlee@tenantA.com": [
-        {"id": "evt-4", "title": "Board Meeting", "time": "2026-04-07T10:00:00Z"},
-        {"id": "evt-5", "title": "Strategy Review", "time": "2026-04-07T15:00:00Z"},
-    ],
-    "organiser@tenantA.com": [
+    "sandy@gdplabs.id": [
         {"id": "evt-6", "title": "GL IAM Standup", "time": "2026-04-07T09:30:00Z"},
         {"id": "evt-7", "title": "SDK Planning", "time": "2026-04-07T11:00:00Z"},
     ],
-    "charlie@tenantB.com": [
+    "petry@gdplabs.id": [
         {"id": "evt-8", "title": "External Partner Sync", "time": "2026-04-07T13:00:00Z"},
         {"id": "evt-9", "title": "Cross-Org Review", "time": "2026-04-07T16:00:00Z"},
     ],
@@ -158,20 +130,20 @@ CALENDARS = {
 MEETINGS = {
     "meet-001": {
         "title": "GL IAM Standup",
-        "organiser": "organiser@tenantA.com",
+        "organiser": "sandy@gdplabs.id",
         "attendees": [
-            "organiser@tenantA.com",
-            "attendee@tenantA.com",
-            "onlee@tenantA.com",
-            "charlie@tenantB.com",  # external attendee
+            "sandy@gdplabs.id",
+            "maylina@gdplabs.id",
+            "onlee@gdplabs.id",
+            "petry@gdplabs.id",  # external attendee
         ],
-        "tenant": "tenantA",
+        "tenant": "GLC",
     },
     "meet-002": {
         "title": "GL IAM Standup (no Meemo)",
-        "organiser": "no-meemo@tenantA.com",
-        "attendees": ["no-meemo@tenantA.com", "attendee@tenantA.com"],
-        "tenant": "tenantA",
+        "organiser": "no-meemo@gdplabs.id",
+        "attendees": ["no-meemo@gdplabs.id", "maylina@gdplabs.id"],
+        "tenant": "GLC",
     },
 }
 
@@ -185,9 +157,9 @@ MOMS = {
         "status": "shared",
         "content": "Discussed delegation token design, scope attenuation, and audit trail implementation.",
         "sensitive_fields": ["attendee_emails"],
-        "organiser": "organiser@tenantA.com",
-        "attendees": ["organiser@tenantA.com", "attendee@tenantA.com", "onlee@tenantA.com"],
-        "tenant": "tenantA",
+        "organiser": "sandy@gdplabs.id",
+        "attendees": ["sandy@gdplabs.id", "maylina@gdplabs.id", "onlee@gdplabs.id"],
+        "tenant": "GLC",
     },
     "mom-002": {
         "meeting_id": "meet-001",
@@ -195,9 +167,9 @@ MOMS = {
         "status": "draft",
         "content": "DRAFT: Not yet reviewed.",
         "sensitive_fields": [],
-        "organiser": "organiser@tenantA.com",
-        "attendees": ["organiser@tenantA.com", "attendee@tenantA.com"],
-        "tenant": "tenantA",
+        "organiser": "sandy@gdplabs.id",
+        "attendees": ["sandy@gdplabs.id", "maylina@gdplabs.id"],
+        "tenant": "GLC",
     },
     "mom-003": {
         "meeting_id": "meet-003",
@@ -205,9 +177,9 @@ MOMS = {
         "status": "shared",
         "content": "Sprint velocity review and next sprint planning.",
         "sensitive_fields": [],
-        "organiser": "organiser@tenantA.com",
-        "attendees": ["organiser@tenantA.com", "attendee@tenantA.com"],
-        "tenant": "tenantA",
+        "organiser": "sandy@gdplabs.id",
+        "attendees": ["sandy@gdplabs.id", "maylina@gdplabs.id"],
+        "tenant": "GLC",
     },
     "mom-004": {
         "meeting_id": "meet-004",
@@ -215,9 +187,9 @@ MOMS = {
         "status": "shared",
         "content": "Product roadmap alignment.",
         "sensitive_fields": [],
-        "organiser": "organiser@tenantA.com",
-        "attendees": ["organiser@tenantA.com"],
-        "tenant": "tenantA",
+        "organiser": "sandy@gdplabs.id",
+        "attendees": ["sandy@gdplabs.id"],
+        "tenant": "GLC",
     },
 }
 
@@ -225,21 +197,33 @@ MOMS = {
 # Weekly Reports (AIP use case)
 # =============================================================================
 WEEKLY_REPORTS = {
-    "onlee@tenantA.com": {
+    "onlee@gdplabs.id": {
         "filled": True,
         "content": "Completed delegation token MVP. Started integration tests.",
         "email_active": True,
     },
-    "bob@tenantA.com": {
+    "bob@gdplabs.id": {
         "filled": False,
         "content": None,
         "email_active": True,
     },
-    "resigned@tenantA.com": {
+    "resigned@gdplabs.id": {
         "filled": True,
         "content": "Final report before resignation.",
         "email_active": False,  # Email bounces
     },
+}
+
+# =============================================================================
+# Directory — name to email resolution
+# =============================================================================
+DIRECTORY = {
+    "pak on": {"email": "onlee@gdplabs.id", "display_name": "Pak On", "org": "GLC", "role": "CEO"},
+    "on": {"email": "onlee@gdplabs.id", "display_name": "Pak On", "org": "GLC", "role": "CEO"},
+    "onlee": {"email": "onlee@gdplabs.id", "display_name": "Pak On", "org": "GLC", "role": "CEO"},
+    "sandy": {"email": "sandy@gdplabs.id", "display_name": "Sandy", "org": "GLC", "role": "Engineer"},
+    "maylina": {"email": "maylina@gdplabs.id", "display_name": "Maylina", "org": "GLC", "role": "PM"},
+    "petry": {"email": "petry@gdplabs.id", "display_name": "Petry", "org": "GLAIR", "role": "Partner"},
 }
 
 # =============================================================================

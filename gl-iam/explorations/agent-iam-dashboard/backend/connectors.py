@@ -34,6 +34,7 @@ from gl_iam.providers.postgresql import PostgreSQLAgentProvider, PostgreSQLConfi
 
 from mock_data import (
     CALENDARS,
+    DIRECTORY,
     INVOICES,
     MEEMO_ACCOUNTS,
     MOMS,
@@ -127,44 +128,11 @@ async def calendar_list_events(
     token: DelegationToken = Depends(get_delegation_token),
 ):
     ref = get_delegation_ref(token)
+    target = request.input.get("target_calendar", "onlee@gdplabs.id")
 
-    target = request.input.get("target_calendar", "onlee@tenantA.com")
-
-    # Credential routing check: User OAuth required for own calendar
-    oauth_error = check_user_oauth_required(request.input, "calendar.list_events")
-    if oauth_error:
-        audit_log("connectors", "tool_call_denied", ref,
-                  tool="calendar.list_events", reason="no_user_oauth")
-        raise HTTPException(status_code=403, detail=oauth_error)
-
-    # Resource constraint check: agent_calendar_access
-    access_constraint = request.input.get("agent_calendar_access")
-    access_type = request.input.get("access_type", "user")
-    if access_type == "agent" and access_constraint is not None:
-        if access_constraint == "*":
-            pass  # Admin wildcard — any calendar
-        elif isinstance(access_constraint, list):
-            # Check if target is in whitelist (exact match or org pattern)
-            allowed = False
-            for pattern in access_constraint:
-                if pattern.startswith("@"):
-                    # Org pattern: "@tenantA.com" matches any email in that domain
-                    if target.endswith(pattern):
-                        allowed = True
-                        break
-                elif target == pattern:
-                    allowed = True
-                    break
-            if not allowed:
-                audit_log("connectors", "tool_call_denied", ref,
-                          tool="calendar.list_events", reason="resource_constraint",
-                          target=target, constraint=access_constraint)
-                raise HTTPException(
-                    status_code=403,
-                    detail=f"Agent OAuth access denied for {target}. "
-                           f"Your role only allows access to: {', '.join(str(p) for p in access_constraint)}",
-                )
-
+    # GL Connector is a transport layer — it calls the 3P API and returns the result.
+    # Policy enforcement (resource constraints) is handled at the agent/worker level.
+    # The connector only surfaces 3P API errors.
     audit_log("connectors", "tool_call_allowed", ref, tool="calendar.list_events", agent_id=agent.id)
     events = CALENDARS.get(target, [
         {"id": "evt-1", "title": "Sprint Planning", "time": "2026-04-07T09:00:00Z"},
@@ -184,22 +152,7 @@ async def calendar_create_event(
 ):
     ref = get_delegation_ref(token)
 
-    # Credential routing check
-    oauth_error = check_user_oauth_required(request.input, "calendar.create_event")
-    if oauth_error:
-        audit_log("connectors", "tool_call_denied", ref,
-                  tool="calendar.create_event", reason="no_user_oauth")
-        raise HTTPException(status_code=403, detail=oauth_error)
-
-    # Resource constraint: check write_to_others
-    if request.input.get("write_to_others"):
-        audit_log("connectors", "tool_call_denied", ref,
-                  tool="calendar.create_event", reason="write_to_others")
-        raise HTTPException(
-            status_code=403,
-            detail="Cannot write to another user's calendar",
-        )
-
+    # GL Connector is a transport layer — policy enforcement is at the agent/worker level.
     audit_log("connectors", "tool_call_allowed", ref, tool="calendar.create_event", agent_id=agent.id)
 
     title = request.input.get("title", "New Meeting")
@@ -503,7 +456,7 @@ async def gdoc_share(
                 )
 
     # Check external recipients (UC-DE-02.4)
-    tenant_domain = "tenantA.com"
+    tenant_domain = "gdplabs.id"
     internal_recipients = []
     blocked_recipients = []
     for r in recipients:
@@ -563,6 +516,51 @@ async def invoice_send(
             "period": invoice["period"],
             "amount": invoice["amount"],
             "status": "sent",
+        },
+    }
+
+
+# =============================================================================
+# Directory Tool — name to email resolution (always Agent OAuth)
+# =============================================================================
+@app.post("/tools/directory.lookup")
+async def directory_lookup(
+    request: ToolRequest,
+    agent: AgentIdentity = Depends(get_current_agent),
+    _: None = Depends(require_agent_scope("directory:lookup")),
+    token: DelegationToken = Depends(get_delegation_token),
+):
+    """Look up a person's email address by name. Always uses Agent OAuth
+    (org directory is agent-level access, not user-level)."""
+    ref = get_delegation_ref(token)
+    name = request.input.get("name", "").strip().lower()
+
+    if not name:
+        raise HTTPException(status_code=400, detail="Name parameter is required")
+
+    entry = DIRECTORY.get(name)
+    if not entry:
+        audit_log("connectors", "tool_call_allowed", ref,
+                  tool="directory.lookup", agent_id=agent.id, name=name, found=False)
+        return {
+            "tool": "directory.lookup",
+            "status": "executed",
+            "result": {"found": False, "name": name, "message": f"No user found matching '{name}'"},
+        }
+
+    audit_log("connectors", "tool_call_allowed", ref,
+              tool="directory.lookup", agent_id=agent.id, name=name,
+              resolved_email=entry["email"])
+    return {
+        "tool": "directory.lookup",
+        "status": "executed",
+        "result": {
+            "found": True,
+            "name": name,
+            "email": entry["email"],
+            "display_name": entry["display_name"],
+            "org": entry["org"],
+            "role": entry["role"],
         },
     }
 

@@ -4,6 +4,7 @@ import { ScenarioBuilder } from "@/components/scenario/ScenarioBuilder";
 import { DelegationFlow } from "@/components/delegation/DelegationFlow";
 import { ScopeAttenuationTable } from "@/components/delegation/ScopeAttenuationTable";
 import { CredentialPolicyPanel } from "@/components/delegation/CredentialPolicyPanel";
+import { PolicyDecisionTrace } from "@/components/delegation/PolicyDecisionTrace";
 import { ChatSimulation } from "@/components/results/ChatSimulation";
 import { ExecutionLog } from "@/components/results/ExecutionLog";
 import { ToolResultCard } from "@/components/results/ToolResultCard";
@@ -79,6 +80,9 @@ export function DemoPage({
               <DelegationFlow result={currentResult} />
               <Separator />
               <ScopeAttenuationTable result={currentResult} />
+
+              <Separator />
+              <PolicyDecisionTrace result={currentResult} />
 
               <Separator />
               <CredentialPolicyPanel

@@ -110,7 +110,7 @@ export function ScenarioBuilder({ phase, onResult, onError }: ScenarioBuilderPro
             <option value="">Select a user...</option>
             {users.map((user) => (
               <option key={user.email} value={user.email}>
-                {user.display_name} ({user.role}){user.tenant !== "tenantA" ? ` [${user.tenant}]` : ""}
+                {user.display_name} ({user.role}){user.tenant !== "GLC" ? ` [${user.tenant}]` : ""}
               </option>
             ))}
           </select>
@@ -122,7 +122,7 @@ export function ScenarioBuilder({ phase, onResult, onError }: ScenarioBuilderPro
               <span className="text-[10px] text-muted-foreground">
                 {selectedUser.scopes.length} scopes
               </span>
-              {selectedUser.tenant !== "tenantA" && (
+              {selectedUser.tenant !== "GLC" && (
                 <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-orange-500/15 text-orange-300 border-orange-500/30">
                   {selectedUser.tenant}
                 </Badge>

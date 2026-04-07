@@ -12,6 +12,13 @@ function AccessCell({ value, constraint }: { value: string; constraint?: string 
       </Badge>
     );
   }
+  if (value === "User+Agent") {
+    return (
+      <Badge variant="outline" className="text-[9px] px-1 py-0 bg-emerald-500/15 text-emerald-300 border-emerald-500/30 cursor-help" title={constraint}>
+        <User className="size-2 mr-0.5" />User+Agent
+      </Badge>
+    );
+  }
   if (value === "Agent") {
     return (
       <Badge variant="outline" className="text-[9px] px-1 py-0 bg-amber-500/15 text-amber-300 border-amber-500/30 cursor-help" title={constraint}>
@@ -94,15 +101,16 @@ export function CredentialPolicyPanel({ agentName }: CredentialPolicyPanelProps)
             </div>
 
             <div className="mt-3 space-y-1.5 text-[9px] text-muted-foreground">
-              <div className="flex gap-4">
-                <span className="flex items-center gap-1"><User className="size-2 text-blue-300" /> User OAuth = user's own credentials</span>
-                <span className="flex items-center gap-1"><Bot className="size-2 text-amber-300" /> Agent OAuth = agent's service account</span>
+              <div className="flex flex-wrap gap-3">
+                <span className="flex items-center gap-1"><User className="size-2 text-blue-300" /> User = user's own OAuth</span>
+                <span className="flex items-center gap-1"><User className="size-2 text-emerald-300" /> User+Agent = User first, Agent fallback</span>
+                <span className="flex items-center gap-1"><Bot className="size-2 text-amber-300" /> Agent = agent service account only</span>
                 <span className="flex items-center gap-1"><XCircle className="size-2 text-red-400/60" /> Denied</span>
               </div>
               <p className="italic">
                 Resource constraints in the DelegationToken:
-                Admin gets <code className="text-foreground">agent_calendar_access: "*"</code> (wildcard).
-                Member gets <code className="text-foreground">["onlee@tenantA.com", "@tenantA.com"]</code> (whitelist + org pattern).
+                Admin gets <code className="text-foreground">agent_calendar_access: "*"</code>, <code className="text-foreground">agent_calendar_write_access: "*"</code>.
+                Member gets read: <code className="text-foreground">["onlee@gdplabs.id", "org:GLC"]</code>, write: <code className="text-foreground">["onlee@gdplabs.id"]</code> (Pak On only).
               </p>
             </div>
           </CardContent>

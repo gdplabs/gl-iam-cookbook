@@ -19,7 +19,7 @@ from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel
 
-from gl_iam import DelegationScope, IAMGateway, TaskContext
+from gl_iam import DelegationScope, IAMGateway, TaskContext, composite_validator, string_equality_validator, set_subset_validator
 from gl_iam.core.types.agent import AgentIdentity
 from gl_iam.core.types.delegation import DelegationToken
 from gl_iam.fastapi import (
@@ -100,6 +100,11 @@ TOOL_REGISTRY: dict[str, dict] = {
         "description": "Send an invoice",
         "endpoint": "/tools/invoice.send",
     },
+    "directory:lookup": {
+        "tool": "directory.lookup",
+        "description": "Look up a person's email by name",
+        "endpoint": "/tools/directory.lookup",
+    },
 }
 
 # =============================================================================
@@ -131,15 +136,25 @@ WORKER_REGISTRY: dict[str, dict] = {
         "scopes": ["invoice:send", "gmail:send"],
         "tools": ["invoice.send", "gmail.send"],
     },
+    "directory-worker": {
+        "type": "worker",
+        "scopes": ["directory:lookup"],
+        "tools": ["directory.lookup"],
+    },
 }
 
 WORKER_AGENT_IDS: dict[str, str] = {}
 
 KEYWORD_TO_TOOLS = {
-    # GLChat
+    # GLChat — read
+    "list": ["calendar.list_events"],
+    "meetings today": ["calendar.list_events"],
+    "meetings": ["calendar.list_events"],
+    # GLChat — write
     "schedule": ["calendar.list_events", "calendar.create_event"],
-    "meeting": ["calendar.list_events", "calendar.create_event"],
-    "calendar": ["calendar.list_events", "calendar.create_event"],
+    "add a": ["calendar.create_event"],
+    "create": ["meemo.create_mom", "gdoc.create"],
+    "calendar": ["calendar.list_events"],
     "notify": ["slack.post_message"],
     "slack": ["slack.post_message"],
     "message": ["slack.post_message"],
@@ -152,12 +167,16 @@ KEYWORD_TO_TOOLS = {
     "mom": ["meemo.create_mom", "meemo.read_mom"],
     "minutes": ["meemo.create_mom", "meemo.read_mom"],
     "meemo": ["meemo.create_mom", "meemo.read_mom"],
-    "create": ["meemo.create_mom", "gdoc.create"],
     "share": ["gdoc.share", "gmail.send"],
     "summarize": ["meemo.read_mom", "gdoc.read"],
     "summary": ["meemo.read_mom", "gdoc.read"],
     "access": ["meemo.read_mom", "gdoc.read"],
     "invoice": ["invoice.send"],
+    # Directory lookup — triggered when prompt mentions a person's name
+    "sandy's": ["directory.lookup", "calendar.list_events"],
+    "pak on's": ["directory.lookup", "calendar.list_events"],
+    "petry's": ["directory.lookup", "calendar.list_events"],
+    "colleague": ["directory.lookup"],
     # AIP
     "report": ["gdoc.read", "gdoc.create", "gdoc.write", "gmail.send"],
     "weekly": ["gdoc.read", "gdoc.create", "gmail.send"],
@@ -176,6 +195,112 @@ def resolve_available_tools(effective_scopes: set[str]) -> list[dict]:
 
 def get_delegation_ref(token: DelegationToken) -> str:
     return token.task.metadata.get("delegation_ref", token.task.id)
+
+
+def _check_agent_resource_policy(
+    tool_name: str,
+    resource_context: dict,
+    parent_constraints: dict,
+    tool_input: dict,
+) -> str | None:
+    """Agent-level policy guard rail for resource constraints.
+
+    This simulates the policy logic that a DE/GLChat agent would implement
+    in its own code (LangGraph tool wrapper, guard rail node, etc.).
+
+    Returns an error message if the tool call should be blocked, None if OK.
+    """
+    from mock_data import USERS
+
+    # Calendar read: check agent_calendar_access
+    if tool_name == "calendar.list_events":
+        target = resource_context.get("target_calendar", "")
+        access_type = resource_context.get("access_type", "user")
+        access_constraint = parent_constraints.get("agent_calendar_access")
+        user_role = resource_context.get("_user_role", "")
+
+        # Guest accessing own calendar → needs User OAuth (no user logged in)
+        if access_type == "user" and user_role == "viewer":
+            return (
+                "This action requires your personal OAuth credentials to access your own resources, "
+                "but you are not logged in. Please log in to use calendar.list_events."
+            )
+
+        # Agent OAuth: check resource constraint whitelist
+        if access_type == "agent" and access_constraint is not None:
+            if access_constraint == "*":
+                return None  # Admin wildcard
+            if isinstance(access_constraint, list) and target:
+                allowed = False
+                for pattern in access_constraint:
+                    if pattern.startswith("org:"):
+                        org_id = pattern.split(":", 1)[1]
+                        target_user = USERS.get(target, {})
+                        if target_user.get("tenant") == org_id:
+                            allowed = True
+                            break
+                    elif target == pattern:
+                        allowed = True
+                        break
+                if not allowed:
+                    target_user = USERS.get(target, {})
+                    target_org = target_user.get("tenant", "unknown")
+                    constraint_display = ", ".join(str(p) for p in access_constraint)
+                    return (
+                        f"Resource constraint violation: {target} (org: {target_org}) "
+                        f"is outside your allowed resources. "
+                        f"DelegationToken.resource_constraints.agent_calendar_access = [{constraint_display}]. "
+                        f"The Agent OAuth can access cross-org, but your delegation policy restricts it."
+                    )
+        return None
+
+    # Calendar write: check agent_calendar_write_access
+    if tool_name == "calendar.create_event":
+        target = tool_input.get("target_calendar", "")
+        user_email = parent_constraints.get("user_email", "")
+
+        # Guest accessing own calendar write → needs User OAuth
+        user_role = resource_context.get("_user_role", "")
+        if resource_context.get("access_type") == "user" and user_role == "viewer":
+            return (
+                "This action requires your personal OAuth credentials, "
+                "but you are not logged in. Please log in to create calendar events."
+            )
+
+        # Writing to others: check write constraint
+        if target and user_email and target.lower() != user_email.lower():
+            write_constraint = parent_constraints.get("agent_calendar_write_access")
+            if write_constraint is None or write_constraint == []:
+                return (
+                    f"Resource constraint violation: no write access to others' calendars. "
+                    f"DelegationToken.resource_constraints.agent_calendar_write_access is empty."
+                )
+            if write_constraint == "*":
+                return None  # Admin wildcard
+            if isinstance(write_constraint, list):
+                allowed = False
+                for pattern in write_constraint:
+                    if pattern.startswith("org:"):
+                        org_id = pattern.split(":", 1)[1]
+                        target_user = USERS.get(target, {})
+                        if target_user.get("tenant") == org_id:
+                            allowed = True
+                            break
+                    elif target == pattern:
+                        allowed = True
+                        break
+                if not allowed:
+                    target_user = USERS.get(target, {})
+                    target_org = target_user.get("tenant", "unknown")
+                    constraint_display = ", ".join(str(p) for p in write_constraint)
+                    return (
+                        f"Resource constraint violation: cannot write to {target} (org: {target_org}). "
+                        f"DelegationToken.resource_constraints.agent_calendar_write_access = [{constraint_display}]. "
+                        f"The Agent OAuth can write cross-org, but your delegation policy restricts it."
+                    )
+        return None
+
+    return None  # No policy check for other tools
 
 
 async def _ensure_worker_ids():
@@ -240,6 +365,10 @@ async def lifespan(app: FastAPI):
     gateway = IAMGateway.for_agent_auth(
         agent_provider=agent_provider,
         secret_key=os.getenv("SECRET_KEY"),
+        resource_constraint_validator=composite_validator(
+            string_equality_validator,
+            set_subset_validator,
+        ),
     )
     set_iam_gateway(gateway)
     yield
@@ -354,8 +483,9 @@ async def run_agent(
                     })
                 continue
 
-            # Forward user_role from parent token for credential routing checks
+            # Forward user_role and resource_constraints from parent token
             parent_user_role = token.task.metadata.get("user_role", "")
+            parent_constraints = token.scope.resource_constraints if token.scope else {}
 
             worker_task = TaskContext(
                 id=token.task.id,
@@ -367,7 +497,11 @@ async def run_agent(
                     "user_role": parent_user_role,
                 },
             )
-            worker_scope = DelegationScope(scopes=worker_scopes, expires_in_seconds=600)
+            worker_scope = DelegationScope(
+                scopes=worker_scopes,
+                resource_constraints=parent_constraints,
+                expires_in_seconds=600,
+            )
 
             worker_result = await gateway.delegate_to_agent(
                 principal_token=token.token,
@@ -428,10 +562,43 @@ async def run_agent(
             })
 
             # d3 -> d4: Per-tool delegation
+            # Agent policy guard rail: check resource constraints BEFORE calling tools
             for tool_info in tools:
                 tool_name = tool_info["tool"]
                 tool_input = request.tool_inputs.get(tool_name, {})
                 required_scope = tool_scope_map.get(tool_name, "")
+
+                # --- AGENT POLICY: Resource constraint enforcement ---
+                # This logic is the agent's own policy (written by DE/GLChat team).
+                # AIP platform just passes the delegation context through.
+                # The agent checks resource_constraints before dispatching to GL Connector.
+                rc = request.resource_context
+                policy_rejection = _check_agent_resource_policy(
+                    tool_name, rc, parent_constraints, tool_input,
+                )
+                if policy_rejection:
+                    d4_parent = worker_scopes
+                    execution_log.append({
+                        "step": f"d3:{worker_name}→{tool_name}",
+                        "status": "policy_rejected",
+                        "parent_scopes": sorted(d4_parent),
+                        "agent_ceiling": sorted(worker_ceiling),
+                        "requested_scopes": [required_scope],
+                        "scope": required_scope,
+                        "worker": worker_name,
+                        "error": policy_rejection,
+                    })
+                    results.append({
+                        "tool": tool_name,
+                        "status": "denied",
+                        "error": policy_rejection,
+                    })
+                    audit_log(
+                        "aip_backend", "agent_policy_rejected", ref,
+                        tool=tool_name, worker=worker_name,
+                        reason=policy_rejection,
+                    )
+                    continue
 
                 # Merge resource_context (which includes _user_role) into tool input
                 merged_input = {
@@ -450,7 +617,11 @@ async def run_agent(
                         "user_role": parent_user_role,
                     },
                 )
-                sub_scope = DelegationScope(scopes=[required_scope], expires_in_seconds=300)
+                sub_scope = DelegationScope(
+                    scopes=[required_scope],
+                    resource_constraints=parent_constraints,
+                    expires_in_seconds=300,
+                )
 
                 sub_result = await gateway.delegate_to_agent(
                     principal_token=worker_token.token,
