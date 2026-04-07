@@ -1243,6 +1243,12 @@ async def interactive_run(request: InteractiveRunRequest):
             "aip_response": None,
         }
 
+    # Dynamic resource_context: override target_calendar for "own" actions
+    resource_context = dict(scenario.get("resource_context", {}))
+    if resource_context.get("access_type") == "user":
+        # "Own resource" actions: target_calendar = the actual user, not hardcoded scenario value
+        resource_context["target_calendar"] = request.user_email
+
     async with httpx.AsyncClient() as client:
         resp = await client.post(
             "http://localhost:8000/chat/run-agent",
@@ -1250,7 +1256,7 @@ async def interactive_run(request: InteractiveRunRequest):
                 "agent_id": agent_id,
                 "user_message": scenario["message"],
                 "tool_inputs": scenario.get("tool_inputs", {}),
-                "resource_context": scenario.get("resource_context", {}),
+                "resource_context": resource_context,
             },
             headers={"Authorization": f"Bearer {user_reg['token']}"},
             timeout=30.0,

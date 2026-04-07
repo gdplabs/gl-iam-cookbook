@@ -18,6 +18,7 @@ interface FlowNode {
   worker?: string;
   execOrder?: number;
   input?: Record<string, unknown>;
+  toolInput?: Record<string, unknown>;
   prompt?: string;
 }
 
@@ -106,9 +107,29 @@ function parseNodes(chain: DelegationChainEntry[], result: ScenarioRunResult): R
         node.prompt = `Execute ${entry.label} tasks`;
       }
     } else if (d === 4) {
-      // Tool gets its input parameters from scenario tool_inputs
       const toolName = entry.label;
-      // Try to get from tool_results (actual result data)
+      // Build tool input from resource_context
+      const rc = result.scenario as Record<string, unknown> | undefined;
+      const resourceCtx: Record<string, unknown> = {};
+      if (rc?.access_type) resourceCtx["access_type"] = rc.access_type;
+      // Add target info from the result's abac or resource context
+      const abacUser = result.user;
+      if (toolName.includes("calendar")) {
+        const targetCal = result.aip_response?.user_message?.match(/(\w+(?:\s\w+)?)'s/)?.[1];
+        if (targetCal) {
+          resourceCtx["target"] = targetCal + "'s calendar";
+        } else if (abacUser?.email) {
+          resourceCtx["target"] = abacUser.email + " (self)";
+        }
+      }
+      if (toolName === "directory_lookup") {
+        const nameMatch = userMessage.match(/(\w+(?:\s\w+)?)'s/i);
+        if (nameMatch) resourceCtx["name"] = nameMatch[1];
+      }
+      if (Object.keys(resourceCtx).length > 0) {
+        node.toolInput = resourceCtx;
+      }
+      // Output from tool_results
       if (toolResultMap[toolName]) {
         node.input = toolResultMap[toolName];
       }
@@ -194,6 +215,14 @@ function FlowCard({ node, index }: { node: FlowNode; index: number }) {
                 {node.depth === 2 ? "prompt" : "task"}: </span>
               <span className="text-[9px] text-foreground italic">
                 &ldquo;{node.prompt.length > 60 ? node.prompt.slice(0, 60) + "..." : node.prompt}&rdquo;
+              </span>
+            </div>
+          )}
+          {node.toolInput && Object.keys(node.toolInput).length > 0 && (
+            <div className="bg-blue-500/5 rounded px-2 py-1 border border-blue-500/10">
+              <span className="text-[9px] text-blue-400">input: </span>
+              <span className="text-[9px] text-foreground">
+                {Object.entries(node.toolInput).map(([k, v]) => `${k}=${v}`).join(", ")}
               </span>
             </div>
           )}
