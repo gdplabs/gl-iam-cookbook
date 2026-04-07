@@ -12,7 +12,7 @@ export function Header({ health }: HeaderProps) {
       <div className="flex items-center gap-3">
         <Shield className="size-6 text-blue-400" />
         <h1 className="text-lg font-semibold tracking-tight">
-          Agent IAM Dashboard
+          Agent IAM — Real Case Simulation
         </h1>
       </div>
       <ServiceHealth health={health} />

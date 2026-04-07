@@ -209,6 +209,7 @@ SCENARIOS: dict[str, dict] = {
             },
         },
         "resource_context": {
+            "target_calendar": "sandy@gdplabs.id",
             "access_type": "agent",
         },
         "expected_outcome": "success",
@@ -232,6 +233,7 @@ SCENARIOS: dict[str, dict] = {
             },
         },
         "resource_context": {
+            "target_calendar": "sandy@gdplabs.id",
             "access_type": "agent",
         },
         "expected_outcome": "rejected",

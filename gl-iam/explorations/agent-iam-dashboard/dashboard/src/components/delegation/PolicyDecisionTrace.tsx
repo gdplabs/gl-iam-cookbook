@@ -76,6 +76,41 @@ function buildDecisionSteps(result: ScenarioRunResult): DecisionStep[] {
     });
   }
 
+  // Step 3b: Feature-gated scope check
+  if (aip) {
+    const blockedTools = aip.blocked_tools ?? [];
+    const featureGatedTools: Record<string, string> = {
+      "invoice.send": "Send Invoice",
+    };
+    const blockedFeatures = blockedTools.filter(bt => bt.tool in featureGatedTools);
+    if (blockedFeatures.length > 0) {
+      for (const bt of blockedFeatures) {
+        const friendlyName = featureGatedTools[bt.tool] ?? bt.tool;
+        steps.push({
+          label: "Feature-Level Access Control",
+          check: `Does user have "${bt.tool}" feature entitlement?`,
+          value: `${friendlyName} → NOT available for ${user?.role ?? "this"} role`,
+          passed: false,
+          detail: `The ${bt.tool} tool requires a feature entitlement that is configured per-user, not per-role. ` +
+            `Admin (Pak On) has "invoice:send" feature. Member (Maylina) does not. ` +
+            `This is enforced at ABAC scope attenuation — the scope is removed before delegation.`,
+        });
+      }
+    } else if (user?.role === "admin" && aip.effective_scopes?.includes("invoice:send")) {
+      // Admin has the feature — show it as passed
+      const scenarioTitle = result.scenario?.title ?? "";
+      if (scenarioTitle.toLowerCase().includes("invoice")) {
+        steps.push({
+          label: "Feature-Level Access Control",
+          check: 'Does user have "invoice:send" feature entitlement?',
+          value: "Admin (Pak On) has invoice:send feature → GRANTED",
+          passed: true,
+          detail: "Feature entitlements are per-user config, checked at ABAC before delegation token creation.",
+        });
+      }
+    }
+  }
+
   // Step 4: Resource constraint check
   if (aip) {
     const policyRejected = (aip.execution_log ?? []).filter(

@@ -40,16 +40,35 @@ export function ChatSimulation({ result }: ChatSimulationProps) {
     const denied = result.aip_response.tool_results.filter(
       (tr) => tr.status === "denied" || tr.status === "delegation_failed"
     );
-    const executed = result.aip_response.tool_results.filter(
-      (tr) => tr.status === "executed"
+    const blockedTools = result.aip_response.blocked_tools ?? [];
+    // Separate primary tools from supporting tools (directory.lookup is supporting)
+    const supportingTools = new Set(["directory.lookup", "calendar.list_events"]);
+    const executedPrimary = result.aip_response.tool_results.filter(
+      (tr) => tr.status === "executed" && !supportingTools.has(tr.tool)
+    );
+    // Check if primary/intended tools were blocked by scope
+    const primaryToolsBlocked = blockedTools.filter(
+      (bt) => ["calendar.create_event", "invoice.send"].some(t => bt.tool === t)
     );
 
-    if (denied.length > 0 && executed.length === 0) {
-      // All tools denied
+    if (primaryToolsBlocked.length > 0) {
+      // Primary action tool was blocked — not available for this role
+      const toolNames: Record<string, string> = {
+        "invoice.send": "Send Invoice",
+        "calendar.create_event": "Create Calendar Event",
+      };
+      const role = result.user?.role ?? "your";
+      const reasons = primaryToolsBlocked.map((bt) => {
+        const friendlyName = toolNames[bt.tool] ?? bt.tool;
+        return `- **${friendlyName}** is not available for the **${role}** role`;
+      }).join("\n");
+      response = `I'm sorry, I cannot complete this request.\n\n${reasons}\n\nThis feature is restricted by the agent's role-based tool access policy. Contact your administrator to request access.`;
+    } else if (denied.length > 0 && executedPrimary.length === 0) {
+      // All primary tools denied
       const reasons = denied.map((tr) => `- **${tr.tool}**: ${tr.error ?? "denied"}`).join("\n");
       response = `I'm sorry, I cannot complete this request. The required tools were denied:\n\n${reasons}`;
-    } else if (denied.length > 0 && executed.length > 0) {
-      // Partial — some tools worked, some denied
+    } else if (denied.length > 0 && executedPrimary.length > 0) {
+      // Partial — some primary tools worked, some denied
       const hypothetical = getHypotheticalResponse(scenarioId);
       const deniedList = denied.map((tr) => `- **${tr.tool}**: ${tr.error ?? "denied"}`).join("\n");
       response = `${hypothetical}\n\n_Note: Some actions were denied:_\n${deniedList}`;

@@ -214,7 +214,8 @@ def _check_agent_resource_policy(
 
     # Calendar read: check agent_calendar_access
     if tool_name == "calendar.list_events":
-        target = resource_context.get("target_calendar", "")
+        # Target can be in resource_context or tool_input (LLM resolves it from the prompt)
+        target = resource_context.get("target_calendar", "") or tool_input.get("target_calendar", "")
         access_type = resource_context.get("access_type", "user")
         access_constraint = parent_constraints.get("agent_calendar_access")
         user_role = resource_context.get("_user_role", "")
@@ -344,6 +345,14 @@ def plan_tools(
         {"tool": name, "missing_scope": tool_to_scope.get(name, "unknown")}
         for name in sorted(desired_names - available_names)
     ]
+
+    # If a primary action tool is blocked, don't dispatch supporting tools
+    # Primary tools are the ones that directly fulfill the user's intent
+    PRIMARY_TOOLS = {"invoice.send", "calendar.create_event"}
+    blocked_primary = {b["tool"] for b in blocked if b["tool"] in PRIMARY_TOOLS}
+    if blocked_primary:
+        # Clear planned tools — the primary action can't be fulfilled
+        planned_names = set()
 
     planned = [t for t in available_tools if t["tool"] in planned_names]
     return planned, blocked

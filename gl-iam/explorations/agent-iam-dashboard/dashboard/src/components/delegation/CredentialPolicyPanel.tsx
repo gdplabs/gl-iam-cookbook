@@ -83,18 +83,37 @@ export function CredentialPolicyPanel({ agentName }: CredentialPolicyPanelProps)
                 </thead>
                 <tbody>
                   {CALENDAR_ACCESS_POLICY.map((row) => (
-                    <tr key={row.resource} className="border-b border-border/30">
-                      <td className="py-1.5 pr-3 text-[10px] text-muted-foreground">{row.resource}</td>
-                      <td className="px-2 py-1.5 text-center">
-                        <AccessCell value={row.admin} constraint={row.constraint} />
-                      </td>
-                      <td className="px-2 py-1.5 text-center">
-                        <AccessCell value={row.member} constraint={row.constraint} />
-                      </td>
-                      <td className="px-2 py-1.5 text-center">
-                        <AccessCell value={row.guest} constraint={row.constraint} />
-                      </td>
-                    </tr>
+                    <>
+                      <tr key={row.resource} className="border-b border-border/10">
+                        <td className="pt-2 pb-0.5 pr-3 text-[10px] text-foreground font-medium">{row.resource}</td>
+                        <td className="px-2 pt-2 pb-0.5 text-center">
+                          <AccessCell value={row.admin} constraint={row.adminConstraint} />
+                        </td>
+                        <td className="px-2 pt-2 pb-0.5 text-center">
+                          <AccessCell value={row.member} constraint={row.memberConstraint} />
+                        </td>
+                        <td className="px-2 pt-2 pb-0.5 text-center">
+                          <AccessCell value={row.guest} constraint={row.guestConstraint} />
+                        </td>
+                      </tr>
+                      <tr key={`${row.resource}-detail`} className="border-b border-border/30">
+                        <td className="pb-2 pr-3">
+                          <div className="text-[8px] text-muted-foreground space-y-0.5">
+                            <div>scope: <code className="text-foreground/80">{row.scope}</code></div>
+                            <div>constraint: <code className="text-foreground/80">{row.constraintKey}</code></div>
+                          </div>
+                        </td>
+                        <td className="px-2 pb-2 text-center">
+                          <span className="text-[8px] text-muted-foreground">{row.adminConstraint}</span>
+                        </td>
+                        <td className="px-2 pb-2 text-center">
+                          <span className="text-[8px] text-muted-foreground">{row.memberConstraint}</span>
+                        </td>
+                        <td className="px-2 pb-2 text-center">
+                          <span className="text-[8px] text-muted-foreground">{row.guestConstraint}</span>
+                        </td>
+                      </tr>
+                    </>
                   ))}
                 </tbody>
               </table>
@@ -110,7 +129,7 @@ export function CredentialPolicyPanel({ agentName }: CredentialPolicyPanelProps)
               <p className="italic">
                 Resource constraints in the DelegationToken:
                 Admin gets <code className="text-foreground">agent_calendar_access: "*"</code>, <code className="text-foreground">agent_calendar_write_access: "*"</code>.
-                Member gets read: <code className="text-foreground">["onlee@gdplabs.id", "org:GLC"]</code>, write: <code className="text-foreground">["onlee@gdplabs.id"]</code> (Pak On only).
+                Member gets read: <code className="text-foreground">["onlee@gdplabs.id", "org:{'{user.tenant}'}"]</code> (dynamic based on user's org), write: <code className="text-foreground">["onlee@gdplabs.id"]</code> (Pak On only).
               </p>
             </div>
           </CardContent>

@@ -88,7 +88,7 @@ AGENT_CONFIGS = {
         "type": "orchestrator",
         "product": "glchat",
         "allowed_scopes": ["calendar:read", "calendar:write", "slack:post", "notion:read", "directory:lookup"],
-        "tenant": "GLC",
+        "tenant": "*",
     },
     "de-pm-agent": {
         "type": "orchestrator",
@@ -97,13 +97,13 @@ AGENT_CONFIGS = {
             "meemo:read", "meemo:write", "gdoc:read", "gdoc:write", "gdoc:share",
             "gmail:send", "calendar:read", "invoice:send",
         ],
-        "tenant": "GLC",
+        "tenant": "*",
     },
     "weekly-report-agent": {
         "type": "autonomous",
         "product": "aip",
         "allowed_scopes": ["gdoc:read", "gdoc:write", "gdoc:share", "gmail:send"],
-        "tenant": "GLC",
+        "tenant": "*",
     },
 }
 
@@ -360,9 +360,10 @@ async def run_agent(
         raise HTTPException(status_code=404, detail=f"Agent {request.agent_id} not found")
 
     # Check agent config for tenant
+    # Agent tenant="*" means accessible to all orgs (resource constraints enforce boundaries)
     agent_config = AGENT_CONFIGS.get(agent.name, {})
-    agent_tenant = agent_config.get("tenant", "GLC")
-    if user_tenant != agent_tenant:
+    agent_tenant = agent_config.get("tenant", "*")
+    if agent_tenant != "*" and user_tenant != "NONE" and user_tenant != agent_tenant:
         audit_log(
             "glchat_be", "tenant_boundary_violation", delegation_ref,
             user_id=user.id, user_tenant=user_tenant, agent_tenant=agent_tenant,
@@ -427,18 +428,20 @@ async def run_agent(
         },
     )
 
-    # Build resource constraints based on role
+    # Build resource constraints based on role + user's org
+    user_tenant = user_info.get("tenant", "GLC")
     constraints: dict[str, object] = {
-        "tenant_id": user_info.get("tenant", "GLC"),
+        "tenant_id": user_tenant,
         "user_email": user.email,
     }
-    # Agent calendar access constraint (role-based)
+    # Agent calendar access constraint (role-based, org-dynamic)
     if role == "admin":
-        constraints["agent_calendar_access"] = "*"       # read: any calendar
+        constraints["agent_calendar_access"] = "*"       # read: any calendar, any org
         constraints["agent_calendar_write_access"] = "*"  # write: any calendar
     elif role == "member":
-        constraints["agent_calendar_access"] = ["onlee@gdplabs.id", "org:GLC"]  # read: CEO + anyone in GLC org
-        constraints["agent_calendar_write_access"] = ["onlee@gdplabs.id"]            # write: only Pak On
+        # Dynamic: org constraint based on the user who triggered the agent
+        constraints["agent_calendar_access"] = ["onlee@gdplabs.id", f"org:{user_tenant}"]  # read: CEO + user's own org
+        constraints["agent_calendar_write_access"] = ["onlee@gdplabs.id"]                    # write: only Pak On
     else:
         constraints["agent_calendar_access"] = ["onlee@gdplabs.id"]  # viewer/guest — only Pak On (read)
         constraints["agent_calendar_write_access"] = []               # no write access
@@ -732,8 +735,9 @@ ACTION_CATALOG: dict[str, dict] = {
         "agent": "scheduling-agent",
         "title": "Scheduled task (daily meeting list)",
         "message": "Send daily meeting list (scheduled task)",
-        "description": "Pre-authorized recurring task. Tests account validity at execution time.",
-        "concepts": ["Pre-authorised Revalidation"],
+        "description": "Pre-authorized recurring task. Admin only — tests account validity at execution time.",
+        "concepts": ["Pre-authorised Revalidation", "Admin Only"],
+        "admin_only": True,
         "base_scenario": "UC-GLCHAT-03.1",
     },
     # de-pm-agent
@@ -1121,6 +1125,28 @@ async def interactive_run(request: InteractiveRunRequest):
             user_tenant = info.get("tenant", "GLC")
             break
 
+    # Note: Guest restrictions are enforced at the agent worker level via resource constraints.
+    # The delegation token is still created — rejection happens when the worker checks
+    # agent_calendar_access and finds the target is not in the whitelist.
+
+    # Check admin_only actions
+    if action.get("admin_only") and user_role != "admin":
+        return {
+            "scenario_id": request.scenario_id,
+            "scenario": {
+                "title": action["title"],
+                "description": action["description"],
+                "product": "glchat",
+                "concepts": action["concepts"],
+                "access_type": None,
+            },
+            "delegation_ref": f"dlg-{uuid.uuid4().hex[:12]}",
+            "outcome": "rejected",
+            "reason": f"This action is restricted to Admin users only. Your role ({user_role}) cannot trigger scheduled tasks.",
+            "user": {"email": request.user_email, "role": user_role},
+            "aip_response": None,
+        }
+
     # Resolve scenario: check role override, fall back to base
     scenario_id = ACTION_ROLE_OVERRIDES.get(
         (request.scenario_id, user_role),
@@ -1161,9 +1187,9 @@ async def interactive_run(request: InteractiveRunRequest):
 
     # Check tenant boundary
     agent_config = AGENT_CONFIGS.get(request.agent_name, {})
-    agent_tenant = agent_config.get("tenant", "GLC")
+    agent_tenant = agent_config.get("tenant", "*")
 
-    if user_tenant != agent_tenant:
+    if agent_tenant != "*" and user_tenant != "NONE" and user_tenant != agent_tenant:
         return {
             "scenario_id": scenario_id,
             "scenario": make_scenario_meta(),

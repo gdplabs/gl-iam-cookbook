@@ -17,6 +17,8 @@ interface FlowNode {
   agentId?: string;
   worker?: string;
   execOrder?: number;
+  input?: Record<string, unknown>;
+  prompt?: string;
 }
 
 const ROLE_COLORS: Record<string, string> = {
@@ -61,20 +63,58 @@ function sortWorkerNodes(nodes: FlowNode[]): FlowNode[] {
   });
 }
 
-function parseNodes(chain: DelegationChainEntry[]): Record<number, FlowNode[]> {
+function parseNodes(chain: DelegationChainEntry[], result: ScenarioRunResult): Record<number, FlowNode[]> {
   const groups: Record<number, FlowNode[]> = { 1: [], 2: [], 3: [], 4: [] };
+  const aip = result.aip_response;
+  const userMessage = aip?.user_message ?? result.scenario?.message ?? "";
+
+  // Build tool input map from tool_results
+  const toolResultMap: Record<string, Record<string, unknown>> = {};
+  for (const tr of aip?.tool_results ?? []) {
+    if (tr.result) toolResultMap[tr.tool] = tr.result as Record<string, unknown>;
+  }
+
   for (const entry of chain) {
     const d = entry.depth;
     if (d < 1 || d > 4) continue;
     const existing = groups[d] ?? [];
-    existing.push({
+
+    const node: FlowNode = {
       depth: d,
       label: entry.label,
       scopes: entry.scopes ?? (entry.scope ? [entry.scope] : []),
       token: entry.token,
       agentId: entry.agent_id,
       worker: entry.worker,
-    });
+    };
+
+    // Attach context based on depth
+    if (d === 2) {
+      node.prompt = userMessage;
+    } else if (d === 3) {
+      // Worker gets a contextual task description
+      if (entry.label === "directory-worker") {
+        // Extract name from user message
+        const nameMatch = userMessage.match(/(?:of |list |for )?(\w+(?:\s\w+)?)'s/i);
+        const targetName = nameMatch ? nameMatch[1] : "target";
+        node.prompt = `Resolve "${targetName}" → find email address`;
+      } else if (entry.label === "calendar-worker") {
+        node.prompt = `Access calendar using resolved email from directory lookup`;
+      } else if (entry.label === "comms-worker") {
+        node.prompt = `Send notification/message to recipients`;
+      } else {
+        node.prompt = `Execute ${entry.label} tasks`;
+      }
+    } else if (d === 4) {
+      // Tool gets its input parameters from scenario tool_inputs
+      const toolName = entry.label;
+      // Try to get from tool_results (actual result data)
+      if (toolResultMap[toolName]) {
+        node.input = toolResultMap[toolName];
+      }
+    }
+
+    existing.push(node);
     groups[d] = existing;
   }
   // Sort workers and tools
@@ -146,6 +186,23 @@ function FlowCard({ node, index }: { node: FlowNode; index: number }) {
                   {s}
                 </Badge>
               ))}
+            </div>
+          )}
+          {node.prompt && (
+            <div className="bg-muted/30 rounded px-2 py-1">
+              <span className="text-[9px] text-muted-foreground">
+                {node.depth === 2 ? "prompt" : "task"}: </span>
+              <span className="text-[9px] text-foreground italic">
+                &ldquo;{node.prompt.length > 60 ? node.prompt.slice(0, 60) + "..." : node.prompt}&rdquo;
+              </span>
+            </div>
+          )}
+          {node.input && Object.keys(node.input).length > 0 && (
+            <div className="bg-muted/30 rounded px-2 py-1">
+              <span className="text-[9px] text-muted-foreground">output: </span>
+              <pre className="text-[8px] text-foreground mt-0.5 whitespace-pre-wrap max-h-16 overflow-auto">
+                {JSON.stringify(node.input, null, 1).slice(0, 120)}{JSON.stringify(node.input, null, 1).length > 120 ? "..." : ""}
+              </pre>
             </div>
           )}
           {node.worker && (
@@ -234,7 +291,13 @@ function UserCard({ result }: { result: ScenarioRunResult }) {
   );
 }
 
-function BlockedToolCard({ tool, index }: { tool: BlockedTool; index: number }) {
+function BlockedToolCard({ tool, index, userRole }: { tool: BlockedTool; index: number; userRole?: string }) {
+  const friendlyNames: Record<string, string> = {
+    "invoice.send": "Send Invoice",
+    "calendar.create_event": "Create Calendar Event",
+    "slack.post_message": "Post to Slack",
+  };
+  const friendlyName = friendlyNames[tool.tool] ?? tool.tool;
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -245,10 +308,10 @@ function BlockedToolCard({ tool, index }: { tool: BlockedTool; index: number }) 
         <CardContent>
           <div className="flex items-center gap-2">
             <XCircle className="size-3.5 text-red-400" />
-            <span className="text-xs font-medium text-red-400">{tool.tool}</span>
+            <span className="text-xs font-medium text-red-400">{friendlyName}</span>
           </div>
           <p className="mt-1 text-[10px] text-muted-foreground">
-            missing: {tool.missing_scope}
+            Not available for <strong>{userRole ?? "this"}</strong> role
           </p>
         </CardContent>
       </Card>
@@ -338,12 +401,47 @@ export function DelegationFlow({ result }: DelegationFlowProps) {
     return null;
   }
 
-  const groups = parseNodes(aip.delegation_chain);
+  const groups = parseNodes(aip.delegation_chain, result);
   const blockedTools = aip.blocked_tools ?? [];
-  // Extract policy-rejected tool calls from execution log
   const policyRejected = (aip.execution_log ?? []).filter(
     (e) => e.status === "policy_rejected"
   );
+
+  const hasWorkers = (groups[3] ?? []).length > 0;
+  const hasTools = (groups[4] ?? []).length > 0;
+  const onlyBlocked = !hasWorkers && !hasTools && blockedTools.length > 0;
+
+  // When primary tools are blocked at orchestrator level (no workers dispatched)
+  if (onlyBlocked) {
+    return (
+      <div className="space-y-3">
+        <h3 className="text-sm font-semibold">Delegation Flow</h3>
+        <div className="grid grid-cols-[1fr_auto_1fr_auto_1fr] items-start gap-2">
+          <div className="space-y-2">
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">User</div>
+            <UserCard result={result} />
+          </div>
+          <Arrow />
+          <div className="space-y-2">
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Orchestrator</div>
+            {(groups[2] ?? []).map((n, i) => (
+              <FlowCard key={`d2-${i}`} node={n} index={i} />
+            ))}
+          </div>
+          <Arrow />
+          <div className="space-y-2">
+            <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Blocked at Orchestrator</div>
+            {blockedTools.map((bt, i) => (
+              <BlockedToolCard key={`blocked-${i}`} tool={bt} index={i} userRole={result.user?.role} />
+            ))}
+            <p className="text-[9px] text-muted-foreground italic">
+              No workers dispatched — required tools not available for this role.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-3">
@@ -395,7 +493,7 @@ export function DelegationFlow({ result }: DelegationFlowProps) {
             <PolicyRejectedCard key={`policy-${i}`} entry={pr} index={i} />
           ))}
           {blockedTools.map((bt, i) => (
-            <BlockedToolCard key={`blocked-${i}`} tool={bt} index={i} />
+            <BlockedToolCard key={`blocked-${i}`} tool={bt} index={i} userRole={result.user?.role} />
           ))}
         </div>
       </div>

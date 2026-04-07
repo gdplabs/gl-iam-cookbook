@@ -1,10 +1,19 @@
 import { useState } from "react";
-import { CheckCircle2, Loader2, RotateCcw, Play, User, Bot, ChevronDown, ChevronUp, Shield, Key } from "lucide-react";
+import { CheckCircle2, Loader2, RotateCcw, Play, User, Bot, ChevronDown, ChevronUp, Shield, Wrench, Info } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ROLE_SCOPES, AGENT_CREDENTIAL_POLICIES } from "@/lib/role-scopes";
-import type { CredentialSource } from "@/lib/role-scopes";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { ROLE_SCOPES } from "@/lib/role-scopes";
+import { AGENT_CONFIGS } from "@/lib/agent-policies";
+import type { AgentConfig } from "@/lib/agent-policies";
 import type { AppPhase, SetupResult } from "@/lib/types";
 
 interface SetupPanelProps {
@@ -27,14 +36,123 @@ const AGENT_TYPE_COLORS: Record<string, string> = {
   autonomous: "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
 };
 
-function CredentialSourceIcon({ source }: { source: CredentialSource }) {
-  if (source === "user") {
-    return <span className="inline-flex items-center gap-0.5 text-blue-400"><User className="size-2" />U</span>;
-  }
-  if (source === "agent") {
-    return <span className="inline-flex items-center gap-0.5 text-amber-400"><Bot className="size-2" />A</span>;
-  }
-  return <span className="inline-flex items-center gap-0.5 text-emerald-400"><User className="size-2" />U*</span>;
+function AgentRow({ agentConfig }: { agentConfig: AgentConfig }) {
+  return (
+    <Dialog>
+      <DialogTrigger className="w-full flex items-center justify-between text-xs bg-muted/30 rounded px-2 py-1.5 hover:bg-muted/50 transition-colors cursor-pointer">
+        <span className="text-foreground font-medium truncate">{agentConfig.name}</span>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${AGENT_TYPE_COLORS[agentConfig.type]}`}>
+            {agentConfig.type}
+          </Badge>
+          <Info className="size-3 text-muted-foreground" />
+        </div>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-4xl max-h-[85vh]">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Bot className="size-5" />
+            {agentConfig.name}
+            <Badge variant="outline" className={`text-xs ${AGENT_TYPE_COLORS[agentConfig.type]}`}>
+              {agentConfig.type}
+            </Badge>
+            <Badge variant="outline" className="text-xs text-muted-foreground">
+              {agentConfig.product}
+            </Badge>
+          </DialogTitle>
+        </DialogHeader>
+        <ScrollArea className="max-h-[70vh] pr-4">
+          <div className="space-y-5">
+            {/* Scope Ceiling */}
+            <div>
+              <h4 className="text-sm font-medium mb-2 flex items-center gap-1.5">
+                <Shield className="size-3.5" /> Scope Ceiling ({agentConfig.allowedScopes.length})
+              </h4>
+              <div className="flex flex-wrap gap-1.5">
+                {agentConfig.allowedScopes.map((scope) => (
+                  <Badge key={scope} variant="outline" className="text-xs">
+                    {scope}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+
+            {/* Workers */}
+            <div>
+              <h4 className="text-sm font-medium mb-2 flex items-center gap-1.5">
+                <Wrench className="size-3.5" /> Sub-Agent Workers ({agentConfig.workers.length})
+              </h4>
+              <div className="space-y-3">
+                {agentConfig.workers.map((worker) => (
+                  <div key={worker.name} className="bg-muted/30 rounded-lg p-3">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Bot className="size-3.5 text-cyan-400" />
+                      <span className="text-sm font-medium">{worker.name}</span>
+                      <Badge variant="outline" className="text-[10px] bg-cyan-500/15 text-cyan-300 border-cyan-500/30">
+                        worker
+                      </Badge>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 mb-2">
+                      {worker.scopes.map((s) => (
+                        <Badge key={s} variant="outline" className="text-xs text-muted-foreground">
+                          {s}
+                        </Badge>
+                      ))}
+                    </div>
+                    {worker.resourcePolicy && (
+                      <div className="mt-2 border-t border-border/50 pt-2">
+                        <p className="text-xs text-muted-foreground italic mb-2">{worker.resourcePolicy.description}</p>
+                        <div className="space-y-1">
+                          {worker.resourcePolicy.rules.map((rule, ri) => (
+                            <div key={ri} className="flex items-start gap-2 text-xs">
+                              <span className={`shrink-0 ${rule.action === "ALLOW" ? "text-green-400" : "text-red-400"}`}>
+                                {rule.action === "ALLOW" ? "✓" : "✗"}
+                              </span>
+                              <div>
+                                <span className="font-medium text-foreground">{rule.condition}</span>
+                                <span className="text-muted-foreground"> → {rule.detail}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Resource Constraints */}
+            <div>
+              <h4 className="text-sm font-medium mb-2 flex items-center gap-1.5">
+                <Shield className="size-3.5" /> Resource Constraints (in DelegationToken)
+              </h4>
+              <p className="text-xs text-muted-foreground italic mb-3">
+                {agentConfig.resourceConstraints.description}
+              </p>
+              <div className="space-y-3">
+                {Object.entries(agentConfig.resourceConstraints.perRole).map(([role, constraints]) => (
+                  <div key={role} className="bg-muted/30 rounded-lg p-3">
+                    <Badge variant="outline" className={`text-xs mb-2 ${ROLE_COLORS[role] ?? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"}`}>
+                      {role}
+                    </Badge>
+                    <div className="space-y-1 mt-1">
+                      {Object.entries(constraints).map(([key, value]) => (
+                        <div key={key} className="text-xs">
+                          <code className="text-foreground bg-muted px-1 py-0.5 rounded">{key}</code>
+                          <span className="text-muted-foreground ml-2">{value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </ScrollArea>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 export function SetupPanel({ phase, setup, reset, setupResult, allHealthy }: SetupPanelProps) {
@@ -42,7 +160,6 @@ export function SetupPanel({ phase, setup, reset, setupResult, allHealthy }: Set
   const isReady = phase === "ready" || phase === "running";
   const [showDetails, setShowDetails] = useState(false);
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
-  const [expandedAgent, setExpandedAgent] = useState<string | null>(null);
 
   // Show only the 3 role archetypes
   const ARCHETYPE_EMAILS = ["onlee@gdplabs.id", "maylina@gdplabs.id", "guest@gdplabs.id"];
@@ -141,81 +258,15 @@ export function SetupPanel({ phase, setup, reset, setupResult, allHealthy }: Set
                   </div>
                 </div>
 
-                {/* Agents — only orchestrators */}
+                {/* Agents + Workers */}
                 <div>
                   <h4 className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1.5">
-                    <Bot className="size-3" /> Agents
+                    <Bot className="size-3" /> Agents & Workers
                   </h4>
                   <div className="space-y-1">
-                    {orchAgents.map((name) => {
-                      const agent = setupResult.agents[name]!;
-                        const agentType = agent.type ?? "orchestrator";
-                        const isExpanded = expandedAgent === name;
-                        return (
-                          <div key={name} className="text-xs bg-muted/30 rounded overflow-hidden">
-                            <button
-                              onClick={() => setExpandedAgent(isExpanded ? null : name)}
-                              className="w-full flex items-center justify-between px-2 py-1.5 hover:bg-muted/50 transition-colors"
-                            >
-                              <span className="text-foreground font-medium truncate">{name}</span>
-                              <div className="flex items-center gap-1.5 shrink-0">
-                                <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${AGENT_TYPE_COLORS[agentType]}`}>
-                                  {agentType}
-                                </Badge>
-                                {isExpanded ? <ChevronUp className="size-2.5" /> : <ChevronDown className="size-2.5" />}
-                              </div>
-                            </button>
-                            {isExpanded && (
-                              <div className="px-2 pb-2 pt-1 border-t border-border/50 space-y-3">
-                                {/* Scope ceiling */}
-                                <div>
-                                  <div className="flex items-center gap-1 mb-1.5 text-muted-foreground">
-                                    <Shield className="size-2.5" />
-                                    <span className="text-[10px]">Scope Ceiling ({(agent.allowed_scopes ?? []).length})</span>
-                                  </div>
-                                  <div className="flex flex-wrap gap-1">
-                                    {(agent.allowed_scopes ?? []).map((scope: string) => (
-                                      <Badge key={scope} variant="outline" className="text-[9px] px-1 py-0 bg-muted/50 text-muted-foreground border-border">
-                                        {scope}
-                                      </Badge>
-                                    ))}
-                                  </div>
-                                </div>
-
-                                {/* Credential routing policy per role */}
-                                {AGENT_CREDENTIAL_POLICIES[name] && (
-                                  <div>
-                                    <div className="flex items-center gap-1 mb-1.5 text-muted-foreground">
-                                      <Key className="size-2.5" />
-                                      <span className="text-[10px]">Credential Routing Policy</span>
-                                    </div>
-                                    <div className="space-y-2">
-                                      {Object.entries(AGENT_CREDENTIAL_POLICIES[name]!.rules).map(([role, scopes]) => (
-                                        <div key={role}>
-                                          <div className="flex items-center gap-1 mb-1">
-                                            <Badge variant="outline" className={`text-[9px] px-1 py-0 ${ROLE_COLORS[role] ?? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"}`}>
-                                              {role}
-                                            </Badge>
-                                          </div>
-                                          <div className="space-y-0.5 ml-1">
-                                            {Object.entries(scopes).map(([scope, rule]) => (
-                                              <div key={scope} className="flex items-center gap-1.5 text-[9px]">
-                                                <CredentialSourceIcon source={rule.source} />
-                                                <span className="font-mono text-muted-foreground">{scope}</span>
-                                                <span className="text-muted-foreground/60 truncate">— {rule.reason}</span>
-                                              </div>
-                                            ))}
-                                          </div>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
+                    {AGENT_CONFIGS.map((agentConfig) => (
+                      <AgentRow key={agentConfig.name} agentConfig={agentConfig} />
+                    ))}
                   </div>
                 </div>
               </div>
