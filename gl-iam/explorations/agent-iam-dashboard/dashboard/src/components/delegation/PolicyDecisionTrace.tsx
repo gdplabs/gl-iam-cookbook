@@ -80,7 +80,7 @@ function buildDecisionSteps(result: ScenarioRunResult): DecisionStep[] {
   if (aip) {
     const blockedTools = aip.blocked_tools ?? [];
     const featureGatedTools: Record<string, string> = {
-      "invoice.send": "Send Invoice",
+      "invoice_send": "Send Invoice",
     };
     const blockedFeatures = blockedTools.filter(bt => bt.tool in featureGatedTools);
     if (blockedFeatures.length > 0) {

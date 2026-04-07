@@ -47,17 +47,17 @@ function ScopeCell({ present, applicable }: { present: boolean; applicable: bool
 /** Map scope name back to tool name for credential routing lookup */
 function scopeToToolName(scope: string): string | null {
   const map: Record<string, string> = {
-    "calendar:read": "calendar.list_events",
-    "calendar:write": "calendar.create_event",
-    "slack:post": "slack.post_message",
-    "notion:read": "notion.get_page",
-    "gmail:send": "gmail.send",
-    "meemo:write": "meemo.create_mom",
-    "meemo:read": "meemo.read_mom",
-    "gdoc:write": "gdoc.create",
-    "gdoc:read": "gdoc.read",
-    "gdoc:share": "gdoc.share",
-    "invoice:send": "invoice.send",
+    "calendar:read": "google_calendar_events_list",
+    "calendar:write": "google_calendar_events_insert",
+    "slack:post": "slack_send_message",
+    "notion:read": "notion_get_page",
+    "gmail:send": "google_mail_send_email",
+    "meemo:write": "meemo_create_meeting_notes",
+    "meemo:read": "meemo_get_meeting_details",
+    "gdoc:write": "google_docs_create_document",
+    "gdoc:read": "google_docs_get_document",
+    "gdoc:share": "google_drive_share_file",
+    "invoice:send": "invoice_send",
   };
   return map[scope] ?? null;
 }

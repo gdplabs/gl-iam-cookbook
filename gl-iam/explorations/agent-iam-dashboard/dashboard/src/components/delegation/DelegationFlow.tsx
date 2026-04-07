@@ -35,12 +35,12 @@ const USER_LABELS: Record<string, string> = {
   "guest": "Guest",
 };
 
-/** Sort tools: directory.lookup first, then calendar, then others */
+/** Sort tools: directory_lookup first, then calendar, then others */
 function sortToolNodes(nodes: FlowNode[]): FlowNode[] {
   const priority: Record<string, number> = {
-    "directory.lookup": 0,
-    "calendar.list_events": 1,
-    "calendar.create_event": 2,
+    "directory_lookup": 0,
+    "google_calendar_events_list": 1,
+    "google_calendar_events_insert": 2,
   };
   return [...nodes].sort((a, b) => {
     const pa = priority[a.label] ?? 10;
@@ -293,9 +293,9 @@ function UserCard({ result }: { result: ScenarioRunResult }) {
 
 function BlockedToolCard({ tool, index, userRole }: { tool: BlockedTool; index: number; userRole?: string }) {
   const friendlyNames: Record<string, string> = {
-    "invoice.send": "Send Invoice",
-    "calendar.create_event": "Create Calendar Event",
-    "slack.post_message": "Post to Slack",
+    "invoice_send": "Send Invoice",
+    "google_calendar_events_insert": "Create Calendar Event",
+    "slack_send_message": "Post to Slack",
   };
   const friendlyName = friendlyNames[tool.tool] ?? tool.tool;
   return (
@@ -320,7 +320,7 @@ function BlockedToolCard({ tool, index, userRole }: { tool: BlockedTool; index: 
 }
 
 function PolicyRejectedCard({ entry, index }: { entry: ExecutionLogEntry; index: number }) {
-  // Extract tool name from step like "d3:calendar-worker→calendar.list_events"
+  // Extract tool name from step like "d3:calendar-worker→google_calendar_events_list"
   const toolName = entry.step.includes("→")
     ? entry.step.split("→")[1]
     : entry.step.split(":").slice(1).join(":");

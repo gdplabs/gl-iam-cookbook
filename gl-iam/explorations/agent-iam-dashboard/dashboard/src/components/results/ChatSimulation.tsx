@@ -42,21 +42,21 @@ export function ChatSimulation({ result }: ChatSimulationProps) {
       (tr) => tr.status === "denied" || tr.status === "delegation_failed"
     );
     const blockedTools = result.aip_response.blocked_tools ?? [];
-    // Separate primary tools from supporting tools (directory.lookup is supporting)
-    const supportingTools = new Set(["directory.lookup", "calendar.list_events"]);
+    // Separate primary tools from supporting tools (directory_lookup is supporting)
+    const supportingTools = new Set(["directory_lookup", "google_calendar_events_list"]);
     const executedPrimary = result.aip_response.tool_results.filter(
       (tr) => tr.status === "executed" && !supportingTools.has(tr.tool)
     );
     // Check if primary/intended tools were blocked by scope
     const primaryToolsBlocked = blockedTools.filter(
-      (bt) => ["calendar.create_event", "invoice.send"].some(t => bt.tool === t)
+      (bt) => ["google_calendar_events_insert", "invoice_send"].some(t => bt.tool === t)
     );
 
     if (primaryToolsBlocked.length > 0) {
       // Primary action tool was blocked — not available for this role
       const toolNames: Record<string, string> = {
-        "invoice.send": "Send Invoice",
-        "calendar.create_event": "Create Calendar Event",
+        "invoice_send": "Send Invoice",
+        "google_calendar_events_insert": "Create Calendar Event",
       };
       const role = result.user?.role ?? "your";
       const reasons = primaryToolsBlocked.map((bt) => {

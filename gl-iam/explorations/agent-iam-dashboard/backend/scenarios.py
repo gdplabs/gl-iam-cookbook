@@ -53,7 +53,7 @@ SCENARIOS: dict[str, dict] = {
         "user_email": "onlee@gdplabs.id",
         "agent": "scheduling-agent",
         "message": "Give me a list of Pak On's meetings today",
-        "tool_inputs": {"directory.lookup": {"name": "Pak On"}},
+        "tool_inputs": {"directory_lookup": {"name": "Pak On"}},
         "resource_context": {
             "target_calendar": "onlee@gdplabs.id",
             "access_type": "agent",
@@ -66,11 +66,11 @@ SCENARIOS: dict[str, dict] = {
     "UC-GLCHAT-01.2-M": {
         "product": "glchat",
         "title": "Check Pak On (CEO) calendar (Member)",
-        "description": "Maylina (member) checks CEO's meetings. directory.lookup resolves name, then Agent OAuth reads calendar — Pak On is whitelisted.",
+        "description": "Maylina (member) checks CEO's meetings. directory_lookup resolves name, then Agent OAuth reads calendar — Pak On is whitelisted.",
         "user_email": "maylina@gdplabs.id",
         "agent": "scheduling-agent",
         "message": "Give me a list of Pak On's meetings today",
-        "tool_inputs": {"directory.lookup": {"name": "Pak On"}},
+        "tool_inputs": {"directory_lookup": {"name": "Pak On"}},
         "resource_context": {
             "target_calendar": "onlee@gdplabs.id",
             "access_type": "agent",
@@ -84,11 +84,11 @@ SCENARIOS: dict[str, dict] = {
     "UC-GLCHAT-01.3": {
         "product": "glchat",
         "title": "Check internal colleague's calendar (Admin)",
-        "description": "Pak On (admin) checks Sandy's calendar. directory.lookup resolves name, Agent OAuth with wildcard access.",
+        "description": "Pak On (admin) checks Sandy's calendar. directory_lookup resolves name, Agent OAuth with wildcard access.",
         "user_email": "onlee@gdplabs.id",
         "agent": "scheduling-agent",
         "message": "Give me a list of Sandy's meetings today",
-        "tool_inputs": {"directory.lookup": {"name": "Sandy"}},
+        "tool_inputs": {"directory_lookup": {"name": "Sandy"}},
         "resource_context": {
             "target_calendar": "sandy@gdplabs.id",
             "access_type": "agent",
@@ -101,11 +101,11 @@ SCENARIOS: dict[str, dict] = {
     "UC-GLCHAT-01.3-M": {
         "product": "glchat",
         "title": "Check internal colleague's calendar (Member)",
-        "description": "Maylina (member) checks Sandy's calendar. directory.lookup resolves name, Agent OAuth allowed — same org.",
+        "description": "Maylina (member) checks Sandy's calendar. directory_lookup resolves name, Agent OAuth allowed — same org.",
         "user_email": "maylina@gdplabs.id",
         "agent": "scheduling-agent",
         "message": "Give me a list of Sandy's meetings today",
-        "tool_inputs": {"directory.lookup": {"name": "Sandy"}},
+        "tool_inputs": {"directory_lookup": {"name": "Sandy"}},
         "resource_context": {
             "target_calendar": "sandy@gdplabs.id",
             "access_type": "agent",
@@ -119,11 +119,11 @@ SCENARIOS: dict[str, dict] = {
     "UC-GLCHAT-01.4": {
         "product": "glchat",
         "title": "Check external org colleague's calendar (Admin)",
-        "description": "Pak On (admin) checks Petry's calendar. directory.lookup resolves → petry@gdplabs.id. Agent OAuth wildcard allows it.",
+        "description": "Pak On (admin) checks Petry's calendar. directory_lookup resolves → petry@gdplabs.id. Agent OAuth wildcard allows it.",
         "user_email": "onlee@gdplabs.id",
         "agent": "scheduling-agent",
         "message": "Give me a list of Petry's meetings today",
-        "tool_inputs": {"directory.lookup": {"name": "Petry"}},
+        "tool_inputs": {"directory_lookup": {"name": "Petry"}},
         "resource_context": {
             "target_calendar": "petry@gdplabs.id",
             "access_type": "agent",
@@ -136,11 +136,11 @@ SCENARIOS: dict[str, dict] = {
     "UC-GLCHAT-01.4-M": {
         "product": "glchat",
         "title": "Check external org colleague's calendar (Member, rejected)",
-        "description": "Maylina (member) tries Petry's calendar. directory.lookup resolves → petry@gdplabs.id. Not in member's whitelist → rejected.",
+        "description": "Maylina (member) tries Petry's calendar. directory_lookup resolves → petry@gdplabs.id. Not in member's whitelist → rejected.",
         "user_email": "maylina@gdplabs.id",
         "agent": "scheduling-agent",
         "message": "Give me a list of Petry's meetings today",
-        "tool_inputs": {"directory.lookup": {"name": "Petry"}},
+        "tool_inputs": {"directory_lookup": {"name": "Petry"}},
         "resource_context": {
             "target_calendar": "petry@gdplabs.id",
             "access_type": "agent",
@@ -158,7 +158,7 @@ SCENARIOS: dict[str, dict] = {
         "agent": "scheduling-agent",
         "message": "Schedule a 1-hour sync with Sandy and Petry this Friday at 3pm",
         "tool_inputs": {
-            "calendar.create_event": {
+            "google_calendar_events_insert": {
                 "title": "Sync with Sandy and Petry",
                 "time": "2026-04-11T15:00:00Z",
             },
@@ -180,7 +180,7 @@ SCENARIOS: dict[str, dict] = {
         "agent": "scheduling-agent",
         "message": "Schedule a 1-hour sync with Sandy this Friday at 3pm",
         "tool_inputs": {
-            "calendar.create_event": {
+            "google_calendar_events_insert": {
                 "title": "Sync with Sandy",
                 "time": "2026-04-11T15:00:00Z",
             },
@@ -196,13 +196,13 @@ SCENARIOS: dict[str, dict] = {
     "UC-GLCHAT-02.2": {
         "product": "glchat",
         "title": "Write to colleague's calendar (Admin, success)",
-        "description": "Pak On (admin) writes to Sandy's calendar. directory.lookup resolves name. Admin wildcard write access → success via Agent OAuth.",
+        "description": "Pak On (admin) writes to Sandy's calendar. directory_lookup resolves name. Admin wildcard write access → success via Agent OAuth.",
         "user_email": "onlee@gdplabs.id",
         "agent": "scheduling-agent",
         "message": "Add a dentist appointment to Sandy's calendar tomorrow at 10am",
         "tool_inputs": {
-            "directory.lookup": {"name": "Sandy"},
-            "calendar.create_event": {
+            "directory_lookup": {"name": "Sandy"},
+            "google_calendar_events_insert": {
                 "title": "Dentist Appointment",
                 "time": "2026-04-08T10:00:00Z",
                 "target_calendar": "sandy@gdplabs.id",
@@ -220,13 +220,13 @@ SCENARIOS: dict[str, dict] = {
     "UC-GLCHAT-02.2-M": {
         "product": "glchat",
         "title": "Write to colleague's calendar (Member, rejected)",
-        "description": "Maylina (member) tries to write to Sandy's calendar. directory.lookup resolves name. Sandy not in member's write whitelist → rejected.",
+        "description": "Maylina (member) tries to write to Sandy's calendar. directory_lookup resolves name. Sandy not in member's write whitelist → rejected.",
         "user_email": "maylina@gdplabs.id",
         "agent": "scheduling-agent",
         "message": "Add a dentist appointment to Sandy's calendar tomorrow at 10am",
         "tool_inputs": {
-            "directory.lookup": {"name": "Sandy"},
-            "calendar.create_event": {
+            "directory_lookup": {"name": "Sandy"},
+            "google_calendar_events_insert": {
                 "title": "Dentist Appointment",
                 "time": "2026-04-08T10:00:00Z",
                 "target_calendar": "sandy@gdplabs.id",
@@ -286,8 +286,8 @@ SCENARIOS: dict[str, dict] = {
         "agent": "de-pm-agent",
         "message": "Create minutes of meeting for GL IAM standup",
         "tool_inputs": {
-            "meemo.create_mom": {"meeting_id": "meet-001"},
-            "gdoc.create": {"title": "GL IAM Standup MoM"},
+            "meemo_create_meeting_notes": {"meeting_id": "meet-001"},
+            "google_docs_create_document": {"title": "GL IAM Standup MoM"},
         },
         "resource_context": {
             "meeting_id": "meet-001",
@@ -306,8 +306,8 @@ SCENARIOS: dict[str, dict] = {
         "agent": "de-pm-agent",
         "message": "Create minutes of meeting for GL IAM standup",
         "tool_inputs": {
-            "meemo.create_mom": {"meeting_id": "meet-002"},
-            "gdoc.create": {"title": "GL IAM Standup MoM"},
+            "meemo_create_meeting_notes": {"meeting_id": "meet-002"},
+            "google_docs_create_document": {"title": "GL IAM Standup MoM"},
         },
         "resource_context": {
             "meeting_id": "meet-002",
@@ -326,8 +326,8 @@ SCENARIOS: dict[str, dict] = {
         "agent": "de-pm-agent",
         "message": "Share the GL IAM standup MoM with all attendees",
         "tool_inputs": {
-            "gdoc.share": {"mom_id": "mom-001"},
-            "gmail.send": {"subject": "MoM: GL IAM Standup"},
+            "google_drive_share_file": {"mom_id": "mom-001"},
+            "google_mail_send_email": {"subject": "MoM: GL IAM Standup"},
         },
         "resource_context": {
             "mom_id": "mom-001",
@@ -346,7 +346,7 @@ SCENARIOS: dict[str, dict] = {
         "agent": "de-pm-agent",
         "message": "Share the GL IAM standup MoM with all attendees",
         "tool_inputs": {
-            "gdoc.share": {"mom_id": "mom-001"},
+            "google_drive_share_file": {"mom_id": "mom-001"},
         },
         "resource_context": {
             "mom_id": "mom-001",
@@ -365,7 +365,7 @@ SCENARIOS: dict[str, dict] = {
         "agent": "de-pm-agent",
         "message": "Share the Weekly Sync MoM with all attendees",
         "tool_inputs": {
-            "gdoc.share": {"mom_title": "Weekly Sync"},
+            "google_drive_share_file": {"mom_title": "Weekly Sync"},
         },
         "resource_context": {
             "mom_title": "Weekly Sync",
@@ -384,7 +384,7 @@ SCENARIOS: dict[str, dict] = {
         "agent": "de-pm-agent",
         "message": "Share the GL IAM standup MoM with all attendees and external@external.com",
         "tool_inputs": {
-            "gdoc.share": {
+            "google_drive_share_file": {
                 "mom_id": "mom-001",
                 "recipients": ["maylina@gdplabs.id", "external@external.com"],
             },
@@ -407,7 +407,7 @@ SCENARIOS: dict[str, dict] = {
         "agent": "de-pm-agent",
         "message": "Summarize yesterday's GL IAM standup",
         "tool_inputs": {
-            "meemo.read_mom": {"mom_id": "mom-001"},
+            "meemo_get_meeting_details": {"mom_id": "mom-001"},
         },
         "resource_context": {
             "mom_id": "mom-001",
@@ -426,7 +426,7 @@ SCENARIOS: dict[str, dict] = {
         "agent": "de-pm-agent",
         "message": "Summarize yesterday's GL IAM standup",
         "tool_inputs": {
-            "meemo.read_mom": {"mom_id": "mom-001"},
+            "meemo_get_meeting_details": {"mom_id": "mom-001"},
         },
         "resource_context": {
             "mom_id": "mom-001",
@@ -460,7 +460,7 @@ SCENARIOS: dict[str, dict] = {
         "agent": "de-pm-agent",
         "message": "Send all AWS invoices April 2026",
         "tool_inputs": {
-            "invoice.send": {"invoice_id": "inv-aws-2026-04"},
+            "invoice_send": {"invoice_id": "inv-aws-2026-04"},
         },
         "resource_context": {
             "access_type": "user",
@@ -477,7 +477,7 @@ SCENARIOS: dict[str, dict] = {
         "agent": "de-pm-agent",
         "message": "Send all AWS invoices April 2026",
         "tool_inputs": {
-            "invoice.send": {"invoice_id": "inv-aws-2026-04"},
+            "invoice_send": {"invoice_id": "inv-aws-2026-04"},
         },
         "resource_context": {
             "access_type": "user",
@@ -498,8 +498,8 @@ SCENARIOS: dict[str, dict] = {
         "agent": "weekly-report-agent",
         "message": "Send final weekly report for onlee@gdplabs.id",
         "tool_inputs": {
-            "gdoc.read": {"report_email": "onlee@gdplabs.id"},
-            "gmail.send": {"to": "manager@gdplabs.id"},
+            "google_docs_get_document": {"report_email": "onlee@gdplabs.id"},
+            "google_mail_send_email": {"to": "manager@gdplabs.id"},
         },
         "resource_context": {
             "report_email": "onlee@gdplabs.id",
@@ -518,8 +518,8 @@ SCENARIOS: dict[str, dict] = {
         "agent": "weekly-report-agent",
         "message": "Send final weekly report for bob@gdplabs.id",
         "tool_inputs": {
-            "gdoc.read": {"report_email": "bob@gdplabs.id"},
-            "gmail.send": {"to": "manager@gdplabs.id"},
+            "google_docs_get_document": {"report_email": "bob@gdplabs.id"},
+            "google_mail_send_email": {"to": "manager@gdplabs.id"},
         },
         "resource_context": {
             "report_email": "bob@gdplabs.id",
@@ -538,8 +538,8 @@ SCENARIOS: dict[str, dict] = {
         "agent": "weekly-report-agent",
         "message": "Send draft weekly report to onlee@gdplabs.id",
         "tool_inputs": {
-            "gdoc.create": {"title": "Draft Weekly Report"},
-            "gmail.send": {"to": "onlee@gdplabs.id"},
+            "google_docs_create_document": {"title": "Draft Weekly Report"},
+            "google_mail_send_email": {"to": "onlee@gdplabs.id"},
         },
         "resource_context": {
             "report_email": "onlee@gdplabs.id",
@@ -558,8 +558,8 @@ SCENARIOS: dict[str, dict] = {
         "agent": "weekly-report-agent",
         "message": "Send draft weekly report to resigned@gdplabs.id",
         "tool_inputs": {
-            "gdoc.create": {"title": "Draft Weekly Report"},
-            "gmail.send": {"to": "resigned@gdplabs.id"},
+            "google_docs_create_document": {"title": "Draft Weekly Report"},
+            "google_mail_send_email": {"to": "resigned@gdplabs.id"},
         },
         "resource_context": {
             "report_email": "resigned@gdplabs.id",

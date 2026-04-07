@@ -46,65 +46,65 @@ CONNECTORS_URL = os.getenv("CONNECTORS_URL", "http://localhost:8002")
 TOOL_REGISTRY: dict[str, dict] = {
     # GLChat tools
     "calendar:read": {
-        "tool": "calendar.list_events",
+        "tool": "google_calendar_events_list",
         "description": "List upcoming calendar events",
-        "endpoint": "/tools/calendar.list_events",
+        "endpoint": "/tools/google_calendar_events_list",
     },
     "calendar:write": {
-        "tool": "calendar.create_event",
+        "tool": "google_calendar_events_insert",
         "description": "Create a new calendar event",
-        "endpoint": "/tools/calendar.create_event",
+        "endpoint": "/tools/google_calendar_events_insert",
     },
     "slack:post": {
-        "tool": "slack.post_message",
+        "tool": "slack_send_message",
         "description": "Post a message to Slack",
-        "endpoint": "/tools/slack.post_message",
+        "endpoint": "/tools/slack_send_message",
     },
     "notion:read": {
-        "tool": "notion.get_page",
+        "tool": "notion_get_page",
         "description": "Read a Notion page",
-        "endpoint": "/tools/notion.get_page",
+        "endpoint": "/tools/notion_get_page",
     },
     "gmail:send": {
-        "tool": "gmail.send",
+        "tool": "google_mail_send_email",
         "description": "Send an email via Gmail",
-        "endpoint": "/tools/gmail.send",
+        "endpoint": "/tools/google_mail_send_email",
     },
     # DE tools
     "meemo:write": {
-        "tool": "meemo.create_mom",
+        "tool": "meemo_create_meeting_notes",
         "description": "Create MoM on Meemo",
-        "endpoint": "/tools/meemo.create_mom",
+        "endpoint": "/tools/meemo_create_meeting_notes",
     },
     "meemo:read": {
-        "tool": "meemo.read_mom",
+        "tool": "meemo_get_meeting_details",
         "description": "Read MoM from Meemo",
-        "endpoint": "/tools/meemo.read_mom",
+        "endpoint": "/tools/meemo_get_meeting_details",
     },
     "gdoc:write": {
-        "tool": "gdoc.create",
+        "tool": "google_docs_create_document",
         "description": "Create a Google Doc",
-        "endpoint": "/tools/gdoc.create",
+        "endpoint": "/tools/google_docs_create_document",
     },
     "gdoc:read": {
-        "tool": "gdoc.read",
+        "tool": "google_docs_get_document",
         "description": "Read a Google Doc",
-        "endpoint": "/tools/gdoc.read",
+        "endpoint": "/tools/google_docs_get_document",
     },
     "gdoc:share": {
-        "tool": "gdoc.share",
+        "tool": "google_drive_share_file",
         "description": "Share a Google Doc",
-        "endpoint": "/tools/gdoc.share",
+        "endpoint": "/tools/google_drive_share_file",
     },
     "invoice:send": {
-        "tool": "invoice.send",
+        "tool": "invoice_send",
         "description": "Send an invoice",
-        "endpoint": "/tools/invoice.send",
+        "endpoint": "/tools/invoice_send",
     },
     "directory:lookup": {
-        "tool": "directory.lookup",
+        "tool": "directory_lookup",
         "description": "Look up a person's email by name",
-        "endpoint": "/tools/directory.lookup",
+        "endpoint": "/tools/directory_lookup",
     },
 }
 
@@ -115,32 +115,32 @@ WORKER_REGISTRY: dict[str, dict] = {
     "calendar-worker": {
         "type": "worker",
         "scopes": ["calendar:read", "calendar:write"],
-        "tools": ["calendar.list_events", "calendar.create_event"],
+        "tools": ["google_calendar_events_list", "google_calendar_events_insert"],
     },
     "comms-worker": {
         "type": "worker",
         "scopes": ["slack:post", "notion:read", "gmail:send"],
-        "tools": ["slack.post_message", "notion.get_page", "gmail.send"],
+        "tools": ["slack_send_message", "notion_get_page", "google_mail_send_email"],
     },
     "meemo-worker": {
         "type": "worker",
         "scopes": ["meemo:read", "meemo:write"],
-        "tools": ["meemo.create_mom", "meemo.read_mom"],
+        "tools": ["meemo_create_meeting_notes", "meemo_get_meeting_details"],
     },
     "gdoc-worker": {
         "type": "worker",
         "scopes": ["gdoc:read", "gdoc:write", "gdoc:share"],
-        "tools": ["gdoc.create", "gdoc.read", "gdoc.share"],
+        "tools": ["google_docs_create_document", "google_docs_get_document", "google_drive_share_file"],
     },
     "invoice-worker": {
         "type": "worker",
         "scopes": ["invoice:send", "gmail:send"],
-        "tools": ["invoice.send", "gmail.send"],
+        "tools": ["invoice_send", "google_mail_send_email"],
     },
     "directory-worker": {
         "type": "worker",
         "scopes": ["directory:lookup"],
-        "tools": ["directory.lookup"],
+        "tools": ["directory_lookup"],
     },
 }
 
@@ -148,41 +148,41 @@ WORKER_AGENT_IDS: dict[str, str] = {}
 
 KEYWORD_TO_TOOLS = {
     # GLChat — read
-    "list": ["calendar.list_events"],
-    "meetings today": ["calendar.list_events"],
-    "meetings": ["calendar.list_events"],
+    "list": ["google_calendar_events_list"],
+    "meetings today": ["google_calendar_events_list"],
+    "meetings": ["google_calendar_events_list"],
     # GLChat — write
-    "schedule": ["calendar.list_events", "calendar.create_event"],
-    "add a": ["calendar.create_event"],
-    "create": ["meemo.create_mom", "gdoc.create"],
-    "calendar": ["calendar.list_events"],
-    "notify": ["slack.post_message"],
-    "slack": ["slack.post_message"],
-    "message": ["slack.post_message"],
-    "document": ["notion.get_page"],
-    "notion": ["notion.get_page"],
-    "page": ["notion.get_page"],
-    "email": ["gmail.send"],
-    "gmail": ["gmail.send"],
+    "schedule": ["google_calendar_events_list", "google_calendar_events_insert"],
+    "add a": ["google_calendar_events_insert"],
+    "create": ["meemo_create_meeting_notes", "google_docs_create_document"],
+    "calendar": ["google_calendar_events_list"],
+    "notify": ["slack_send_message"],
+    "slack": ["slack_send_message"],
+    "message": ["slack_send_message"],
+    "document": ["notion_get_page"],
+    "notion": ["notion_get_page"],
+    "page": ["notion_get_page"],
+    "email": ["google_mail_send_email"],
+    "gmail": ["google_mail_send_email"],
     # DE
-    "mom": ["meemo.create_mom", "meemo.read_mom"],
-    "minutes": ["meemo.create_mom", "meemo.read_mom"],
-    "meemo": ["meemo.create_mom", "meemo.read_mom"],
-    "share": ["gdoc.share", "gmail.send"],
-    "summarize": ["meemo.read_mom", "gdoc.read"],
-    "summary": ["meemo.read_mom", "gdoc.read"],
-    "access": ["meemo.read_mom", "gdoc.read"],
-    "invoice": ["invoice.send"],
+    "mom": ["meemo_create_meeting_notes", "meemo_get_meeting_details"],
+    "minutes": ["meemo_create_meeting_notes", "meemo_get_meeting_details"],
+    "meemo": ["meemo_create_meeting_notes", "meemo_get_meeting_details"],
+    "share": ["google_drive_share_file", "google_mail_send_email"],
+    "summarize": ["meemo_get_meeting_details", "google_docs_get_document"],
+    "summary": ["meemo_get_meeting_details", "google_docs_get_document"],
+    "access": ["meemo_get_meeting_details", "google_docs_get_document"],
+    "invoice": ["invoice_send"],
     # Directory lookup — triggered when prompt mentions a person's name
-    "sandy's": ["directory.lookup", "calendar.list_events"],
-    "pak on's": ["directory.lookup", "calendar.list_events"],
-    "petry's": ["directory.lookup", "calendar.list_events"],
-    "colleague": ["directory.lookup"],
+    "sandy's": ["directory_lookup", "google_calendar_events_list"],
+    "pak on's": ["directory_lookup", "google_calendar_events_list"],
+    "petry's": ["directory_lookup", "google_calendar_events_list"],
+    "colleague": ["directory_lookup"],
     # AIP
-    "report": ["gdoc.read", "gdoc.create", "gmail.send"],
-    "weekly": ["gdoc.read", "gdoc.create", "gmail.send"],
-    "draft": ["gdoc.create", "gmail.send"],
-    "send": ["gmail.send"],
+    "report": ["google_docs_get_document", "google_docs_create_document", "google_mail_send_email"],
+    "weekly": ["google_docs_get_document", "google_docs_create_document", "google_mail_send_email"],
+    "draft": ["google_docs_create_document", "google_mail_send_email"],
+    "send": ["google_mail_send_email"],
 }
 
 
@@ -214,7 +214,7 @@ def _check_agent_resource_policy(
     from mock_data import USERS
 
     # Calendar read: check agent_calendar_access
-    if tool_name == "calendar.list_events":
+    if tool_name == "google_calendar_events_list":
         # Target can be in resource_context or tool_input (LLM resolves it from the prompt)
         target = resource_context.get("target_calendar", "") or tool_input.get("target_calendar", "")
         access_type = resource_context.get("access_type", "user")
@@ -225,7 +225,7 @@ def _check_agent_resource_policy(
         if access_type == "user" and user_role == "viewer":
             return (
                 "This action requires your personal OAuth credentials to access your own resources, "
-                "but you are not logged in. Please log in to use calendar.list_events."
+                "but you are not logged in. Please log in to use google_calendar_events_list."
             )
 
         # Agent OAuth: check resource constraint whitelist
@@ -257,7 +257,7 @@ def _check_agent_resource_policy(
         return None
 
     # Calendar write: check agent_calendar_write_access
-    if tool_name == "calendar.create_event":
+    if tool_name == "google_calendar_events_insert":
         target = tool_input.get("target_calendar", "")
         user_email = parent_constraints.get("user_email", "")
 
@@ -349,7 +349,7 @@ def plan_tools(
 
     # If a primary action tool is blocked, don't dispatch supporting tools
     # Primary tools are the ones that directly fulfill the user's intent
-    PRIMARY_TOOLS = {"invoice.send", "calendar.create_event"}
+    PRIMARY_TOOLS = {"invoice_send", "google_calendar_events_insert"}
     blocked_primary = {b["tool"] for b in blocked if b["tool"] in PRIMARY_TOOLS}
     if blocked_primary:
         # Clear planned tools — the primary action can't be fulfilled

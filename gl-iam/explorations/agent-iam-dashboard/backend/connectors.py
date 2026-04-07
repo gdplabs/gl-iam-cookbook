@@ -2,9 +2,9 @@
 GL Connectors — Service 3 (port 8002).
 
 Extended from the E2E demo with:
-- DE tools: meemo.create_mom, meemo.read_mom, gdoc.create, gdoc.read, gdoc.share
-- AIP tools: uses gdoc.read/create + gmail.send
-- Feature-level tool: invoice.send
+- DE tools: meemo_create_meeting_notes, meemo_get_meeting_details, google_docs_create_document, google_docs_get_document, google_drive_share_file
+- AIP tools: uses google_docs_get_document/create + google_mail_send_email
+- Feature-level tool: invoice_send
 - Resource-level decisions using mock_data
 - Structured outcomes: success, partial_success, rejected, approval_required
 - CORS + audit endpoints
@@ -124,7 +124,7 @@ def check_user_oauth_required(request_input: dict, tool_name: str) -> str | None
 # =============================================================================
 # GLChat Tools (existing)
 # =============================================================================
-@app.post("/tools/calendar.list_events")
+@app.post("/tools/google_calendar_events_list")
 async def calendar_list_events(
     request: ToolRequest,
     agent: AgentIdentity = Depends(get_current_agent),
@@ -137,17 +137,17 @@ async def calendar_list_events(
     # GL Connector is a transport layer — it calls the 3P API and returns the result.
     # Policy enforcement (resource constraints) is handled at the agent/worker level.
     # The connector only surfaces 3P API errors.
-    audit_log("connectors", "tool_call_allowed", ref, tool="calendar.list_events", agent_id=agent.id)
+    audit_log("connectors", "tool_call_allowed", ref, tool="google_calendar_events_list", agent_id=agent.id)
     events = CALENDARS.get(target, [
         {"id": "evt-1", "title": "Sprint Planning", "time": "2026-04-07T09:00:00Z"},
         {"id": "evt-2", "title": "Design Review", "time": "2026-04-07T14:00:00Z"},
         {"id": "evt-3", "title": "1:1 with Manager", "time": "2026-04-08T10:00:00Z"},
     ])
 
-    return {"tool": "calendar.list_events", "status": "executed", "result": events}
+    return {"tool": "google_calendar_events_list", "status": "executed", "result": events}
 
 
-@app.post("/tools/calendar.create_event")
+@app.post("/tools/google_calendar_events_insert")
 async def calendar_create_event(
     request: ToolRequest,
     agent: AgentIdentity = Depends(get_current_agent),
@@ -157,12 +157,12 @@ async def calendar_create_event(
     ref = get_delegation_ref(token)
 
     # GL Connector is a transport layer — policy enforcement is at the agent/worker level.
-    audit_log("connectors", "tool_call_allowed", ref, tool="calendar.create_event", agent_id=agent.id)
+    audit_log("connectors", "tool_call_allowed", ref, tool="google_calendar_events_insert", agent_id=agent.id)
 
     title = request.input.get("title", "New Meeting")
     time = request.input.get("time", "2026-04-11T15:00:00Z")
     return {
-        "tool": "calendar.create_event",
+        "tool": "google_calendar_events_insert",
         "status": "executed",
         "result": {
             "id": f"evt-{uuid.uuid4().hex[:6]}",
@@ -173,7 +173,7 @@ async def calendar_create_event(
     }
 
 
-@app.post("/tools/slack.post_message")
+@app.post("/tools/slack_send_message")
 async def slack_post_message(
     request: ToolRequest,
     agent: AgentIdentity = Depends(get_current_agent),
@@ -181,18 +181,18 @@ async def slack_post_message(
     token: DelegationToken = Depends(get_delegation_token),
 ):
     ref = get_delegation_ref(token)
-    audit_log("connectors", "tool_call_allowed", ref, tool="slack.post_message", agent_id=agent.id)
+    audit_log("connectors", "tool_call_allowed", ref, tool="slack_send_message", agent_id=agent.id)
 
     channel = request.input.get("channel", "#general")
     text = request.input.get("text", "Hello from agent!")
     return {
-        "tool": "slack.post_message",
+        "tool": "slack_send_message",
         "status": "executed",
         "result": {"channel": channel, "text": text, "ts": "1710000000.000001", "status": "sent"},
     }
 
 
-@app.post("/tools/notion.get_page")
+@app.post("/tools/notion_get_page")
 async def notion_get_page(
     request: ToolRequest,
     agent: AgentIdentity = Depends(get_current_agent),
@@ -200,17 +200,17 @@ async def notion_get_page(
     token: DelegationToken = Depends(get_delegation_token),
 ):
     ref = get_delegation_ref(token)
-    audit_log("connectors", "tool_call_allowed", ref, tool="notion.get_page", agent_id=agent.id)
+    audit_log("connectors", "tool_call_allowed", ref, tool="notion_get_page", agent_id=agent.id)
 
     page_id = request.input.get("page_id", "page-abc-123")
     return {
-        "tool": "notion.get_page",
+        "tool": "notion_get_page",
         "status": "executed",
         "result": {"id": page_id, "title": "Project Roadmap", "content": "Q1 goals: ship delegation SDK..."},
     }
 
 
-@app.post("/tools/gmail.send")
+@app.post("/tools/google_mail_send_email")
 async def gmail_send(
     request: ToolRequest,
     agent: AgentIdentity = Depends(get_current_agent),
@@ -227,17 +227,17 @@ async def gmail_send(
         report = WEEKLY_REPORTS.get(target_email)
         if report and not report.get("email_active", True):
             audit_log("connectors", "tool_call_warning", ref,
-                      tool="gmail.send", warning="email_bounced", to=target_email)
+                      tool="google_mail_send_email", warning="email_bounced", to=target_email)
             return {
-                "tool": "gmail.send",
+                "tool": "google_mail_send_email",
                 "status": "executed",
                 "result": {"to": target_email, "status": "sent"},
                 "warnings": [f"Email to {target_email} may bounce - account may be inactive"],
             }
 
-    audit_log("connectors", "tool_call_allowed", ref, tool="gmail.send", agent_id=agent.id)
+    audit_log("connectors", "tool_call_allowed", ref, tool="google_mail_send_email", agent_id=agent.id)
     return {
-        "tool": "gmail.send",
+        "tool": "google_mail_send_email",
         "status": "executed",
         "result": {"to": to, "status": "sent"},
     }
@@ -246,7 +246,7 @@ async def gmail_send(
 # =============================================================================
 # DE Tools (new)
 # =============================================================================
-@app.post("/tools/meemo.create_mom")
+@app.post("/tools/meemo_create_meeting_notes")
 async def meemo_create_mom(
     request: ToolRequest,
     agent: AgentIdentity = Depends(get_current_agent),
@@ -260,10 +260,10 @@ async def meemo_create_mom(
     # Check if organiser has a Meemo account (UC-DE-01.1 vs UC-DE-01.2)
     if organiser_email and organiser_email not in MEEMO_ACCOUNTS:
         audit_log("connectors", "tool_call_partial", ref,
-                  tool="meemo.create_mom", reason="meemo_account_not_found",
+                  tool="meemo_create_meeting_notes", reason="meemo_account_not_found",
                   organiser=organiser_email)
         return {
-            "tool": "meemo.create_mom",
+            "tool": "meemo_create_meeting_notes",
             "status": "partial_success",
             "result": {
                 "meeting_id": meeting_id,
@@ -274,9 +274,9 @@ async def meemo_create_mom(
         }
 
     audit_log("connectors", "tool_call_allowed", ref,
-              tool="meemo.create_mom", agent_id=agent.id, meeting_id=meeting_id)
+              tool="meemo_create_meeting_notes", agent_id=agent.id, meeting_id=meeting_id)
     return {
-        "tool": "meemo.create_mom",
+        "tool": "meemo_create_meeting_notes",
         "status": "executed",
         "result": {
             "id": f"mom-{uuid.uuid4().hex[:6]}",
@@ -286,7 +286,7 @@ async def meemo_create_mom(
     }
 
 
-@app.post("/tools/meemo.read_mom")
+@app.post("/tools/meemo_get_meeting_details")
 async def meemo_read_mom(
     request: ToolRequest,
     agent: AgentIdentity = Depends(get_current_agent),
@@ -304,7 +304,7 @@ async def meemo_read_mom(
     # Check draft status (UC-DE-03.3)
     if mom.get("status") == "draft":
         audit_log("connectors", "tool_call_denied", ref,
-                  tool="meemo.read_mom", reason="draft_not_shared")
+                  tool="meemo_get_meeting_details", reason="draft_not_shared")
         raise HTTPException(
             status_code=403,
             detail="MoM is still in draft status and has not been shared yet",
@@ -313,7 +313,7 @@ async def meemo_read_mom(
     # Check sensitive field request (UC-DE-03.4)
     if request.input.get("request_type") == "attendee_emails":
         audit_log("connectors", "tool_call_denied", ref,
-                  tool="meemo.read_mom", reason="sensitive_data")
+                  tool="meemo_get_meeting_details", reason="sensitive_data")
         raise HTTPException(
             status_code=403,
             detail="Email addresses are sensitive data and cannot be exposed",
@@ -330,7 +330,7 @@ async def meemo_read_mom(
             access_type = request.input.get("access_type", "user")
             if access_type != "agent":
                 audit_log("connectors", "tool_call_denied", ref,
-                          tool="meemo.read_mom", reason="not_attendee",
+                          tool="meemo_get_meeting_details", reason="not_attendee",
                           requester=requester_email)
                 raise HTTPException(
                     status_code=403,
@@ -339,14 +339,14 @@ async def meemo_read_mom(
 
         access_method = "super_user" if is_super_user and not is_attendee else "attendee"
         audit_log("connectors", "tool_call_allowed", ref,
-                  tool="meemo.read_mom", agent_id=agent.id,
+                  tool="meemo_get_meeting_details", agent_id=agent.id,
                   access_method=access_method)
     else:
         audit_log("connectors", "tool_call_allowed", ref,
-                  tool="meemo.read_mom", agent_id=agent.id)
+                  tool="meemo_get_meeting_details", agent_id=agent.id)
 
     return {
-        "tool": "meemo.read_mom",
+        "tool": "meemo_get_meeting_details",
         "status": "executed",
         "result": {
             "id": mom_id,
@@ -357,7 +357,7 @@ async def meemo_read_mom(
     }
 
 
-@app.post("/tools/gdoc.create")
+@app.post("/tools/google_docs_create_document")
 async def gdoc_create(
     request: ToolRequest,
     agent: AgentIdentity = Depends(get_current_agent),
@@ -365,11 +365,11 @@ async def gdoc_create(
     token: DelegationToken = Depends(get_delegation_token),
 ):
     ref = get_delegation_ref(token)
-    audit_log("connectors", "tool_call_allowed", ref, tool="gdoc.create", agent_id=agent.id)
+    audit_log("connectors", "tool_call_allowed", ref, tool="google_docs_create_document", agent_id=agent.id)
 
     title = request.input.get("title", "New Document")
     return {
-        "tool": "gdoc.create",
+        "tool": "google_docs_create_document",
         "status": "executed",
         "result": {
             "id": f"doc-{uuid.uuid4().hex[:6]}",
@@ -379,7 +379,7 @@ async def gdoc_create(
     }
 
 
-@app.post("/tools/gdoc.read")
+@app.post("/tools/google_docs_get_document")
 async def gdoc_read(
     request: ToolRequest,
     agent: AgentIdentity = Depends(get_current_agent),
@@ -395,9 +395,9 @@ async def gdoc_read(
         if report:
             content = report["content"] if report["filled"] else "[Report not yet filled by employee]"
             audit_log("connectors", "tool_call_allowed", ref,
-                      tool="gdoc.read", agent_id=agent.id, report_filled=report["filled"])
+                      tool="google_docs_get_document", agent_id=agent.id, report_filled=report["filled"])
             return {
-                "tool": "gdoc.read",
+                "tool": "google_docs_get_document",
                 "status": "executed",
                 "result": {
                     "report_email": report_email,
@@ -406,15 +406,15 @@ async def gdoc_read(
                 },
             }
 
-    audit_log("connectors", "tool_call_allowed", ref, tool="gdoc.read", agent_id=agent.id)
+    audit_log("connectors", "tool_call_allowed", ref, tool="google_docs_get_document", agent_id=agent.id)
     return {
-        "tool": "gdoc.read",
+        "tool": "google_docs_get_document",
         "status": "executed",
         "result": {"content": "Document content here..."},
     }
 
 
-@app.post("/tools/gdoc.share")
+@app.post("/tools/google_drive_share_file")
 async def gdoc_share(
     request: ToolRequest,
     agent: AgentIdentity = Depends(get_current_agent),
@@ -432,9 +432,9 @@ async def gdoc_share(
         matching = [m for m in MOMS.values() if m["title"] == mom_title]
         if len(matching) > 1:
             audit_log("connectors", "tool_call_approval_required", ref,
-                      tool="gdoc.share", reason="ambiguous_title", title=mom_title)
+                      tool="google_drive_share_file", reason="ambiguous_title", title=mom_title)
             return {
-                "tool": "gdoc.share",
+                "tool": "google_drive_share_file",
                 "status": "approval_required",
                 "result": {
                     "reason": f"Multiple documents match title '{mom_title}'",
@@ -452,7 +452,7 @@ async def gdoc_share(
             is_attendee = requester_email in mom.get("attendees", [])
             if is_attendee:
                 audit_log("connectors", "tool_call_denied", ref,
-                          tool="gdoc.share", reason="not_organiser",
+                          tool="google_drive_share_file", reason="not_organiser",
                           requester=requester_email)
                 raise HTTPException(
                     status_code=403,
@@ -471,10 +471,10 @@ async def gdoc_share(
 
     if blocked_recipients:
         audit_log("connectors", "tool_call_partial", ref,
-                  tool="gdoc.share", reason="external_recipients_blocked",
+                  tool="google_drive_share_file", reason="external_recipients_blocked",
                   blocked=blocked_recipients)
         return {
-            "tool": "gdoc.share",
+            "tool": "google_drive_share_file",
             "status": "partial_success",
             "result": {
                 "shared_with": internal_recipients,
@@ -484,9 +484,9 @@ async def gdoc_share(
             "warnings": [f"Blocked external recipients: {', '.join(blocked_recipients)}"],
         }
 
-    audit_log("connectors", "tool_call_allowed", ref, tool="gdoc.share", agent_id=agent.id)
+    audit_log("connectors", "tool_call_allowed", ref, tool="google_drive_share_file", agent_id=agent.id)
     return {
-        "tool": "gdoc.share",
+        "tool": "google_drive_share_file",
         "status": "executed",
         "result": {
             "shared_with": recipients or ["all attendees"],
@@ -495,7 +495,7 @@ async def gdoc_share(
     }
 
 
-@app.post("/tools/invoice.send")
+@app.post("/tools/invoice_send")
 async def invoice_send(
     request: ToolRequest,
     agent: AgentIdentity = Depends(get_current_agent),
@@ -510,9 +510,9 @@ async def invoice_send(
         raise HTTPException(status_code=404, detail=f"Invoice {invoice_id} not found")
 
     audit_log("connectors", "tool_call_allowed", ref,
-              tool="invoice.send", agent_id=agent.id, invoice_id=invoice_id)
+              tool="invoice_send", agent_id=agent.id, invoice_id=invoice_id)
     return {
-        "tool": "invoice.send",
+        "tool": "invoice_send",
         "status": "executed",
         "result": {
             "invoice_id": invoice_id,
@@ -527,7 +527,7 @@ async def invoice_send(
 # =============================================================================
 # Directory Tool — name to email resolution (always Agent OAuth)
 # =============================================================================
-@app.post("/tools/directory.lookup")
+@app.post("/tools/directory_lookup")
 async def directory_lookup(
     request: ToolRequest,
     agent: AgentIdentity = Depends(get_current_agent),
@@ -545,18 +545,18 @@ async def directory_lookup(
     entry = DIRECTORY.get(name)
     if not entry:
         audit_log("connectors", "tool_call_allowed", ref,
-                  tool="directory.lookup", agent_id=agent.id, name=name, found=False)
+                  tool="directory_lookup", agent_id=agent.id, name=name, found=False)
         return {
-            "tool": "directory.lookup",
+            "tool": "directory_lookup",
             "status": "executed",
             "result": {"found": False, "name": name, "message": f"No user found matching '{name}'"},
         }
 
     audit_log("connectors", "tool_call_allowed", ref,
-              tool="directory.lookup", agent_id=agent.id, name=name,
+              tool="directory_lookup", agent_id=agent.id, name=name,
               resolved_email=entry["email"])
     return {
-        "tool": "directory.lookup",
+        "tool": "directory_lookup",
         "status": "executed",
         "result": {
             "found": True,
