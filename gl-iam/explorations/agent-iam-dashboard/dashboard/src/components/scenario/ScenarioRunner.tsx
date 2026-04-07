@@ -68,7 +68,7 @@ export function ScenarioRunner({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           Run Scenario
-          <Badge variant="outline" className="font-mono text-[10px]">
+          <Badge variant="outline" className="font-mono text-xs">
             {meta.id}
           </Badge>
         </CardTitle>
@@ -80,7 +80,7 @@ export function ScenarioRunner({
         </div>
         <div className="flex flex-wrap gap-1">
           {meta.concepts.map((c) => (
-            <Badge key={c} variant="secondary" className="text-[10px]">
+            <Badge key={c} variant="secondary" className="text-xs">
               {c}
             </Badge>
           ))}

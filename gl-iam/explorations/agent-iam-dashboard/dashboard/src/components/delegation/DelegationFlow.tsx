@@ -189,11 +189,11 @@ function FlowCard({ node, index }: { node: FlowNode; index: number }) {
       <Card size="sm" className="border-border/50">
         <CardContent className="space-y-2">
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className={cn("text-[10px]", depthColor(node.depth))}>
+            <Badge variant="outline" className={cn("text-xs", depthColor(node.depth))}>
               d{node.depth}
             </Badge>
             {node.execOrder && (
-              <Badge variant="outline" className="text-[10px] bg-foreground/10 text-foreground border-foreground/20 font-mono">
+              <Badge variant="outline" className="text-xs bg-foreground/10 text-foreground border-foreground/20 font-mono">
                 #{node.execOrder}
               </Badge>
             )}
@@ -203,7 +203,7 @@ function FlowCard({ node, index }: { node: FlowNode; index: number }) {
           {node.scopes.length > 0 && (
             <div className="flex flex-wrap gap-1">
               {node.scopes.map((s) => (
-                <Badge key={s} variant="secondary" className="text-[10px]">
+                <Badge key={s} variant="secondary" className="text-xs">
                   {s}
                 </Badge>
               ))}
@@ -211,31 +211,31 @@ function FlowCard({ node, index }: { node: FlowNode; index: number }) {
           )}
           {node.prompt && (
             <div className="bg-muted/30 rounded px-2 py-1">
-              <span className="text-[9px] text-muted-foreground">
+              <span className="text-xs text-muted-foreground">
                 {node.depth === 2 ? "prompt" : "task"}: </span>
-              <span className="text-[9px] text-foreground italic">
+              <span className="text-xs text-foreground italic">
                 &ldquo;{node.prompt.length > 60 ? node.prompt.slice(0, 60) + "..." : node.prompt}&rdquo;
               </span>
             </div>
           )}
           {node.toolInput && Object.keys(node.toolInput).length > 0 && (
             <div className="bg-blue-500/5 rounded px-2 py-1 border border-blue-500/10">
-              <span className="text-[9px] text-blue-400">input: </span>
-              <span className="text-[9px] text-foreground">
+              <span className="text-xs text-blue-400">input: </span>
+              <span className="text-xs text-foreground">
                 {Object.entries(node.toolInput).map(([k, v]) => `${k}=${v}`).join(", ")}
               </span>
             </div>
           )}
           {node.input && Object.keys(node.input).length > 0 && (
             <div className="bg-muted/30 rounded px-2 py-1">
-              <span className="text-[9px] text-muted-foreground">output: </span>
-              <pre className="text-[8px] text-foreground mt-0.5 whitespace-pre-wrap max-h-16 overflow-auto">
+              <span className="text-xs text-muted-foreground">output: </span>
+              <pre className="text-[11px] text-foreground mt-0.5 whitespace-pre-wrap max-h-16 overflow-auto">
                 {JSON.stringify(node.input, null, 1).slice(0, 120)}{JSON.stringify(node.input, null, 1).length > 120 ? "..." : ""}
               </pre>
             </div>
           )}
           {node.worker && (
-            <span className="text-[10px] text-muted-foreground">worker: {node.worker}</span>
+            <span className="text-xs text-muted-foreground">worker: {node.worker}</span>
           )}
         </CardContent>
       </Card>
@@ -258,13 +258,13 @@ function UserCard({ result }: { result: ScenarioRunResult }) {
         <Card size="sm" className="border-emerald-500/30 bg-emerald-500/5">
           <CardContent className="space-y-2">
             <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-[10px] bg-blue-500/20 text-blue-400 border-blue-500/30">
+              <Badge variant="outline" className="text-xs bg-blue-500/20 text-blue-400 border-blue-500/30">
                 d1
               </Badge>
               <Bot className="size-4 text-emerald-400" />
               <span className="text-xs font-medium">System (CronJob)</span>
             </div>
-            <Badge variant="outline" className="text-[9px] bg-emerald-500/15 text-emerald-300 border-emerald-500/30">
+            <Badge variant="outline" className="text-xs bg-emerald-500/15 text-emerald-300 border-emerald-500/30">
               autonomous
             </Badge>
           </CardContent>
@@ -286,28 +286,28 @@ function UserCard({ result }: { result: ScenarioRunResult }) {
       <Card size="sm" className="border-blue-500/30 bg-blue-500/5">
         <CardContent className="space-y-2">
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-[10px] bg-blue-500/20 text-blue-400 border-blue-500/30">
+            <Badge variant="outline" className="text-xs bg-blue-500/20 text-blue-400 border-blue-500/30">
               d1
             </Badge>
             <User className="size-4 text-blue-400" />
             <span className="text-xs font-medium">{displayName}</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <Badge variant="outline" className={cn("text-[9px] px-1.5 py-0", ROLE_COLORS[role])}>
+            <Badge variant="outline" className={cn("text-xs px-1.5 py-0", ROLE_COLORS[role])}>
               {role}
             </Badge>
             {user.email && (
-              <span className="text-[9px] text-muted-foreground">{user.email}</span>
+              <span className="text-xs text-muted-foreground">{user.email}</span>
             )}
           </div>
           {abac && (
             <div className="space-y-1">
-              <div className="flex items-center gap-1 text-[9px] text-muted-foreground">
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
                 <Shield className="size-2.5" />
                 <span>{abac.attenuated_scopes.length} scopes delegated</span>
               </div>
               {user.role === "admin" && (
-                <div className="flex items-center gap-1 text-[9px] text-muted-foreground">
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
                   <Building2 className="size-2.5" />
                   <span>Multi-org access</span>
                 </div>
@@ -339,7 +339,7 @@ function BlockedToolCard({ tool, index, userRole }: { tool: BlockedTool; index: 
             <XCircle className="size-3.5 text-red-400" />
             <span className="text-xs font-medium text-red-400">{friendlyName}</span>
           </div>
-          <p className="mt-1 text-[10px] text-muted-foreground">
+          <p className="mt-1 text-xs text-muted-foreground">
             Not available for <strong>{userRole ?? "this"}</strong> role
           </p>
         </CardContent>
@@ -363,23 +363,23 @@ function PolicyRejectedCard({ entry, index }: { entry: ExecutionLogEntry; index:
       <Card size="sm" className="border-red-500/30 bg-red-500/5">
         <CardContent className="space-y-1.5">
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-[10px] bg-red-500/20 text-red-400 border-red-500/30">
+            <Badge variant="outline" className="text-xs bg-red-500/20 text-red-400 border-red-500/30">
               d3
             </Badge>
             <Shield className="size-3 text-red-400" />
             <span className="text-xs font-medium text-red-400">{toolName}</span>
           </div>
-          <div className="flex items-center gap-1 text-[9px] text-amber-400">
+          <div className="flex items-center gap-1 text-xs text-amber-400">
             <Bot className="size-2.5" />
             <span>Rejected by agent worker policy</span>
           </div>
           {entry.error && (
-            <p className="text-[9px] text-red-400/80 leading-tight">
+            <p className="text-xs text-red-400/80 leading-tight">
               {entry.error.length > 120 ? entry.error.slice(0, 120) + "..." : entry.error}
             </p>
           )}
           {entry.worker && (
-            <span className="text-[9px] text-muted-foreground">worker: {entry.worker}</span>
+            <span className="text-xs text-muted-foreground">worker: {entry.worker}</span>
           )}
         </CardContent>
       </Card>
@@ -405,19 +405,19 @@ export function DelegationFlow({ result }: DelegationFlowProps) {
           <h3 className="text-sm font-semibold">Delegation Flow</h3>
           <div className="grid grid-cols-[1fr_auto_1fr] items-start gap-2">
             <div className="space-y-2">
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">User</div>
+              <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">User</div>
               <UserCard result={result} />
             </div>
             <Arrow />
             <div className="space-y-2">
-              <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Result</div>
+              <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Result</div>
               <Card size="sm" className="border-red-500/30 bg-red-500/5">
                 <CardContent>
                   <div className="flex items-center gap-2">
                     <XCircle className="size-3.5 text-red-400" />
                     <span className="text-xs font-medium text-red-400">Rejected</span>
                   </div>
-                  <p className="mt-1 text-[10px] text-muted-foreground">
+                  <p className="mt-1 text-xs text-muted-foreground">
                     {result.reason ?? "Delegation denied"}
                   </p>
                 </CardContent>
@@ -447,23 +447,23 @@ export function DelegationFlow({ result }: DelegationFlowProps) {
         <h3 className="text-sm font-semibold">Delegation Flow</h3>
         <div className="grid grid-cols-[1fr_auto_1fr_auto_1fr] items-start gap-2">
           <div className="space-y-2">
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">User</div>
+            <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">User</div>
             <UserCard result={result} />
           </div>
           <Arrow />
           <div className="space-y-2">
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Orchestrator</div>
+            <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Orchestrator</div>
             {(groups[2] ?? []).map((n, i) => (
               <FlowCard key={`d2-${i}`} node={n} index={i} />
             ))}
           </div>
           <Arrow />
           <div className="space-y-2">
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Blocked at Orchestrator</div>
+            <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Blocked at Orchestrator</div>
             {blockedTools.map((bt, i) => (
               <BlockedToolCard key={`blocked-${i}`} tool={bt} index={i} userRole={result.user?.role} />
             ))}
-            <p className="text-[9px] text-muted-foreground italic">
+            <p className="text-xs text-muted-foreground italic">
               No workers dispatched — required tools not available for this role.
             </p>
           </div>
@@ -478,7 +478,7 @@ export function DelegationFlow({ result }: DelegationFlowProps) {
       <div className="grid grid-cols-[1fr_auto_1fr_auto_1fr_auto_1fr] items-start gap-2">
         {/* d1 - User */}
         <div className="space-y-2">
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             {depthLabel(1)}
           </div>
           <UserCard result={result} />
@@ -488,7 +488,7 @@ export function DelegationFlow({ result }: DelegationFlowProps) {
 
         {/* d2 - Orchestrator */}
         <div className="space-y-2">
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             {depthLabel(2)}
           </div>
           {(groups[2] ?? []).map((n, i) => (
@@ -500,7 +500,7 @@ export function DelegationFlow({ result }: DelegationFlowProps) {
 
         {/* d3 - Workers */}
         <div className="space-y-2">
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             {depthLabel(3)}
           </div>
           {(groups[3] ?? []).map((n, i) => (
@@ -512,7 +512,7 @@ export function DelegationFlow({ result }: DelegationFlowProps) {
 
         {/* d4 - Tools */}
         <div className="space-y-2">
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             {depthLabel(4)}
           </div>
           {(groups[4] ?? []).map((n, i) => (

@@ -53,7 +53,7 @@ export function ToolResultCard({ result }: ToolResultCardProps) {
         <div className="flex items-center gap-2">
           <Wrench className="size-3.5 text-muted-foreground" />
           <span className="text-xs font-medium">{result.tool}</span>
-          <Badge variant="outline" className={cn("ml-auto text-[10px]", statusColor(result.status))}>
+          <Badge variant="outline" className={cn("ml-auto text-xs", statusColor(result.status))}>
             <StatusIcon status={result.status} />
             {result.status === "denied" && isPolicyRejection ? "policy rejected" : result.status}
           </Badge>
@@ -61,7 +61,7 @@ export function ToolResultCard({ result }: ToolResultCardProps) {
 
         {/* Show enforcement layer */}
         {result.status === "denied" && isPolicyRejection && (
-          <div className="flex items-center gap-1.5 text-[10px] text-amber-400">
+          <div className="flex items-center gap-1.5 text-xs text-amber-400">
             <Bot className="size-3" />
             <Shield className="size-3" />
             <span>Rejected by <strong>Agent Worker</strong> (policy guard rail) — GL Connector was never called</span>
@@ -69,17 +69,17 @@ export function ToolResultCard({ result }: ToolResultCardProps) {
         )}
 
         {result.result && Object.keys(result.result).length > 0 && (
-          <pre className="max-h-24 overflow-auto rounded bg-muted/50 p-2 text-[10px]">
+          <pre className="max-h-24 overflow-auto rounded bg-muted/50 p-2 text-xs">
             {JSON.stringify(result.result, null, 2)}
           </pre>
         )}
         {result.error && (
-          <p className="text-[10px] text-red-400">{result.error}</p>
+          <p className="text-xs text-red-400">{result.error}</p>
         )}
         {result.warnings && result.warnings.length > 0 && (
           <div className="space-y-0.5">
             {result.warnings.map((w, i) => (
-              <p key={i} className="text-[10px] text-amber-400">{w}</p>
+              <p key={i} className="text-xs text-amber-400">{w}</p>
             ))}
           </div>
         )}

@@ -56,13 +56,13 @@ function ScenarioRow({
         isSelected && "bg-muted ring-1 ring-blue-500/40"
       )}
     >
-      <Badge variant="outline" className="shrink-0 font-mono text-[10px]">
+      <Badge variant="outline" className="shrink-0 font-mono text-xs">
         {scenario.id}
       </Badge>
       <span className="flex-1 truncate">{scenario.title}</span>
       <Badge
         variant="outline"
-        className={cn("shrink-0 text-[10px]", outcomeBadgeClass(scenario.expected_outcome))}
+        className={cn("shrink-0 text-xs", outcomeBadgeClass(scenario.expected_outcome))}
       >
         {scenario.expected_outcome}
       </Badge>

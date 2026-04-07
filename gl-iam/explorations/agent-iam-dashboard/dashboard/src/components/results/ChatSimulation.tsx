@@ -95,7 +95,7 @@ export function ChatSimulation({ result }: ChatSimulationProps) {
         <MessageSquare className="size-4" />
         Chat Simulation
         {outcome && (
-          <Badge variant="outline" className={`text-[10px] ${outcomeColor} border-current/30`}>
+          <Badge variant="outline" className={`text-xs ${outcomeColor} border-current/30`}>
             {outcome}
           </Badge>
         )}
@@ -114,7 +114,7 @@ export function ChatSimulation({ result }: ChatSimulationProps) {
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-xs font-medium text-foreground">{userName}</span>
                   {userRole && (
-                    <Badge variant="outline" className="text-[9px] px-1 py-0 text-muted-foreground">
+                    <Badge variant="outline" className="text-xs px-1 py-0 text-muted-foreground">
                       {userRole}
                     </Badge>
                   )}
@@ -137,7 +137,7 @@ export function ChatSimulation({ result }: ChatSimulationProps) {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-xs font-medium text-foreground">System (CronJob)</span>
-                  <Badge variant="outline" className="text-[9px] px-1 py-0 text-emerald-400 border-emerald-500/30">
+                  <Badge variant="outline" className="text-xs px-1 py-0 text-emerald-400 border-emerald-500/30">
                     autonomous
                   </Badge>
                 </div>
@@ -158,7 +158,7 @@ export function ChatSimulation({ result }: ChatSimulationProps) {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-xs font-medium text-foreground">{agentName}</span>
-                <Badge variant="outline" className="text-[9px] px-1 py-0 text-amber-400 border-amber-500/30">
+                <Badge variant="outline" className="text-xs px-1 py-0 text-amber-400 border-amber-500/30">
                   agent
                 </Badge>
               </div>

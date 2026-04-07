@@ -74,14 +74,14 @@ function CredentialBadge({ toolName, scope, agentName, role, accessType }: {
 
   if (source === "user" || source === "user_if_available") {
     return (
-      <Badge variant="outline" className="text-[9px] px-1 py-0 bg-blue-500/15 text-blue-300 border-blue-500/30 cursor-help" title={reason}>
+      <Badge variant="outline" className="text-xs px-1 py-0 bg-blue-500/15 text-blue-300 border-blue-500/30 cursor-help" title={reason}>
         <User className="size-2 mr-0.5" />
         User OAuth
       </Badge>
     );
   }
   return (
-    <Badge variant="outline" className="text-[9px] px-1 py-0 bg-amber-500/15 text-amber-300 border-amber-500/30 cursor-help" title={reason}>
+    <Badge variant="outline" className="text-xs px-1 py-0 bg-amber-500/15 text-amber-300 border-amber-500/30 cursor-help" title={reason}>
       <Bot className="size-2 mr-0.5" />
       Agent OAuth
     </Badge>
@@ -133,7 +133,7 @@ export function ScopeAttenuationTable({ result }: ScopeAttenuationTableProps) {
                   <th className="py-1.5 pr-4 text-left font-medium">Scope</th>
                   <th className="px-2 py-1.5 text-center font-medium">d1 User</th>
                   <th className="px-2 py-1.5 text-center font-medium text-amber-400/70">Agent Ceiling</th>
-                  <th className="px-2 py-1.5 text-center font-medium">d2 Agent<br/><span className="text-[8px] font-normal text-muted-foreground">(intersection)</span></th>
+                  <th className="px-2 py-1.5 text-center font-medium">d2 Agent<br/><span className="text-[11px] font-normal text-muted-foreground">(intersection)</span></th>
                   <th className="px-2 py-1.5 text-center font-medium">d3 Worker</th>
                   <th className="px-2 py-1.5 text-center font-medium">d4 Tool</th>
                   <th className="px-2 py-1.5 text-center font-medium">Credential</th>
@@ -181,7 +181,7 @@ export function ScopeAttenuationTable({ result }: ScopeAttenuationTableProps) {
                 })}
               </tbody>
             </table>
-            <p className="text-[10px] text-muted-foreground mt-2">
+            <p className="text-xs text-muted-foreground mt-2">
               * User OAuth if available, falls back to Agent service token
             </p>
           </div>

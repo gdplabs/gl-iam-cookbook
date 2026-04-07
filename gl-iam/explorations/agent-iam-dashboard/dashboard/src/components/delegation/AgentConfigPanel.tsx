@@ -38,7 +38,7 @@ export function AgentConfigPanel({ agentName }: AgentConfigPanelProps) {
       >
         <Settings className="size-4" />
         Agent Static Config
-        <Badge variant="outline" className="text-[10px] ml-1 bg-amber-500/15 text-amber-300 border-amber-500/30">
+        <Badge variant="outline" className="text-xs ml-1 bg-amber-500/15 text-amber-300 border-amber-500/30">
           {config.name}
         </Badge>
         {expanded ? <ChevronUp className="size-3.5 ml-auto" /> : <ChevronDown className="size-3.5 ml-auto" />}
@@ -48,14 +48,14 @@ export function AgentConfigPanel({ agentName }: AgentConfigPanelProps) {
         <Card size="sm">
           <CardContent>
             {/* Layer legend */}
-            <div className="flex items-center gap-3 mb-4 text-[9px]">
+            <div className="flex items-center gap-3 mb-4 text-xs">
               <Layers className="size-3 text-muted-foreground" />
               <span className="text-muted-foreground">Responsibility:</span>
-              <Badge variant="outline" className={`text-[8px] px-1.5 py-0 ${LAYER_COLORS.gliam}`}>GL-IAM SDK</Badge>
+              <Badge variant="outline" className={`text-[11px] px-1.5 py-0 ${LAYER_COLORS.gliam}`}>GL-IAM SDK</Badge>
               <span className="text-muted-foreground/50">provides token</span>
-              <Badge variant="outline" className={`text-[8px] px-1.5 py-0 ${LAYER_COLORS.aip}`}>AIP Platform</Badge>
+              <Badge variant="outline" className={`text-[11px] px-1.5 py-0 ${LAYER_COLORS.aip}`}>AIP Platform</Badge>
               <span className="text-muted-foreground/50">provides hooks</span>
-              <Badge variant="outline" className={`text-[8px] px-1.5 py-0 ${LAYER_COLORS.de}`}>DE / Agent Code</Badge>
+              <Badge variant="outline" className={`text-[11px] px-1.5 py-0 ${LAYER_COLORS.de}`}>DE / Agent Code</Badge>
               <span className="text-muted-foreground/50">implements logic</span>
             </div>
 
@@ -70,7 +70,7 @@ export function AgentConfigPanel({ agentName }: AgentConfigPanelProps) {
               >
                 <div className="flex flex-wrap gap-1.5">
                   {config.allowedScopes.map((scope) => (
-                    <Badge key={scope} variant="outline" className="text-[10px] font-mono">
+                    <Badge key={scope} variant="outline" className="text-xs font-mono">
                       {scope}
                     </Badge>
                   ))}
@@ -91,13 +91,13 @@ export function AgentConfigPanel({ agentName }: AgentConfigPanelProps) {
                       <div className="flex items-center gap-2 mb-1.5">
                         <Bot className="size-3 text-cyan-400" />
                         <span className="text-xs font-medium">{worker.name}</span>
-                        <Badge variant="outline" className="text-[9px] bg-cyan-500/15 text-cyan-300 border-cyan-500/30">
+                        <Badge variant="outline" className="text-xs bg-cyan-500/15 text-cyan-300 border-cyan-500/30">
                           worker
                         </Badge>
                       </div>
                       <div className="flex flex-wrap gap-1 mb-1.5">
                         {worker.scopes.map((s) => (
-                          <Badge key={s} variant="outline" className="text-[9px] font-mono text-muted-foreground">
+                          <Badge key={s} variant="outline" className="text-xs font-mono text-muted-foreground">
                             {s}
                           </Badge>
                         ))}
@@ -105,12 +105,12 @@ export function AgentConfigPanel({ agentName }: AgentConfigPanelProps) {
                       {worker.resourcePolicy && (
                         <div className="border-t border-border/30 pt-1.5 mt-1.5">
                           <div className="flex items-center gap-1 mb-1">
-                            <Badge variant="outline" className={`text-[8px] px-1 py-0 ${LAYER_COLORS.de}`}>DE implements</Badge>
-                            <span className="text-[9px] text-muted-foreground italic">{worker.resourcePolicy.description}</span>
+                            <Badge variant="outline" className={`text-[11px] px-1 py-0 ${LAYER_COLORS.de}`}>DE implements</Badge>
+                            <span className="text-xs text-muted-foreground italic">{worker.resourcePolicy.description}</span>
                           </div>
                           <div className="space-y-0.5">
                             {worker.resourcePolicy.rules.map((rule, i) => (
-                              <div key={i} className="flex items-start gap-1.5 text-[10px]">
+                              <div key={i} className="flex items-start gap-1.5 text-xs">
                                 <span className={`shrink-0 mt-0.5 ${rule.action === "ALLOW" ? "text-green-400" : "text-red-400"}`}>
                                   {rule.action === "ALLOW" ? "✓" : "✗"}
                                 </span>
@@ -137,26 +137,26 @@ export function AgentConfigPanel({ agentName }: AgentConfigPanelProps) {
                 description="GL-IAM embeds these values in the DelegationToken (per-user, dynamic). DE reads them and enforces in guard rails."
               >
                 <div className="flex items-center gap-2 mb-2">
-                  <Badge variant="outline" className={`text-[8px] px-1 py-0 ${LAYER_COLORS.gliam}`}>GL-IAM</Badge>
-                  <span className="text-[9px] text-muted-foreground">fills values at delegation time (dynamic per user + role)</span>
+                  <Badge variant="outline" className={`text-[11px] px-1 py-0 ${LAYER_COLORS.gliam}`}>GL-IAM</Badge>
+                  <span className="text-xs text-muted-foreground">fills values at delegation time (dynamic per user + role)</span>
                 </div>
                 <div className="flex items-center gap-2 mb-3">
-                  <Badge variant="outline" className={`text-[8px] px-1 py-0 ${LAYER_COLORS.de}`}>DE</Badge>
-                  <span className="text-[9px] text-muted-foreground">reads from token and enforces in before_tool_call()</span>
+                  <Badge variant="outline" className={`text-[11px] px-1 py-0 ${LAYER_COLORS.de}`}>DE</Badge>
+                  <span className="text-xs text-muted-foreground">reads from token and enforces in before_tool_call()</span>
                 </div>
-                <p className="text-[10px] text-muted-foreground italic mb-2">
+                <p className="text-xs text-muted-foreground italic mb-2">
                   {config.resourceConstraints.description}
                 </p>
                 <div className="space-y-2">
                   {Object.entries(config.resourceConstraints.perRole).map(([role, constraints]) => (
                     <div key={role} className="bg-muted/20 rounded-lg p-2.5">
-                      <Badge variant="outline" className={`text-[10px] mb-1.5 ${ROLE_COLORS[role] ?? ""}`}>
+                      <Badge variant="outline" className={`text-xs mb-1.5 ${ROLE_COLORS[role] ?? ""}`}>
                         {role}
                       </Badge>
                       <div className="space-y-1">
                         {Object.entries(constraints).map(([key, value]) => (
-                          <div key={key} className="text-[10px]">
-                            <code className="text-foreground bg-muted px-1 py-0.5 rounded text-[9px]">{key}</code>
+                          <div key={key} className="text-xs">
+                            <code className="text-foreground bg-muted px-1 py-0.5 rounded text-xs">{key}</code>
                             <span className="text-muted-foreground ml-1.5">{value}</span>
                           </div>
                         ))}
@@ -187,11 +187,11 @@ function LayeredSection({ layer, layerLabel, icon, title, description, children 
         <h4 className="text-xs font-medium flex items-center gap-1.5 text-muted-foreground">
           {icon} {title}
         </h4>
-        <Badge variant="outline" className={`text-[8px] px-1.5 py-0 ml-auto ${LAYER_COLORS[layer]}`}>
+        <Badge variant="outline" className={`text-[11px] px-1.5 py-0 ml-auto ${LAYER_COLORS[layer]}`}>
           {layerLabel}
         </Badge>
       </div>
-      <p className="text-[9px] text-muted-foreground italic mb-2">{description}</p>
+      <p className="text-xs text-muted-foreground italic mb-2">{description}</p>
       {children}
     </div>
   );

@@ -124,10 +124,10 @@ export function ScenarioBuilder({ phase, onResult, onError }: ScenarioBuilderPro
           </select>
           {selectedAgent && (
             <div className="flex items-center gap-2 px-0.5">
-              <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-amber-500/15 text-amber-300 border-amber-500/30">
+              <Badge variant="outline" className="text-xs px-1.5 py-0 bg-amber-500/15 text-amber-300 border-amber-500/30">
                 {selectedAgent.type}
               </Badge>
-              <span className="text-[10px] text-muted-foreground">
+              <span className="text-xs text-muted-foreground">
                 {selectedAgent.allowed_scopes.length} scopes
               </span>
             </div>
@@ -167,17 +167,17 @@ export function ScenarioBuilder({ phase, onResult, onError }: ScenarioBuilderPro
               </select>
               {selectedUser && (
                 <div className="flex items-center gap-2 px-0.5 flex-wrap">
-                  <Badge variant="outline" className={cn("text-[9px] px-1.5 py-0", ROLE_COLORS[selectedUser.role])}>
+                  <Badge variant="outline" className={cn("text-xs px-1.5 py-0", ROLE_COLORS[selectedUser.role])}>
                     {selectedUser.role}
                   </Badge>
-                  <Badge variant="outline" className={`text-[9px] px-1.5 py-0 ${
+                  <Badge variant="outline" className={`text-xs px-1.5 py-0 ${
                     selectedUser.tenant === "NONE" ? "bg-gray-500/15 text-gray-300 border-gray-500/30"
                     : selectedUser.role === "admin" ? "bg-purple-500/15 text-purple-300 border-purple-500/30"
                     : "bg-cyan-500/15 text-cyan-300 border-cyan-500/30"
                   }`}>
                     {selectedUser.tenant === "NONE" ? "No Org" : selectedUser.role === "admin" ? "Cross-Org" : `Org: ${selectedUser.tenant}`}
                   </Badge>
-                  <span className="text-[10px] text-muted-foreground">
+                  <span className="text-xs text-muted-foreground">
                     {selectedUser.scopes.length} scopes
                   </span>
                 </div>
@@ -185,7 +185,7 @@ export function ScenarioBuilder({ phase, onResult, onError }: ScenarioBuilderPro
             </>
           )}
           {isAutonomous && (
-            <p className="text-[9px] text-muted-foreground italic px-0.5">
+            <p className="text-xs text-muted-foreground italic px-0.5">
               Autonomous agents use their own identity. Delegation token is still created — principal is the scheduler service, not a user.
             </p>
           )}
@@ -210,7 +210,7 @@ export function ScenarioBuilder({ phase, onResult, onError }: ScenarioBuilderPro
             ))}
           </select>
           {selectedAction && (
-            <p className="text-[10px] text-muted-foreground italic px-0.5">
+            <p className="text-xs text-muted-foreground italic px-0.5">
               &ldquo;{selectedAction.message}&rdquo;
             </p>
           )}

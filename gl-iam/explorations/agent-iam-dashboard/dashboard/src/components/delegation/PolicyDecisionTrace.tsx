@@ -214,8 +214,8 @@ function StepRow({ step, isLast }: { step: DecisionStep; isLast: boolean }) {
       {/* Content */}
       <div className="pb-3 min-w-0 flex-1">
         <div className="flex items-center gap-2 mb-0.5">
-          <span className="text-[10px] font-semibold text-foreground">{step.label}</span>
-          <Badge variant="outline" className={`text-[8px] px-1 py-0 ${
+          <span className="text-xs font-semibold text-foreground">{step.label}</span>
+          <Badge variant="outline" className={`text-[11px] px-1 py-0 ${
             step.passed
               ? "bg-green-500/10 text-green-400 border-green-500/30"
               : "bg-red-500/10 text-red-400 border-red-500/30"
@@ -223,10 +223,10 @@ function StepRow({ step, isLast }: { step: DecisionStep; isLast: boolean }) {
             {step.passed ? "PASS" : "FAIL"}
           </Badge>
         </div>
-        <p className="text-[10px] text-muted-foreground">{step.check}</p>
-        <p className="text-[10px] text-foreground mt-0.5">{step.value}</p>
+        <p className="text-xs text-muted-foreground">{step.check}</p>
+        <p className="text-xs text-foreground mt-0.5">{step.value}</p>
         {step.detail && (
-          <p className="text-[9px] text-muted-foreground mt-0.5 italic leading-tight">
+          <p className="text-xs text-muted-foreground mt-0.5 italic leading-tight">
             {step.detail.length > 200 ? step.detail.slice(0, 200) + "..." : step.detail}
           </p>
         )}
@@ -247,7 +247,7 @@ export function PolicyDecisionTrace({ result }: PolicyDecisionTraceProps) {
       <h3 className="text-sm font-semibold flex items-center gap-2">
         <Shield className="size-4" />
         Policy Decision Trace
-        <Badge variant="outline" className={`text-[10px] ${
+        <Badge variant="outline" className={`text-xs ${
           allPassed
             ? "bg-green-500/10 text-green-400 border-green-500/30"
             : "bg-red-500/10 text-red-400 border-red-500/30"
@@ -259,7 +259,7 @@ export function PolicyDecisionTrace({ result }: PolicyDecisionTraceProps) {
       </h3>
       <Card size="sm">
         <CardContent>
-          <p className="text-[10px] text-muted-foreground mb-3">
+          <p className="text-xs text-muted-foreground mb-3">
             Step-by-step deterministic policy evaluation. Each decision is pre-defined — not decided by the LLM.
           </p>
           <div>

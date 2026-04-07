@@ -26,7 +26,7 @@ function ClaimRow({ k, v }: { k: string; v: unknown }) {
     );
   } else if (typeof v === "object" && v !== null) {
     display = (
-      <pre className="max-h-32 overflow-auto rounded bg-muted/50 p-1.5 text-[10px]">
+      <pre className="max-h-32 overflow-auto rounded bg-muted/50 p-1.5 text-xs">
         {JSON.stringify(v, null, 2)}
       </pre>
     );
@@ -74,7 +74,7 @@ export function TokenInspector({ token, label }: TokenInspectorProps) {
         <CardTitle className="flex items-center gap-2 text-sm">
           <Key className="size-3.5" />
           {label}
-          <Badge variant="secondary" className="text-[10px]">
+          <Badge variant="secondary" className="text-xs">
             JWT
           </Badge>
         </CardTitle>
@@ -86,10 +86,10 @@ export function TokenInspector({ token, label }: TokenInspectorProps) {
           ))}
         </div>
         <details className="mt-3">
-          <summary className="cursor-pointer text-[10px] text-muted-foreground hover:text-foreground">
+          <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground">
             Raw token
           </summary>
-          <pre className="mt-1 max-h-20 overflow-auto break-all rounded bg-muted/50 p-2 text-[10px]">
+          <pre className="mt-1 max-h-20 overflow-auto break-all rounded bg-muted/50 p-2 text-xs">
             {token}
           </pre>
         </details>

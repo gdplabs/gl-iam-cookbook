@@ -22,7 +22,7 @@ function statusBadge(status: string) {
           ? "bg-red-500/15 text-red-400 border-red-500/30"
           : "bg-blue-500/15 text-blue-400 border-blue-500/30";
   return (
-    <Badge variant="outline" className={cn("text-[10px]", cls)}>
+    <Badge variant="outline" className={cn("text-xs", cls)}>
       {status}
     </Badge>
   );
@@ -32,10 +32,10 @@ function ScopeList({ label, scopes, color }: { label: string; scopes: string[]; 
   if (scopes.length === 0) return null;
   return (
     <div className="space-y-1">
-      <span className="text-[10px] font-medium text-muted-foreground">{label}</span>
+      <span className="text-xs font-medium text-muted-foreground">{label}</span>
       <div className="flex flex-wrap gap-1">
         {scopes.map((s) => (
-          <Badge key={s} variant="outline" className={cn("text-[10px]", color)}>
+          <Badge key={s} variant="outline" className={cn("text-xs", color)}>
             {s}
           </Badge>
         ))}
@@ -58,7 +58,7 @@ export function ExecutionLog({ executionLog }: ExecutionLogProps) {
                 <span className="text-xs font-medium">{entry.step}</span>
                 {statusBadge(entry.status)}
                 {entry.agent_id && (
-                  <span className="text-[10px] text-muted-foreground">
+                  <span className="text-xs text-muted-foreground">
                     {entry.agent_id}
                   </span>
                 )}
@@ -83,12 +83,12 @@ export function ExecutionLog({ executionLog }: ExecutionLogProps) {
                 />
                 {entry.planned_tools && entry.planned_tools.length > 0 && (
                   <div className="space-y-1">
-                    <span className="text-[10px] font-medium text-muted-foreground">
+                    <span className="text-xs font-medium text-muted-foreground">
                       Planned tools
                     </span>
                     <div className="flex flex-wrap gap-1">
                       {entry.planned_tools.map((t) => (
-                        <Badge key={t} variant="secondary" className="text-[10px]">
+                        <Badge key={t} variant="secondary" className="text-xs">
                           {t}
                         </Badge>
                       ))}
@@ -97,7 +97,7 @@ export function ExecutionLog({ executionLog }: ExecutionLogProps) {
                 )}
                 {entry.blocked_tools && entry.blocked_tools.length > 0 && (
                   <div className="space-y-1">
-                    <span className="text-[10px] font-medium text-muted-foreground">
+                    <span className="text-xs font-medium text-muted-foreground">
                       Blocked tools
                     </span>
                     <div className="flex flex-wrap gap-1">
@@ -105,7 +105,7 @@ export function ExecutionLog({ executionLog }: ExecutionLogProps) {
                         <Badge
                           key={bt.tool}
                           variant="outline"
-                          className="text-[10px] text-red-400 border-red-500/30"
+                          className="text-xs text-red-400 border-red-500/30"
                         >
                           {bt.tool} (missing: {bt.missing_scope})
                         </Badge>
@@ -114,7 +114,7 @@ export function ExecutionLog({ executionLog }: ExecutionLogProps) {
                   </div>
                 )}
                 {entry.error && (
-                  <p className="text-[10px] text-red-400">{entry.error}</p>
+                  <p className="text-xs text-red-400">{entry.error}</p>
                 )}
               </div>
             </AccordionContent>

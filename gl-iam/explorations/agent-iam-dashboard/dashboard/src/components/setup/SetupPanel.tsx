@@ -42,7 +42,7 @@ function AgentRow({ agentConfig }: { agentConfig: AgentConfig }) {
       <DialogTrigger className="w-full flex items-center justify-between text-xs bg-muted/30 rounded px-2 py-1.5 hover:bg-muted/50 transition-colors cursor-pointer">
         <span className="text-foreground font-medium truncate">{agentConfig.name}</span>
         <div className="flex items-center gap-1.5 shrink-0">
-          <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${AGENT_TYPE_COLORS[agentConfig.type]}`}>
+          <Badge variant="outline" className={`text-xs px-1.5 py-0 ${AGENT_TYPE_COLORS[agentConfig.type]}`}>
             {agentConfig.type}
           </Badge>
           <Info className="size-3 text-muted-foreground" />
@@ -88,7 +88,7 @@ function AgentRow({ agentConfig }: { agentConfig: AgentConfig }) {
                     <div className="flex items-center gap-2 mb-2">
                       <Bot className="size-3.5 text-cyan-400" />
                       <span className="text-sm font-medium">{worker.name}</span>
-                      <Badge variant="outline" className="text-[10px] bg-cyan-500/15 text-cyan-300 border-cyan-500/30">
+                      <Badge variant="outline" className="text-xs bg-cyan-500/15 text-cyan-300 border-cyan-500/30">
                         worker
                       </Badge>
                     </div>
@@ -229,7 +229,7 @@ export function SetupPanel({ phase, setup, reset, setupResult, allHealthy }: Set
                           >
                             <span className="text-foreground truncate">{label}</span>
                             <div className="flex items-center gap-1.5 shrink-0">
-                              <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${ROLE_COLORS[role]}`}>
+                              <Badge variant="outline" className={`text-xs px-1.5 py-0 ${ROLE_COLORS[role]}`}>
                                 {role}
                               </Badge>
                               {isExpanded ? <ChevronUp className="size-2.5" /> : <ChevronDown className="size-2.5" />}
@@ -239,16 +239,16 @@ export function SetupPanel({ phase, setup, reset, setupResult, allHealthy }: Set
                             <div className="px-2 pb-2 pt-1 border-t border-border/50">
                               <div className="flex items-center gap-1 mb-1.5 text-muted-foreground">
                                 <Shield className="size-2.5" />
-                                <span className="text-[10px]">Scopes ({scopes.length})</span>
+                                <span className="text-xs">Scopes ({scopes.length})</span>
                               </div>
                               <div className="flex flex-wrap gap-1">
                                 {scopes.map((scope) => (
-                                  <Badge key={scope} variant="outline" className="text-[9px] px-1 py-0 bg-muted/50 text-muted-foreground border-border">
+                                  <Badge key={scope} variant="outline" className="text-xs px-1 py-0 bg-muted/50 text-muted-foreground border-border">
                                     {scope}
                                   </Badge>
                                 ))}
                               </div>
-                              <p className="text-[10px] text-muted-foreground mt-1.5 italic">
+                              <p className="text-xs text-muted-foreground mt-1.5 italic">
                                 {ROLE_SCOPES[role]?.description}
                               </p>
                             </div>

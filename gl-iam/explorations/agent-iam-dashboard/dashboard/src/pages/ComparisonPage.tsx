@@ -68,10 +68,10 @@ export function ComparisonPage({ results }: ComparisonPageProps) {
                   <CardTitle className="text-sm space-y-1">
                     <div className="flex items-center gap-2">
                       <span className="font-semibold">{userName}</span>
-                      <Badge variant="outline" className="text-[9px] px-1 py-0">
+                      <Badge variant="outline" className="text-xs px-1 py-0">
                         {userRole}
                       </Badge>
-                      <Badge variant="outline" className={cn("text-[10px] ml-auto", outcomeBadgeClass(outcome))}>
+                      <Badge variant="outline" className={cn("text-xs ml-auto", outcomeBadgeClass(outcome))}>
                         {outcome}
                       </Badge>
                     </div>
@@ -83,7 +83,7 @@ export function ComparisonPage({ results }: ComparisonPageProps) {
                 <CardContent className="space-y-3">
                   {/* ABAC summary */}
                   {result.abac && (
-                    <div className="text-[10px] space-y-1">
+                    <div className="text-xs space-y-1">
                       <div className="flex items-center gap-2">
                         <span className="text-muted-foreground">Scopes:</span>
                         <span>{result.abac.attenuated_scopes.length} delegated</span>
@@ -97,7 +97,7 @@ export function ComparisonPage({ results }: ComparisonPageProps) {
 
                   {/* Rejection reason */}
                   {result.reason && (
-                    <p className="text-[10px] text-red-400 bg-red-500/10 rounded px-2 py-1">
+                    <p className="text-xs text-red-400 bg-red-500/10 rounded px-2 py-1">
                       {result.reason.length > 100 ? result.reason.slice(0, 100) + "..." : result.reason}
                     </p>
                   )}
@@ -105,9 +105,9 @@ export function ComparisonPage({ results }: ComparisonPageProps) {
                   {/* Tool results summary */}
                   {result.aip_response && result.aip_response.tool_results.length > 0 && (
                     <div className="space-y-1">
-                      <span className="text-[10px] font-medium text-muted-foreground">Tools</span>
+                      <span className="text-xs font-medium text-muted-foreground">Tools</span>
                       {result.aip_response.tool_results.map((tr, i) => (
-                        <div key={i} className="flex items-center gap-2 text-[10px]">
+                        <div key={i} className="flex items-center gap-2 text-xs">
                           <span className={cn(
                             "size-1.5 rounded-full shrink-0",
                             tr.status === "executed" ? "bg-green-400"
@@ -124,9 +124,9 @@ export function ComparisonPage({ results }: ComparisonPageProps) {
                   {/* Blocked tools */}
                   {result.aip_response && (result.aip_response.blocked_tools ?? []).length > 0 && (
                     <div className="space-y-1">
-                      <span className="text-[10px] font-medium text-muted-foreground">Blocked</span>
+                      <span className="text-xs font-medium text-muted-foreground">Blocked</span>
                       {(result.aip_response.blocked_tools ?? []).map((bt, i) => (
-                        <div key={i} className="flex items-center gap-2 text-[10px] text-red-400">
+                        <div key={i} className="flex items-center gap-2 text-xs text-red-400">
                           <span className="size-1.5 rounded-full bg-red-400 shrink-0" />
                           <span className="truncate">{bt.tool}</span>
                           <span className="text-muted-foreground ml-auto shrink-0">not available</span>

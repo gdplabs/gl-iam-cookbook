@@ -223,7 +223,7 @@ export function EnforcementMatrix({ result }: EnforcementMatrixProps) {
       >
         <Code2 className="size-4" />
         Enforcement Logic
-        <Badge variant="outline" className="text-[10px] ml-1">
+        <Badge variant="outline" className="text-xs ml-1">
           {snippet.title}
         </Badge>
         {expanded ? <ChevronUp className="size-3.5 ml-auto" /> : <ChevronDown className="size-3.5 ml-auto" />}
@@ -232,16 +232,16 @@ export function EnforcementMatrix({ result }: EnforcementMatrixProps) {
       {expanded && (
         <Card size="sm">
           <CardContent className="space-y-4">
-            <p className="text-[10px] text-muted-foreground">{snippet.description}</p>
+            <p className="text-xs text-muted-foreground">{snippet.description}</p>
 
             {/* Code snippet */}
-            <pre className="bg-muted/30 rounded-lg p-3 text-[10px] text-foreground overflow-auto font-mono leading-relaxed border border-border/30">
+            <pre className="bg-muted/30 rounded-lg p-3 text-xs text-foreground overflow-auto font-mono leading-relaxed border border-border/30">
               {snippet.code}
             </pre>
 
             {/* Enforcement matrix table */}
             <div className="overflow-auto">
-              <table className="w-full text-[10px]">
+              <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b border-border text-muted-foreground">
                     <th className="py-1.5 pr-2 text-left font-medium">User</th>
@@ -273,7 +273,7 @@ export function EnforcementMatrix({ result }: EnforcementMatrixProps) {
                         }
                       </td>
                       <td className="px-2 py-1.5 text-center">
-                        <Badge variant="outline" className={`text-[8px] ${row.result.startsWith("Allow") ? "bg-green-500/10 text-green-400 border-green-500/30" : "bg-red-500/10 text-red-400 border-red-500/30"}`}>
+                        <Badge variant="outline" className={`text-[11px] ${row.result.startsWith("Allow") ? "bg-green-500/10 text-green-400 border-green-500/30" : "bg-red-500/10 text-red-400 border-red-500/30"}`}>
                           {row.result}
                         </Badge>
                       </td>

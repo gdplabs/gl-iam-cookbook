@@ -89,21 +89,21 @@ function EventDetails({ event }: { event: AuditEvent }) {
     <div className="mt-1.5 space-y-1">
       {/* Show key SDK fields inline */}
       {event.source === "sdk" && (
-        <div className="flex flex-wrap gap-2 text-[10px] text-muted-foreground">
+        <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
           {event.user_id && <span>user: <code className="text-foreground">{event.user_id}</code></span>}
           {event.resource_id && <span>resource: <code className="text-foreground">{event.resource_id}</code></span>}
           {event.organization_id && <span>org: <code className="text-foreground">{event.organization_id}</code></span>}
         </div>
       )}
       {event.message && (
-        <p className="text-[10px] text-muted-foreground">{event.message}</p>
+        <p className="text-xs text-muted-foreground">{event.message}</p>
       )}
       {extra.length > 0 && (
         <details>
-          <summary className="cursor-pointer text-[10px] text-muted-foreground hover:text-foreground">
+          <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground">
             Details ({extra.length} fields)
           </summary>
-          <pre className="mt-1 max-h-24 overflow-auto rounded bg-muted/50 p-1.5 text-[10px]">
+          <pre className="mt-1 max-h-24 overflow-auto rounded bg-muted/50 p-1.5 text-xs">
             {JSON.stringify(Object.fromEntries(extra), null, 2)}
           </pre>
         </details>
@@ -144,7 +144,7 @@ export function AuditTimeline({ events }: AuditTimelineProps) {
         <button
           onClick={() => setFilter("all")}
           className={cn(
-            "text-[10px] px-2 py-0.5 rounded-full border transition-colors",
+            "text-xs px-2 py-0.5 rounded-full border transition-colors",
             filter === "all" ? "bg-foreground/10 text-foreground border-foreground/20" : "text-muted-foreground border-border hover:bg-muted"
           )}
         >
@@ -160,7 +160,7 @@ export function AuditTimeline({ events }: AuditTimelineProps) {
               key={tag}
               onClick={() => setFilter(tag.includes("glchat") ? "glchat" : tag.includes("aip") ? "aip" : tag.includes("connectors") ? "connectors" : tag)}
               className={cn(
-                "text-[10px] px-2 py-0.5 rounded-full border transition-colors",
+                "text-xs px-2 py-0.5 rounded-full border transition-colors",
                 (filter !== "all" && tag.includes(filter))
                   ? `${colors?.badge ?? "bg-muted text-foreground"}`
                   : "text-muted-foreground border-border hover:bg-muted"
@@ -179,14 +179,14 @@ export function AuditTimeline({ events }: AuditTimelineProps) {
       {Object.entries(grouped).map(([ref, refEvents]) => (
         <div key={ref} className="space-y-2">
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className="font-mono text-[10px]">
+            <Badge variant="outline" className="font-mono text-xs">
               {ref.length > 20 ? ref.slice(0, 20) + "..." : ref}
             </Badge>
-            <span className="text-[10px] text-muted-foreground">
+            <span className="text-xs text-muted-foreground">
               {refEvents.length} event{refEvents.length !== 1 ? "s" : ""}
             </span>
             {/* Count by source */}
-            <span className="text-[9px] text-muted-foreground/60">
+            <span className="text-xs text-muted-foreground/60">
               ({refEvents.filter(e => e.source === "sdk").length} SDK, {refEvents.filter(e => e.source !== "sdk").length} app)
             </span>
           </div>
@@ -199,14 +199,14 @@ export function AuditTimeline({ events }: AuditTimelineProps) {
                 <Card size="sm" className="border-border/30">
                   <CardContent>
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-[10px] font-mono text-muted-foreground">
+                      <span className="text-xs font-mono text-muted-foreground">
                         {formatTs(evt.timestamp)}
                       </span>
-                      <Badge variant="outline" className={cn("text-[10px]", sourceColor(evt))}>
+                      <Badge variant="outline" className={cn("text-xs", sourceColor(evt))}>
                         {sourceLabel(evt)}
                       </Badge>
                       {evt.severity && evt.severity !== "info" && (
-                        <Badge variant="outline" className={cn("text-[9px]", severityColor(evt.severity))}>
+                        <Badge variant="outline" className={cn("text-xs", severityColor(evt.severity))}>
                           {evt.severity}
                         </Badge>
                       )}
