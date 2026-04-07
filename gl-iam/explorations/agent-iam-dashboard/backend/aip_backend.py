@@ -28,7 +28,8 @@ from gl_iam.fastapi import (
     get_iam_gateway,
     set_iam_gateway,
 )
-from gl_iam.providers.postgresql import PostgreSQLAgentProvider, PostgreSQLConfig
+from gl_iam import ConsoleAuditHandler
+from gl_iam.providers.postgresql import PostgreSQLAgentProvider, PostgreSQLConfig, DatabaseAuditHandler
 
 from shared import add_audit_routes, add_cors, audit_log
 
@@ -379,6 +380,10 @@ async def lifespan(app: FastAPI):
             set_subset_validator,
         ),
     )
+    # Enable GL-IAM audit trail
+    from gl_iam import CallbackAuditHandler
+    from shared import capture_sdk_event
+    gateway._audit_handlers = [ConsoleAuditHandler(logger_name="gl_iam.audit"), CallbackAuditHandler(capture_sdk_event)]
     set_iam_gateway(gateway)
     yield
 

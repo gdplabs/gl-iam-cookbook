@@ -30,7 +30,8 @@ from gl_iam.fastapi import (
     require_agent_scope,
     set_iam_gateway,
 )
-from gl_iam.providers.postgresql import PostgreSQLAgentProvider, PostgreSQLConfig
+from gl_iam import ConsoleAuditHandler
+from gl_iam.providers.postgresql import PostgreSQLAgentProvider, PostgreSQLConfig, DatabaseAuditHandler
 
 from mock_data import (
     CALENDARS,
@@ -64,6 +65,9 @@ async def lifespan(app: FastAPI):
         agent_provider=agent_provider,
         secret_key=os.getenv("SECRET_KEY"),
     )
+    from gl_iam import CallbackAuditHandler
+    from shared import capture_sdk_event
+    gateway._audit_handlers = [ConsoleAuditHandler(logger_name="gl_iam.audit"), CallbackAuditHandler(capture_sdk_event)]
     set_iam_gateway(gateway)
     yield
 

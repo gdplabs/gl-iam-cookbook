@@ -108,25 +108,32 @@ export function ScenarioBuilder({ phase, onResult, onError }: ScenarioBuilderPro
             onChange={(e) => setSelectedUserEmail(e.target.value)}
           >
             <option value="">Select a user...</option>
-            {users.map((user) => (
-              <option key={user.email} value={user.email}>
-                {user.display_name} ({user.role}){user.tenant !== "GLC" ? ` [${user.tenant}]` : ""}
-              </option>
-            ))}
+            {users.map((user) => {
+              const orgLabel = user.tenant === "NONE" ? "No Org"
+                : user.role === "admin" ? "Cross-Org"
+                : user.tenant;
+              return (
+                <option key={user.email} value={user.email}>
+                  {user.display_name} — {user.role} ({orgLabel})
+                </option>
+              );
+            })}
           </select>
           {selectedUser && (
-            <div className="flex items-center gap-2 px-0.5">
+            <div className="flex items-center gap-2 px-0.5 flex-wrap">
               <Badge variant="outline" className={cn("text-[9px] px-1.5 py-0", ROLE_COLORS[selectedUser.role])}>
                 {selectedUser.role}
+              </Badge>
+              <Badge variant="outline" className={`text-[9px] px-1.5 py-0 ${
+                selectedUser.tenant === "NONE" ? "bg-gray-500/15 text-gray-300 border-gray-500/30"
+                : selectedUser.role === "admin" ? "bg-purple-500/15 text-purple-300 border-purple-500/30"
+                : "bg-cyan-500/15 text-cyan-300 border-cyan-500/30"
+              }`}>
+                {selectedUser.tenant === "NONE" ? "No Org" : selectedUser.role === "admin" ? "Cross-Org" : `Org: ${selectedUser.tenant}`}
               </Badge>
               <span className="text-[10px] text-muted-foreground">
                 {selectedUser.scopes.length} scopes
               </span>
-              {selectedUser.tenant !== "GLC" && (
-                <Badge variant="outline" className="text-[9px] px-1.5 py-0 bg-orange-500/15 text-orange-300 border-orange-500/30">
-                  {selectedUser.tenant}
-                </Badge>
-              )}
             </div>
           )}
         </div>

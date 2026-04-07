@@ -13,4 +13,4 @@ dependencies = [
 ]
 
 [tool.uv.sources]
-gl-iam = { git = "https://github.com/GDP-ADMIN/gl-sdk.git", subdirectory = "libs/gl-iam", tag = "gl_iam-v0.2.4" }
+gl-iam = { git = "https://github.com/GDP-ADMIN/gl-sdk.git", subdirectory = "libs/gl-iam", branch = "feat/gl-iam/audit-trail-logging-tracing" }

@@ -40,7 +40,9 @@ from gl_iam.fastapi import (
     get_iam_gateway,
     set_iam_gateway,
 )
-from gl_iam.providers.postgresql import PostgreSQLConfig, PostgreSQLProvider
+from gl_iam import ConsoleAuditHandler, CallbackAuditHandler
+from gl_iam.core.gateway import AuditConfig
+from gl_iam.providers.postgresql import PostgreSQLConfig, PostgreSQLProvider, DatabaseAuditHandler
 
 from mock_data import USERS as MOCK_USERS
 from scenarios import SCENARIOS, get_scenarios_by_product
@@ -160,8 +162,15 @@ async def lifespan(app: FastAPI):
         string_equality_validator,
         set_subset_validator,
     )
+    # Enable GL-IAM audit trail — SDK auto-emits events for authenticate, delegate, etc.
+    from shared import capture_sdk_event
+    console_handler = ConsoleAuditHandler(logger_name="gl_iam.audit")
+    callback_handler = CallbackAuditHandler(capture_sdk_event)
+    db_audit_handler = DatabaseAuditHandler(provider)
+    gateway._audit_handlers = [console_handler, callback_handler, db_audit_handler]
     set_iam_gateway(gateway, default_organization_id=default_org_id)
     yield
+    db_audit_handler.close()
     await provider.close()
 
 
@@ -638,12 +647,12 @@ async def get_scenario(scenario_id: str):
 
 @app.get("/demo/users")
 async def list_demo_users():
-    """Return 3 role archetypes: Admin, Member, Guest (cross-tenant)."""
-    # Pick one representative user per role archetype
+    """Return 4 user archetypes with org info."""
     archetypes = [
-        {"role": "admin",  "email": "onlee@gdplabs.id",      "label": "Pak On (Admin)"},
-        {"role": "member", "email": "maylina@gdplabs.id",   "label": "Maylina (Member)"},
-        {"role": "viewer", "email": "guest@gdplabs.id",      "label": "Guest (Not Logged In)"},
+        {"role": "admin",  "email": "onlee@gdplabs.id",    "label": "Pak On"},
+        {"role": "member", "email": "maylina@gdplabs.id",  "label": "Maylina"},
+        {"role": "member", "email": "petry@gdplabs.id",    "label": "Petry"},
+        {"role": "viewer", "email": "guest@gdplabs.id",    "label": "Guest"},
     ]
     result = []
     for arch in archetypes:
@@ -699,19 +708,19 @@ ACTION_CATALOG: dict[str, dict] = {
         "concepts": ["Delegated Access", "Resource Constraint", "Agent OAuth"],
         "base_scenario": "UC-GLCHAT-01.2",
     },
-    "check-internal-colleague-calendar": {
+    "check-sandy-calendar": {
         "agent": "scheduling-agent",
-        "title": "Check internal colleague's calendar",
+        "title": "Check Sandy's calendar (GLC)",
         "message": "Give me a list of Sandy's meetings today",
-        "description": "Access an internal org colleague's calendar. Admin and Member can use Agent OAuth. Guest rejected.",
+        "description": "Sandy is in GLC org. Same-org members can access via Agent OAuth. Cross-org members rejected.",
         "concepts": ["Delegated Access", "Resource Constraint", "Org Boundary"],
         "base_scenario": "UC-GLCHAT-01.3",
     },
-    "check-external-colleague-calendar": {
+    "check-petry-calendar": {
         "agent": "scheduling-agent",
-        "title": "Check external org colleague's calendar",
+        "title": "Check Petry's calendar (GLAIR)",
         "message": "Give me a list of Petry's meetings today",
-        "description": "Access an external org user's calendar. Only Admin can use Agent OAuth (wildcard access). Member rejected.",
+        "description": "Petry is in GLAIR org. Same-org (GLAIR) members can access. Cross-org (GLC) members rejected by resource constraint.",
         "concepts": ["Delegated Access", "Resource Constraint", "Org Boundary"],
         "base_scenario": "UC-GLCHAT-01.4",
     },
@@ -798,8 +807,10 @@ ACTION_ROLE_OVERRIDES: dict[tuple[str, str], str] = {
     # Member (Petry) variants
     ("check-own-calendar", "member"): "UC-GLCHAT-01.1-M",
     ("check-ceo-calendar", "member"): "UC-GLCHAT-01.2-M",
-    ("check-internal-colleague-calendar", "member"): "UC-GLCHAT-01.3-M",
-    ("check-external-colleague-calendar", "member"): "UC-GLCHAT-01.4-M",
+    ("check-sandy-calendar", "member"): "UC-GLCHAT-01.3-M",
+    # Note: check-petry-calendar for member uses base scenario — dynamic constraint
+    # resolves correctly: Maylina (GLC) gets org:GLC → rejects petry (GLAIR),
+    # Petry (GLAIR) gets org:GLAIR → allows petry (GLAIR)
     ("schedule-own-meeting", "member"): "UC-GLCHAT-02.1-M",
     ("write-colleague-calendar", "member"): "UC-GLCHAT-02.2-M",
 }
@@ -836,8 +847,9 @@ async def demo_setup():
             users_to_register.add(scenario["user_email"])
     # Always register archetype users for the interactive picker
     users_to_register.add("onlee@gdplabs.id")      # Admin (Pak On)
-    users_to_register.add("maylina@gdplabs.id")   # Member (Petry)
-    users_to_register.add("guest@gdplabs.id")      # Guest (not logged in)
+    users_to_register.add("maylina@gdplabs.id")   # Member (Maylina, GLC)
+    users_to_register.add("petry@gdplabs.id")     # Member (Petry, GLAIR)
+    users_to_register.add("guest@gdplabs.id")      # Guest (no org)
 
     # Register users (or login if already exists)
     registered = {}
