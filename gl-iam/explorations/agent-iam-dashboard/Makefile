@@ -1,28 +1,91 @@
-.PHONY: setup setup-backend setup-dashboard start start-db start-services start-dashboard stop clean
+.PHONY: setup run start stop clean health reset-db
 
-# ── Setup ──
-setup: setup-backend setup-dashboard
+# =============================================================================
+# 🚀 One-command setup + run
+# =============================================================================
 
-setup-backend:
-	@echo "Installing Python dependencies..."
+# First time: make setup && make run
+# After that: make run
+
+setup:
+	@echo "📦 Installing Python dependencies..."
 	uv sync
 	@test -f .env || cp .env.example .env
-	@echo "Backend ready."
-
-setup-dashboard:
-	@echo "Installing dashboard dependencies..."
+	@echo "📦 Installing dashboard dependencies..."
 	cd dashboard && npm install
-	@echo "Dashboard ready."
+	@echo ""
+	@echo "✅ Setup complete! Run: make run"
 
-# ── Database ──
+run: start-db
+	@sleep 2
+	@echo ""
+	@echo "🚀 Launching Agent IAM — Real Case Simulation"
+	@echo ""
+	@# Detect terminal emulator and launch tabs
+	@if [ "$$(uname)" = "Darwin" ]; then \
+		$(MAKE) _run-macos; \
+	else \
+		$(MAKE) _run-linux; \
+	fi
+
+# macOS: open 4 Terminal.app tabs
+_run-macos:
+	@osascript -e ' \
+		tell application "Terminal" \
+			activate \
+			set projectDir to "$(CURDIR)" \
+			do script "cd " & projectDir & "/backend && echo \"🔵 GLChat BE (:8000)\" && uv run python glchat_be.py" \
+			delay 1 \
+			do script "cd " & projectDir & "/backend && echo \"🟣 AIP Backend (:8001)\" && uv run python aip_backend.py" \
+			delay 1 \
+			do script "cd " & projectDir & "/backend && echo \"🟢 Connectors (:8002)\" && uv run python connectors.py" \
+			delay 1 \
+			do script "cd " & projectDir & "/dashboard && echo \"🌐 Dashboard (:5173)\" && npm run dev" \
+		end tell \
+	' 2>/dev/null || $(MAKE) _run-background
+	@echo ""
+	@echo "=== 4 Terminal windows opened ==="
+	@echo "  🔵 GLChat BE        → http://localhost:8000"
+	@echo "  🟣 AIP Backend      → http://localhost:8001"
+	@echo "  🟢 GL Connectors    → http://localhost:8002"
+	@echo "  🌐 Dashboard        → http://localhost:5173"
+	@echo ""
+	@echo "Open http://localhost:5173 in your browser"
+	@echo "Click 'Initialize Demo' to get started"
+
+# Linux / fallback: run in background
+_run-linux:
+	@$(MAKE) _run-background
+
+_run-background:
+	@echo "Starting services in background..."
+	cd backend && uv run python glchat_be.py > /tmp/glchat_be.log 2>&1 &
+	@sleep 3
+	cd backend && uv run python aip_backend.py > /tmp/aip_backend.log 2>&1 &
+	@sleep 2
+	cd backend && uv run python connectors.py > /tmp/connectors.log 2>&1 &
+	@sleep 2
+	@echo ""
+	@echo "=== Backend services started ==="
+	@echo "  🔵 GLChat BE        → http://localhost:8000"
+	@echo "  🟣 AIP Backend      → http://localhost:8001"
+	@echo "  🟢 GL Connectors    → http://localhost:8002"
+	@echo ""
+	@echo "Starting dashboard..."
+	cd dashboard && npm run dev
+
+# =============================================================================
+# Database
+# =============================================================================
+
 start-db:
-	@echo "Starting PostgreSQL..."
+	@echo "🐘 Starting PostgreSQL..."
 	@if docker ps --format '{{.Names}}' | grep -q gliam-dashboard-db; then \
-		echo "gliam-dashboard-db already running."; \
+		echo "  gliam-dashboard-db already running."; \
 	elif docker start gliam-dashboard-db 2>/dev/null; then \
-		echo "Started existing gliam-dashboard-db container."; \
+		echo "  Started existing gliam-dashboard-db container."; \
 	elif docker ps --format '{{.Ports}}' | grep -q '5432->5432'; then \
-		echo "Port 5432 in use by another container. Reusing existing PostgreSQL."; \
+		echo "  Port 5432 in use. Reusing existing PostgreSQL."; \
 		docker exec $$(docker ps --filter "publish=5432" --format '{{.Names}}' | head -1) \
 			psql -U postgres -c "CREATE DATABASE gliam_dashboard;" 2>/dev/null || true; \
 	else \
@@ -31,60 +94,43 @@ start-db:
 			-e POSTGRES_DB=gliam_dashboard \
 			-p 5432:5432 \
 			postgres:15; \
+		sleep 3; \
 	fi
-	@echo "PostgreSQL ready on :5432"
+	@echo "  PostgreSQL ready on :5432"
 
-stop-db:
-	@docker stop gliam-dashboard-db 2>/dev/null || true
+reset-db:
+	@echo "🔄 Resetting database..."
+	@docker exec $$(docker ps --filter "publish=5432" --format '{{.Names}}' | head -1) \
+		psql -U postgres -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname='gliam_dashboard' AND pid!=pg_backend_pid();" 2>/dev/null || true
+	@docker exec $$(docker ps --filter "publish=5432" --format '{{.Names}}' | head -1) \
+		psql -U postgres -c "DROP DATABASE IF EXISTS gliam_dashboard;" 2>/dev/null
+	@docker exec $$(docker ps --filter "publish=5432" --format '{{.Names}}' | head -1) \
+		psql -U postgres -c "CREATE DATABASE gliam_dashboard;" 2>/dev/null
+	@echo "  Database reset complete."
 
-# ── Backend Services ──
-start-services:
-	@echo "Starting 3 backend services..."
-	cd backend && uv run python glchat_be.py &
-	cd backend && uv run python aip_backend.py &
-	cd backend && uv run python connectors.py &
-	@echo "Services starting on :8000, :8001, :8002"
+# =============================================================================
+# Individual commands
+# =============================================================================
 
-start-services-fg:
-	@echo "Starting services in foreground (use separate terminals)..."
-	@echo "Terminal 1: cd backend && uv run python glchat_be.py"
-	@echo "Terminal 2: cd backend && uv run python aip_backend.py"
-	@echo "Terminal 3: cd backend && uv run python connectors.py"
+start: run
 
-# ── Dashboard ──
-start-dashboard:
-	cd dashboard && npm run dev
-
-# ── Full Start ──
-start: start-db
-	@sleep 2
-	@$(MAKE) start-services
-	@sleep 3
-	@echo ""
-	@echo "=== Agent IAM Dashboard ==="
-	@echo "Backend:   http://localhost:8000 (GLChat BE)"
-	@echo "           http://localhost:8001 (AIP Backend)"
-	@echo "           http://localhost:8002 (Connectors)"
-	@echo "Dashboard: Run 'make start-dashboard' in another terminal"
-	@echo ""
-
-# ── Stop ──
 stop:
-	@pkill -f "glchat_be.py" 2>/dev/null || true
-	@pkill -f "aip_backend.py" 2>/dev/null || true
-	@pkill -f "connectors.py" 2>/dev/null || true
+	@echo "Stopping services..."
+	@pkill -f "python glchat_be.py" 2>/dev/null || true
+	@pkill -f "python aip_backend.py" 2>/dev/null || true
+	@pkill -f "python connectors.py" 2>/dev/null || true
 	@echo "Services stopped."
 
-clean: stop stop-db
+clean: stop
+	@docker stop gliam-dashboard-db 2>/dev/null || true
 	@echo "Cleaned up."
 
-# ── Logs ──
+health:
+	@echo "Health check:"
+	@echo "  GLChat BE:   $$(curl -s http://localhost:8000/health 2>/dev/null | python3 -c 'import sys,json; print(json.load(sys.stdin)["status"])' 2>/dev/null || echo 'DOWN')"
+	@echo "  AIP Backend: $$(curl -s http://localhost:8001/health 2>/dev/null | python3 -c 'import sys,json; print(json.load(sys.stdin)["status"])' 2>/dev/null || echo 'DOWN')"
+	@echo "  Connectors:  $$(curl -s http://localhost:8002/health 2>/dev/null | python3 -c 'import sys,json; print(json.load(sys.stdin)["status"])' 2>/dev/null || echo 'DOWN')"
+
 logs:
 	@tail -f /tmp/glchat_be.log /tmp/aip_backend.log /tmp/connectors.log 2>/dev/null || \
-		echo "No log files found. Services log to stdout."
-
-# ── Health Check ──
-health:
-	@echo "GLChat BE:  $$(curl -s http://localhost:8000/health | python3 -m json.tool 2>/dev/null || echo 'DOWN')"
-	@echo "AIP Backend: $$(curl -s http://localhost:8001/health | python3 -m json.tool 2>/dev/null || echo 'DOWN')"
-	@echo "Connectors:  $$(curl -s http://localhost:8002/health | python3 -m json.tool 2>/dev/null || echo 'DOWN')"
+		echo "No log files. Services may be running in terminal tabs."
