@@ -118,6 +118,11 @@ export function useDemoState() {
   const allHealthy = health.glchat && health.aip && health.connectors;
   const currentResult = currentScenario ? results[currentScenario] : null;
 
+  // Add a result from interactive mode (for comparison page)
+  const addResult = useCallback((key: string, result: ScenarioRunResult) => {
+    setResults((prev) => ({ ...prev, [key]: result }));
+  }, []);
+
   return {
     phase,
     health,
@@ -132,6 +137,7 @@ export function useDemoState() {
     setup,
     reset,
     run,
+    addResult,
     refreshAudit,
     setCurrentScenario,
   };

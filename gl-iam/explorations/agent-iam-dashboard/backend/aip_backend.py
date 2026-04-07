@@ -179,7 +179,7 @@ KEYWORD_TO_TOOLS = {
     "petry's": ["directory.lookup", "calendar.list_events"],
     "colleague": ["directory.lookup"],
     # AIP
-    "report": ["gdoc.read", "gdoc.create", "gdoc.write", "gmail.send"],
+    "report": ["gdoc.read", "gdoc.create", "gmail.send"],
     "weekly": ["gdoc.read", "gdoc.create", "gmail.send"],
     "draft": ["gdoc.create", "gmail.send"],
     "send": ["gmail.send"],
@@ -382,8 +382,8 @@ async def lifespan(app: FastAPI):
     )
     # Enable GL-IAM audit trail
     from gl_iam import CallbackAuditHandler
-    from shared import capture_sdk_event
-    gateway._audit_handlers = [ConsoleAuditHandler(logger_name="gl_iam.audit"), CallbackAuditHandler(capture_sdk_event)]
+    from shared import make_sdk_event_capturer
+    gateway._audit_handlers = [ConsoleAuditHandler(logger_name="gl_iam.audit"), CallbackAuditHandler(make_sdk_event_capturer("aip"))]
     set_iam_gateway(gateway)
     yield
 

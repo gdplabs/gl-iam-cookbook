@@ -66,8 +66,8 @@ async def lifespan(app: FastAPI):
         secret_key=os.getenv("SECRET_KEY"),
     )
     from gl_iam import CallbackAuditHandler
-    from shared import capture_sdk_event
-    gateway._audit_handlers = [ConsoleAuditHandler(logger_name="gl_iam.audit"), CallbackAuditHandler(capture_sdk_event)]
+    from shared import make_sdk_event_capturer
+    gateway._audit_handlers = [ConsoleAuditHandler(logger_name="gl_iam.audit"), CallbackAuditHandler(make_sdk_event_capturer("connectors"))]
     set_iam_gateway(gateway)
     yield
 

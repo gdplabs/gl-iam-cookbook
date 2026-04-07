@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -7,40 +8,31 @@ interface AuditTimelineProps {
   events: AuditEvent[];
 }
 
+function getServiceKey(event: AuditEvent): string {
+  const s = event.service ?? "";
+  if (s.includes("glchat")) return "glchat";
+  if (s.includes("aip")) return "aip";
+  if (s.includes("connectors")) return "connectors";
+  return s;
+}
+
+const SERVICE_COLORS: Record<string, { badge: string; dot: string }> = {
+  glchat: { badge: "bg-blue-500/15 text-blue-400 border-blue-500/30", dot: "bg-blue-400" },
+  aip: { badge: "bg-purple-500/15 text-purple-400 border-purple-500/30", dot: "bg-purple-400" },
+  connectors: { badge: "bg-green-500/15 text-green-400 border-green-500/30", dot: "bg-green-400" },
+};
+const DEFAULT_COLORS = { badge: "bg-muted text-muted-foreground", dot: "bg-gray-400" };
+
 function sourceColor(event: AuditEvent): string {
-  if (event.source === "sdk") {
-    return "bg-violet-500/15 text-violet-400 border-violet-500/30";
-  }
-  switch (event.service) {
-    case "glchat_be":
-    case "glchat":
-      return "bg-blue-500/15 text-blue-400 border-blue-500/30";
-    case "aip_backend":
-    case "aip":
-      return "bg-purple-500/15 text-purple-400 border-purple-500/30";
-    case "connectors":
-      return "bg-green-500/15 text-green-400 border-green-500/30";
-    case "gl-iam":
-      return "bg-violet-500/15 text-violet-400 border-violet-500/30";
-    default:
-      return "bg-muted text-muted-foreground";
-  }
+  const key = getServiceKey(event);
+  const colors = SERVICE_COLORS[key] ?? DEFAULT_COLORS;
+  // SDK events get a slightly different shade
+  if (event.source === "sdk") return colors.badge.replace("/15", "/25");
+  return colors.badge;
 }
 
 function dotColor(event: AuditEvent): string {
-  if (event.source === "sdk") return "bg-violet-400";
-  switch (event.service) {
-    case "glchat_be":
-    case "glchat":
-      return "bg-blue-400";
-    case "aip_backend":
-    case "aip":
-      return "bg-purple-400";
-    case "connectors":
-      return "bg-green-400";
-    default:
-      return "bg-gray-400";
-  }
+  return (SERVICE_COLORS[getServiceKey(event)] ?? DEFAULT_COLORS).dot;
 }
 
 function severityColor(severity?: string): string {
@@ -70,7 +62,7 @@ function formatTs(ts: string): string {
 }
 
 function sourceLabel(event: AuditEvent): string {
-  if (event.source === "sdk") return "GL-IAM SDK";
+  // Show the service name directly — e.g., "gl-iam (glchat)", "glchat_be", "aip_backend"
   return event.service;
 }
 
@@ -121,6 +113,8 @@ function EventDetails({ event }: { event: AuditEvent }) {
 }
 
 export function AuditTimeline({ events }: AuditTimelineProps) {
+  const [filter, setFilter] = useState<string>("all");
+
   if (events.length === 0) {
     return (
       <p className="text-xs text-muted-foreground">
@@ -129,10 +123,59 @@ export function AuditTimeline({ events }: AuditTimelineProps) {
     );
   }
 
-  const grouped = groupByRef(events);
+  // Collect unique tags for filter
+  const allTags = new Set<string>();
+  for (const e of events) {
+    allTags.add(e.service ?? "unknown");
+  }
+
+  // Apply filter
+  const filtered = filter === "all"
+    ? events
+    : events.filter(e => (e.service ?? "").includes(filter));
+
+  const grouped = groupByRef(filtered);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
+      {/* Filter bar */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-xs text-muted-foreground">Filter:</span>
+        <button
+          onClick={() => setFilter("all")}
+          className={cn(
+            "text-[10px] px-2 py-0.5 rounded-full border transition-colors",
+            filter === "all" ? "bg-foreground/10 text-foreground border-foreground/20" : "text-muted-foreground border-border hover:bg-muted"
+          )}
+        >
+          All ({events.length})
+        </button>
+        {Array.from(allTags).sort().map(tag => {
+          const key = tag.includes("glchat") ? "glchat" : tag.includes("aip") ? "aip" : tag.includes("connectors") ? "connectors" : tag;
+          const colors = SERVICE_COLORS[key];
+          const count = events.filter(e => (e.service ?? "") === tag).length;
+          const isSDK = tag.startsWith("gl-iam");
+          return (
+            <button
+              key={tag}
+              onClick={() => setFilter(tag.includes("glchat") ? "glchat" : tag.includes("aip") ? "aip" : tag.includes("connectors") ? "connectors" : tag)}
+              className={cn(
+                "text-[10px] px-2 py-0.5 rounded-full border transition-colors",
+                (filter !== "all" && tag.includes(filter))
+                  ? `${colors?.badge ?? "bg-muted text-foreground"}`
+                  : "text-muted-foreground border-border hover:bg-muted"
+              )}
+            >
+              {isSDK ? `SDK (${tag.split("(")[1]?.replace(")", "") ?? ""})` : tag} ({count})
+            </button>
+          );
+        })}
+      </div>
+
+      {Object.keys(grouped).length === 0 && (
+        <p className="text-xs text-muted-foreground">No events match the selected filter.</p>
+      )}
+
       {Object.entries(grouped).map(([ref, refEvents]) => (
         <div key={ref} className="space-y-2">
           <div className="flex items-center gap-2">

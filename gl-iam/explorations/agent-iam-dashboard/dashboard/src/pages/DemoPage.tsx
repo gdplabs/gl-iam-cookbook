@@ -28,6 +28,7 @@ interface DemoPageProps {
   currentScenario: string | null;
   currentResult: ScenarioRunResult | null | undefined;
   run: (id: string) => Promise<void>;
+  addResult: (key: string, result: ScenarioRunResult) => void;
   setCurrentScenario: (id: string) => void;
   error: string | null;
 }
@@ -38,6 +39,7 @@ export function DemoPage({
   reset,
   setupResult,
   allHealthy,
+  addResult,
   error: parentError,
 }: DemoPageProps) {
   const [currentResult, setCurrentResult] = useState<ScenarioRunResult | null>(null);
@@ -59,7 +61,13 @@ export function DemoPage({
 
         <ScenarioBuilder
           phase={phase}
-          onResult={(result) => { setCurrentResult(result); setError(null); }}
+          onResult={(result) => {
+            setCurrentResult(result);
+            setError(null);
+            // Store in shared state for Comparison tab
+            const key = `${result.user?.email ?? "system"} → ${result.scenario?.title ?? result.scenario_id ?? "unknown"}`;
+            addResult(key, result);
+          }}
           onError={setError}
         />
 

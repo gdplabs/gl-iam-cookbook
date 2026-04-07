@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { User, Bot, Zap, Play, Loader2 } from "lucide-react";
+import { User, Bot, Zap, Play, Loader2, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -36,15 +36,17 @@ export function ScenarioBuilder({ phase, onResult, onError }: ScenarioBuilderPro
   const [orchestrators, setOrchestrators] = useState<DemoOrchestrator[]>([]);
   const [actions, setActions] = useState<Record<string, DemoAction[]>>({});
 
-  const [selectedUserEmail, setSelectedUserEmail] = useState("");
   const [selectedAgentName, setSelectedAgentName] = useState("");
+  const [selectedUserEmail, setSelectedUserEmail] = useState("");
   const [selectedActionId, setSelectedActionId] = useState("");
   const [isRunning, setIsRunning] = useState(false);
 
-  const selectedUser = users.find((u) => u.email === selectedUserEmail) ?? null;
   const selectedAgent = orchestrators.find((a) => a.name === selectedAgentName) ?? null;
+  const selectedUser = users.find((u) => u.email === selectedUserEmail) ?? null;
   const availableActions = selectedAgentName ? (actions[selectedAgentName] ?? []) : [];
   const selectedAction = availableActions.find((a) => a.id === selectedActionId) ?? null;
+
+  const isAutonomous = selectedAgent?.type === "autonomous";
 
   useEffect(() => {
     if (phase !== "ready" && phase !== "running") return;
@@ -68,14 +70,20 @@ export function ScenarioBuilder({ phase, onResult, onError }: ScenarioBuilderPro
   const handleAgentChange = useCallback((value: string) => {
     setSelectedAgentName(value);
     setSelectedActionId("");
-  }, []);
+    // Auto-clear user if switching to/from autonomous
+    const agent = orchestrators.find(a => a.name === value);
+    if (agent?.type === "autonomous") {
+      setSelectedUserEmail(""); // Will show "Triggered by scheduler"
+    }
+  }, [orchestrators]);
 
   const handleRun = useCallback(async () => {
-    if (!selectedUser || !selectedAgent || !selectedAction) return;
+    if (!selectedAgent || !selectedAction) return;
+    if (!isAutonomous && !selectedUser) return;
     setIsRunning(true);
     try {
       const result = await interactiveRun(
-        selectedUser.email,
+        isAutonomous ? "" : selectedUser!.email,
         selectedAgent.name,
         selectedAction.id,
       );
@@ -85,11 +93,11 @@ export function ScenarioBuilder({ phase, onResult, onError }: ScenarioBuilderPro
     } finally {
       setIsRunning(false);
     }
-  }, [selectedUser, selectedAgent, selectedAction, onResult, onError]);
+  }, [selectedUser, selectedAgent, selectedAction, isAutonomous, onResult, onError]);
 
-  if (users.length === 0) return null;
+  if (orchestrators.length === 0) return null;
 
-  const canRun = selectedUser && selectedAgent && selectedAction && !isRunning;
+  const canRun = selectedAgent && selectedAction && (isAutonomous || selectedUser) && !isRunning;
 
   return (
     <Card size="sm">
@@ -97,51 +105,10 @@ export function ScenarioBuilder({ phase, onResult, onError }: ScenarioBuilderPro
         <CardTitle>Interactive Demo</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* User */}
+        {/* Step 1: Agent */}
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-            <User className="size-3" /> User
-          </label>
-          <select
-            className={selectClass}
-            value={selectedUserEmail}
-            onChange={(e) => setSelectedUserEmail(e.target.value)}
-          >
-            <option value="">Select a user...</option>
-            {users.map((user) => {
-              const orgLabel = user.tenant === "NONE" ? "No Org"
-                : user.role === "admin" ? "Cross-Org"
-                : user.tenant;
-              return (
-                <option key={user.email} value={user.email}>
-                  {user.display_name} — {user.role} ({orgLabel})
-                </option>
-              );
-            })}
-          </select>
-          {selectedUser && (
-            <div className="flex items-center gap-2 px-0.5 flex-wrap">
-              <Badge variant="outline" className={cn("text-[9px] px-1.5 py-0", ROLE_COLORS[selectedUser.role])}>
-                {selectedUser.role}
-              </Badge>
-              <Badge variant="outline" className={`text-[9px] px-1.5 py-0 ${
-                selectedUser.tenant === "NONE" ? "bg-gray-500/15 text-gray-300 border-gray-500/30"
-                : selectedUser.role === "admin" ? "bg-purple-500/15 text-purple-300 border-purple-500/30"
-                : "bg-cyan-500/15 text-cyan-300 border-cyan-500/30"
-              }`}>
-                {selectedUser.tenant === "NONE" ? "No Org" : selectedUser.role === "admin" ? "Cross-Org" : `Org: ${selectedUser.tenant}`}
-              </Badge>
-              <span className="text-[10px] text-muted-foreground">
-                {selectedUser.scopes.length} scopes
-              </span>
-            </div>
-          )}
-        </div>
-
-        {/* Agent */}
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-            <Bot className="size-3" /> Agent
+            <Bot className="size-3" /> 1. Agent
           </label>
           <select
             className={selectClass}
@@ -167,10 +134,67 @@ export function ScenarioBuilder({ phase, onResult, onError }: ScenarioBuilderPro
           )}
         </div>
 
-        {/* Action */}
+        {/* Step 2: User (disabled for autonomous) */}
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-            <Zap className="size-3" /> Action
+            {isAutonomous ? <Clock className="size-3" /> : <User className="size-3" />}
+            {" "}2. {isAutonomous ? "Trigger" : "User"}
+          </label>
+          {isAutonomous ? (
+            <div className="h-9 rounded-md border border-input bg-muted/30 text-xs px-2 py-1.5 flex items-center gap-2 text-muted-foreground">
+              <Clock className="size-3.5 text-emerald-400" />
+              <span>Triggered by CronJob / Scheduler Service</span>
+            </div>
+          ) : (
+            <>
+              <select
+                className={selectClass}
+                value={selectedUserEmail}
+                onChange={(e) => setSelectedUserEmail(e.target.value)}
+                disabled={!selectedAgentName}
+              >
+                <option value="">{selectedAgentName ? "Select a user..." : "Pick an agent first"}</option>
+                {users.map((user) => {
+                  const orgLabel = user.tenant === "NONE" ? "No Org"
+                    : user.role === "admin" ? "Cross-Org"
+                    : user.tenant;
+                  return (
+                    <option key={user.email} value={user.email}>
+                      {user.display_name} — {user.role} ({orgLabel})
+                    </option>
+                  );
+                })}
+              </select>
+              {selectedUser && (
+                <div className="flex items-center gap-2 px-0.5 flex-wrap">
+                  <Badge variant="outline" className={cn("text-[9px] px-1.5 py-0", ROLE_COLORS[selectedUser.role])}>
+                    {selectedUser.role}
+                  </Badge>
+                  <Badge variant="outline" className={`text-[9px] px-1.5 py-0 ${
+                    selectedUser.tenant === "NONE" ? "bg-gray-500/15 text-gray-300 border-gray-500/30"
+                    : selectedUser.role === "admin" ? "bg-purple-500/15 text-purple-300 border-purple-500/30"
+                    : "bg-cyan-500/15 text-cyan-300 border-cyan-500/30"
+                  }`}>
+                    {selectedUser.tenant === "NONE" ? "No Org" : selectedUser.role === "admin" ? "Cross-Org" : `Org: ${selectedUser.tenant}`}
+                  </Badge>
+                  <span className="text-[10px] text-muted-foreground">
+                    {selectedUser.scopes.length} scopes
+                  </span>
+                </div>
+              )}
+            </>
+          )}
+          {isAutonomous && (
+            <p className="text-[9px] text-muted-foreground italic px-0.5">
+              Autonomous agents use their own identity. Delegation token is still created — principal is the scheduler service, not a user.
+            </p>
+          )}
+        </div>
+
+        {/* Step 3: Action */}
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+            <Zap className="size-3" /> 3. Action
           </label>
           <select
             className={selectClass}

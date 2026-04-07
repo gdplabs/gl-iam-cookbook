@@ -163,9 +163,9 @@ async def lifespan(app: FastAPI):
         set_subset_validator,
     )
     # Enable GL-IAM audit trail — SDK auto-emits events for authenticate, delegate, etc.
-    from shared import capture_sdk_event
+    from shared import make_sdk_event_capturer
     console_handler = ConsoleAuditHandler(logger_name="gl_iam.audit")
-    callback_handler = CallbackAuditHandler(capture_sdk_event)
+    callback_handler = CallbackAuditHandler(make_sdk_event_capturer("glchat"))
     db_audit_handler = DatabaseAuditHandler(provider)
     gateway._audit_handlers = [console_handler, callback_handler, db_audit_handler]
     set_iam_gateway(gateway, default_organization_id=default_org_id)
@@ -1113,8 +1113,7 @@ class InteractiveRunRequest(BaseModel):
 
 @app.post("/demo/interactive-run")
 async def interactive_run(request: InteractiveRunRequest):
-    """Run an action with a specific user. Resolves the correct scenario variant
-    based on user role via ACTION_ROLE_OVERRIDES."""
+    """Run an action with a specific user, or autonomously if user_email is empty."""
 
     # Resolve action -> scenario
     action = ACTION_CATALOG.get(request.scenario_id)
@@ -1124,6 +1123,36 @@ async def interactive_run(request: InteractiveRunRequest):
     agent_id = REGISTERED_AGENTS.get(request.agent_name)
     if not agent_id:
         raise HTTPException(status_code=400, detail=f"Agent '{request.agent_name}' not registered")
+
+    # Autonomous agent — no user, route to autonomous-run
+    if not request.user_email:
+        scenario = SCENARIOS.get(action["base_scenario"])
+        if not scenario:
+            raise HTTPException(status_code=500, detail=f"Scenario not found")
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(
+                "http://localhost:8000/agents/autonomous-run",
+                json={
+                    "agent_id": agent_id,
+                    "user_message": scenario["message"],
+                    "tool_inputs": scenario.get("tool_inputs", {}),
+                    "resource_context": scenario.get("resource_context", {}),
+                },
+                timeout=30.0,
+            )
+            result = resp.json()
+            return {
+                "scenario_id": action["base_scenario"],
+                "scenario": {
+                    "title": action["title"],
+                    "description": action["description"],
+                    "message": scenario.get("message", ""),
+                    "product": scenario.get("product", ""),
+                    "concepts": action["concepts"],
+                    "access_type": "agent",
+                },
+                **result,
+            }
 
     user_reg = REGISTERED_USERS.get(request.user_email)
     mock = MOCK_USERS.get(request.user_email, {})

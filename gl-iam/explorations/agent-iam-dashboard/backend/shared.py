@@ -28,24 +28,30 @@ AUDIT_STORE: list[dict] = []
 SDK_AUDIT_STORE: list[dict] = []
 
 
-def capture_sdk_event(event) -> None:
-    """Callback for GL-IAM SDK audit events. Stores in SDK_AUDIT_STORE."""
-    details = event.details if hasattr(event, "details") else {}
-    entry = {
-        "timestamp": event.timestamp.isoformat() if hasattr(event.timestamp, "isoformat") else str(event.timestamp),
-        "source": "sdk",
-        "service": "gl-iam",
-        "event": event.event_type.value if hasattr(event.event_type, "value") else str(event.event_type),
-        "severity": event.severity.value if hasattr(event.severity, "value") else str(event.severity),
-        "user_id": event.user_id,
-        "organization_id": event.organization_id,
-        "resource_id": event.resource_id,
-        "error_code": event.error_code,
-        "message": event.message,
-        "delegation_ref": details.get("delegation_ref", details.get("task_id", "")) if isinstance(details, dict) else "",
-        "details": details if isinstance(details, dict) else {},
-    }
-    SDK_AUDIT_STORE.append(entry)
+def make_sdk_event_capturer(service_name: str):
+    """Create a callback for GL-IAM SDK audit events tagged with the service name."""
+    def capture(event) -> None:
+        details = event.details if hasattr(event, "details") else {}
+        entry = {
+            "timestamp": event.timestamp.isoformat() if hasattr(event.timestamp, "isoformat") else str(event.timestamp),
+            "source": "sdk",
+            "service": f"gl-iam ({service_name})",
+            "event": event.event_type.value if hasattr(event.event_type, "value") else str(event.event_type),
+            "severity": event.severity.value if hasattr(event.severity, "value") else str(event.severity),
+            "user_id": event.user_id,
+            "organization_id": event.organization_id,
+            "resource_id": event.resource_id,
+            "error_code": event.error_code,
+            "message": event.message,
+            "delegation_ref": details.get("delegation_ref", details.get("task_id", "")) if isinstance(details, dict) else "",
+            "details": details if isinstance(details, dict) else {},
+        }
+        SDK_AUDIT_STORE.append(entry)
+    return capture
+
+
+# Keep backward compat alias
+capture_sdk_event = make_sdk_event_capturer("glchat")
 
 
 def audit_log(service: str, event: str, delegation_ref: str, **kwargs) -> dict:
