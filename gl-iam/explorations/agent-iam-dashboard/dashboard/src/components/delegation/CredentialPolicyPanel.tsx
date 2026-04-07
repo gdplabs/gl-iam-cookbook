@@ -128,7 +128,7 @@ export function CredentialPolicyPanel({ agentName }: CredentialPolicyPanelProps)
               </div>
               <p className="italic">
                 Resource constraints in the DelegationToken:
-                Admin gets <code className="text-foreground">agent_calendar_access: "*"</code>, <code className="text-foreground">agent_calendar_write_access: "*"</code>.
+                Admin gets <code className="text-foreground">target_whitelist: "*"</code>, <code className="text-foreground">write_whitelist: "*"</code>.
                 Member gets read: <code className="text-foreground">["onlee@gdplabs.id", "org:{'{user.tenant}'}"]</code> (dynamic based on user's org), write: <code className="text-foreground">["onlee@gdplabs.id"]</code> (Pak On only).
               </p>
             </div>

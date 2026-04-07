@@ -64,22 +64,22 @@ USER_ROLE_DB: dict[str, dict] = {}  # user_id -> {role, tenant, features, email,
 ROLE_SCOPES: dict[str, dict] = {
     "admin": {
         "scopes": [
-            "calendar:read", "calendar:write", "slack:post", "notion:read", "gmail:send",
-            "meemo:read", "meemo:write", "gdoc:read", "gdoc:write", "gdoc:share",
-            "invoice:send", "directory:lookup",
+            "google_calendar_events_list", "google_calendar_events_insert", "slack_send_message", "notion_get_page", "google_mail_send_email",
+            "meemo_get_meeting_details", "meemo_create_meeting_notes", "google_docs_get_document", "google_docs_create_document", "google_drive_share_file",
+            "invoice_send", "directory_lookup",
         ],
         "description": "Full access - all platform scopes",
     },
     "member": {
         "scopes": [
-            "calendar:read", "calendar:write", "notion:read",
-            "meemo:read", "meemo:write", "gdoc:read", "gdoc:write", "gdoc:share",
-            "gmail:send", "directory:lookup",
+            "google_calendar_events_list", "google_calendar_events_insert", "notion_get_page",
+            "meemo_get_meeting_details", "meemo_create_meeting_notes", "google_docs_get_document", "google_docs_create_document", "google_drive_share_file",
+            "google_mail_send_email", "directory_lookup",
         ],
         "description": "Standard access - no slack, no invoice by default",
     },
     "viewer": {
-        "scopes": ["calendar:read", "notion:read", "meemo:read", "gdoc:read", "directory:lookup"],
+        "scopes": ["google_calendar_events_list", "notion_get_page", "meemo_get_meeting_details", "google_docs_get_document", "directory_lookup"],
         "description": "Read-only access",
     },
 }
@@ -89,22 +89,22 @@ AGENT_CONFIGS = {
     "scheduling-agent": {
         "type": "orchestrator",
         "product": "glchat",
-        "allowed_scopes": ["calendar:read", "calendar:write", "slack:post", "notion:read", "directory:lookup"],
+        "allowed_scopes": ["google_calendar_events_list", "google_calendar_events_insert", "slack_send_message", "notion_get_page", "directory_lookup"],
         "tenant": "*",
     },
     "de-pm-agent": {
         "type": "orchestrator",
         "product": "de",
         "allowed_scopes": [
-            "meemo:read", "meemo:write", "gdoc:read", "gdoc:write", "gdoc:share",
-            "gmail:send", "calendar:read", "invoice:send",
+            "meemo_get_meeting_details", "meemo_create_meeting_notes", "google_docs_get_document", "google_docs_create_document", "google_drive_share_file",
+            "google_mail_send_email", "google_calendar_events_list", "invoice_send",
         ],
         "tenant": "*",
     },
     "weekly-report-agent": {
         "type": "autonomous",
         "product": "aip",
-        "allowed_scopes": ["gdoc:read", "gdoc:write", "gdoc:share", "gmail:send"],
+        "allowed_scopes": ["google_docs_get_document", "google_docs_create_document", "google_drive_share_file", "google_mail_send_email"],
         "tenant": "*",
     },
 }
@@ -112,27 +112,27 @@ AGENT_CONFIGS = {
 WORKER_CONFIGS = {
     "calendar-worker": {
         "type": "worker",
-        "allowed_scopes": ["calendar:read", "calendar:write"],
+        "allowed_scopes": ["google_calendar_events_list", "google_calendar_events_insert"],
     },
     "comms-worker": {
         "type": "worker",
-        "allowed_scopes": ["slack:post", "notion:read", "gmail:send"],
+        "allowed_scopes": ["slack_send_message", "notion_get_page", "google_mail_send_email"],
     },
     "meemo-worker": {
         "type": "worker",
-        "allowed_scopes": ["meemo:read", "meemo:write"],
+        "allowed_scopes": ["meemo_get_meeting_details", "meemo_create_meeting_notes"],
     },
     "gdoc-worker": {
         "type": "worker",
-        "allowed_scopes": ["gdoc:read", "gdoc:write", "gdoc:share"],
+        "allowed_scopes": ["google_docs_get_document", "google_docs_create_document", "google_drive_share_file"],
     },
     "invoice-worker": {
         "type": "worker",
-        "allowed_scopes": ["invoice:send", "gmail:send"],
+        "allowed_scopes": ["invoice_send", "google_mail_send_email"],
     },
     "directory-worker": {
         "type": "worker",
-        "allowed_scopes": ["directory:lookup"],
+        "allowed_scopes": ["directory_lookup"],
     },
 }
 
@@ -388,9 +388,9 @@ async def run_agent(
 
     # Feature-level scope gating: add feature-specific scopes
     user_features = user_info.get("features", [])
-    # If user doesn't have invoice:send feature, remove it from scopes
-    if "invoice:send" not in user_features and "invoice:send" in user_scopes:
-        user_scopes.remove("invoice:send")
+    # If user doesn't have invoice_send feature, remove it from scopes
+    if "invoice_send" not in user_features and "invoice_send" in user_scopes:
+        user_scopes.remove("invoice_send")
 
     # Apply role-based scope attenuation: intersection of user scopes and agent ceiling
     attenuated_scopes = [s for s in agent.allowed_scopes if s in user_scopes]
@@ -443,17 +443,19 @@ async def run_agent(
         "tenant_id": user_tenant,
         "user_email": user.email,
     }
-    # Agent calendar access constraint (role-based, org-dynamic)
+    # Resource constraints (role-based, org-dynamic)
+    # target_whitelist: who can the agent access ON BEHALF of this user (via Agent OAuth)?
+    # write_whitelist: who can the agent WRITE to on behalf of this user?
+    # Note: own resource (target == user_email) is ALWAYS allowed — no whitelist check needed.
     if role == "admin":
-        constraints["agent_calendar_access"] = "*"       # read: any calendar, any org
-        constraints["agent_calendar_write_access"] = "*"  # write: any calendar
+        constraints["target_whitelist"] = "*"           # read: any target, any org
+        constraints["write_whitelist"] = "*"            # write: any target
     elif role == "member":
-        # Dynamic: org constraint based on the user who triggered the agent
-        constraints["agent_calendar_access"] = ["onlee@gdplabs.id", f"org:{user_tenant}"]  # read: CEO + user's own org
-        constraints["agent_calendar_write_access"] = ["onlee@gdplabs.id"]                    # write: only Pak On
+        constraints["target_whitelist"] = ["onlee@gdplabs.id", f"org:{user_tenant}"]  # read: CEO + user's own org
+        constraints["write_whitelist"] = ["onlee@gdplabs.id"]                           # write: only Pak On
     else:
-        constraints["agent_calendar_access"] = ["onlee@gdplabs.id"]  # viewer/guest — only Pak On (read)
-        constraints["agent_calendar_write_access"] = []               # no write access
+        constraints["target_whitelist"] = ["onlee@gdplabs.id"]  # viewer/guest — only Pak On
+        constraints["write_whitelist"] = []                      # no write to others
 
     # Add scenario-specific resource constraints
     if resource_context.get("target_calendar"):

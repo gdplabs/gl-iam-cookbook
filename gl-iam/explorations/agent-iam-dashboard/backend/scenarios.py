@@ -57,7 +57,7 @@ SCENARIOS: dict[str, dict] = {
         "resource_context": {
             "target_calendar": "onlee@gdplabs.id",
             "access_type": "agent",
-            "agent_calendar_access": "*",
+            "target_whitelist": "*",
         },
         "expected_outcome": "success",
         "brd_refs": ["BR-DA-04", "BR-AP-01", "BR-RB-06"],
@@ -74,7 +74,7 @@ SCENARIOS: dict[str, dict] = {
         "resource_context": {
             "target_calendar": "onlee@gdplabs.id",
             "access_type": "agent",
-            "agent_calendar_access": ["onlee@gdplabs.id", "org:GLC"],
+            "target_whitelist": ["onlee@gdplabs.id", "org:GLC"],
         },
         "expected_outcome": "success",
         "brd_refs": ["BR-DA-04", "BR-RB-06"],
@@ -92,7 +92,7 @@ SCENARIOS: dict[str, dict] = {
         "resource_context": {
             "target_calendar": "sandy@gdplabs.id",
             "access_type": "agent",
-            "agent_calendar_access": "*",
+            "target_whitelist": "*",
         },
         "expected_outcome": "success",
         "brd_refs": ["BR-DA-04", "BR-RB-06"],
@@ -109,7 +109,7 @@ SCENARIOS: dict[str, dict] = {
         "resource_context": {
             "target_calendar": "sandy@gdplabs.id",
             "access_type": "agent",
-            "agent_calendar_access": ["onlee@gdplabs.id", "org:GLC"],
+            "target_whitelist": ["onlee@gdplabs.id", "org:GLC"],
         },
         "expected_outcome": "success",
         "brd_refs": ["BR-DA-04", "BR-RB-06"],
@@ -127,7 +127,7 @@ SCENARIOS: dict[str, dict] = {
         "resource_context": {
             "target_calendar": "petry@gdplabs.id",
             "access_type": "agent",
-            "agent_calendar_access": "*",
+            "target_whitelist": "*",
         },
         "expected_outcome": "success",
         "brd_refs": ["BR-DA-04", "BR-RB-06", "BR-RB-07"],
@@ -144,7 +144,7 @@ SCENARIOS: dict[str, dict] = {
         "resource_context": {
             "target_calendar": "petry@gdplabs.id",
             "access_type": "agent",
-            "agent_calendar_access": ["onlee@gdplabs.id", "org:GLC"],
+            "target_whitelist": ["onlee@gdplabs.id", "org:GLC"],
         },
         "expected_outcome": "rejected",
         "brd_refs": ["BR-RB-06", "BR-RB-07"],
@@ -455,7 +455,7 @@ SCENARIOS: dict[str, dict] = {
     "UC-DE-06.1": {
         "product": "de",
         "title": "Send Invoice - GLC PM (success)",
-        "description": "GLC PM has invoice:send feature entitlement. Invoice sent.",
+        "description": "GLC PM has invoice_send feature entitlement. Invoice sent.",
         "user_email": "glc-pm@gdplabs.id",
         "agent": "de-pm-agent",
         "message": "Send all AWS invoices April 2026",
@@ -472,7 +472,7 @@ SCENARIOS: dict[str, dict] = {
     "UC-DE-06.2": {
         "product": "de",
         "title": "Send Invoice - Other PM (rejected)",
-        "description": "Other Team PM does NOT have invoice:send. Request rejected.",
+        "description": "Other Team PM does NOT have invoice_send. Request rejected.",
         "user_email": "other-pm@gdplabs.id",
         "agent": "de-pm-agent",
         "message": "Send all AWS invoices April 2026",

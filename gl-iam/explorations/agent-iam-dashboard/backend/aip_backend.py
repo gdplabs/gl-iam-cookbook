@@ -45,63 +45,63 @@ CONNECTORS_URL = os.getenv("CONNECTORS_URL", "http://localhost:8002")
 # =============================================================================
 TOOL_REGISTRY: dict[str, dict] = {
     # GLChat tools
-    "calendar:read": {
+    "google_calendar_events_list": {
         "tool": "google_calendar_events_list",
         "description": "List upcoming calendar events",
         "endpoint": "/tools/google_calendar_events_list",
     },
-    "calendar:write": {
+    "google_calendar_events_insert": {
         "tool": "google_calendar_events_insert",
         "description": "Create a new calendar event",
         "endpoint": "/tools/google_calendar_events_insert",
     },
-    "slack:post": {
+    "slack_send_message": {
         "tool": "slack_send_message",
         "description": "Post a message to Slack",
         "endpoint": "/tools/slack_send_message",
     },
-    "notion:read": {
+    "notion_get_page": {
         "tool": "notion_get_page",
         "description": "Read a Notion page",
         "endpoint": "/tools/notion_get_page",
     },
-    "gmail:send": {
+    "google_mail_send_email": {
         "tool": "google_mail_send_email",
         "description": "Send an email via Gmail",
         "endpoint": "/tools/google_mail_send_email",
     },
     # DE tools
-    "meemo:write": {
+    "meemo_create_meeting_notes": {
         "tool": "meemo_create_meeting_notes",
         "description": "Create MoM on Meemo",
         "endpoint": "/tools/meemo_create_meeting_notes",
     },
-    "meemo:read": {
+    "meemo_get_meeting_details": {
         "tool": "meemo_get_meeting_details",
         "description": "Read MoM from Meemo",
         "endpoint": "/tools/meemo_get_meeting_details",
     },
-    "gdoc:write": {
+    "google_docs_create_document": {
         "tool": "google_docs_create_document",
         "description": "Create a Google Doc",
         "endpoint": "/tools/google_docs_create_document",
     },
-    "gdoc:read": {
+    "google_docs_get_document": {
         "tool": "google_docs_get_document",
         "description": "Read a Google Doc",
         "endpoint": "/tools/google_docs_get_document",
     },
-    "gdoc:share": {
+    "google_drive_share_file": {
         "tool": "google_drive_share_file",
         "description": "Share a Google Doc",
         "endpoint": "/tools/google_drive_share_file",
     },
-    "invoice:send": {
+    "invoice_send": {
         "tool": "invoice_send",
         "description": "Send an invoice",
         "endpoint": "/tools/invoice_send",
     },
-    "directory:lookup": {
+    "directory_lookup": {
         "tool": "directory_lookup",
         "description": "Look up a person's email by name",
         "endpoint": "/tools/directory_lookup",
@@ -114,32 +114,32 @@ TOOL_REGISTRY: dict[str, dict] = {
 WORKER_REGISTRY: dict[str, dict] = {
     "calendar-worker": {
         "type": "worker",
-        "scopes": ["calendar:read", "calendar:write"],
+        "scopes": ["google_calendar_events_list", "google_calendar_events_insert"],
         "tools": ["google_calendar_events_list", "google_calendar_events_insert"],
     },
     "comms-worker": {
         "type": "worker",
-        "scopes": ["slack:post", "notion:read", "gmail:send"],
+        "scopes": ["slack_send_message", "notion_get_page", "google_mail_send_email"],
         "tools": ["slack_send_message", "notion_get_page", "google_mail_send_email"],
     },
     "meemo-worker": {
         "type": "worker",
-        "scopes": ["meemo:read", "meemo:write"],
+        "scopes": ["meemo_get_meeting_details", "meemo_create_meeting_notes"],
         "tools": ["meemo_create_meeting_notes", "meemo_get_meeting_details"],
     },
     "gdoc-worker": {
         "type": "worker",
-        "scopes": ["gdoc:read", "gdoc:write", "gdoc:share"],
+        "scopes": ["google_docs_get_document", "google_docs_create_document", "google_drive_share_file"],
         "tools": ["google_docs_create_document", "google_docs_get_document", "google_drive_share_file"],
     },
     "invoice-worker": {
         "type": "worker",
-        "scopes": ["invoice:send", "gmail:send"],
+        "scopes": ["invoice_send", "google_mail_send_email"],
         "tools": ["invoice_send", "google_mail_send_email"],
     },
     "directory-worker": {
         "type": "worker",
-        "scopes": ["directory:lookup"],
+        "scopes": ["directory_lookup"],
         "tools": ["directory_lookup"],
     },
 }
@@ -206,103 +206,108 @@ def _check_agent_resource_policy(
 ) -> str | None:
     """Agent-level policy guard rail for resource constraints.
 
-    This simulates the policy logic that a DE/GLChat agent would implement
-    in its own code (LangGraph tool wrapper, guard rail node, etc.).
+    Decision tree:
+      1. target == self? → ALWAYS ALLOWED (User OAuth, no constraint check)
+      2. target in target_whitelist? → ALLOWED (Agent OAuth)
+      3. target NOT in whitelist? → DENIED
 
     Returns an error message if the tool call should be blocked, None if OK.
     """
     from mock_data import USERS
 
-    # Calendar read: check agent_calendar_access
-    if tool_name == "google_calendar_events_list":
-        # Target can be in resource_context or tool_input (LLM resolves it from the prompt)
-        target = resource_context.get("target_calendar", "") or tool_input.get("target_calendar", "")
-        access_type = resource_context.get("access_type", "user")
-        access_constraint = parent_constraints.get("agent_calendar_access")
-        user_role = resource_context.get("_user_role", "")
+    user_email = parent_constraints.get("user_email", "")
+    user_role = resource_context.get("_user_role", "")
+    target_whitelist = parent_constraints.get("target_whitelist",
+                       parent_constraints.get("agent_calendar_access"))
+    write_whitelist = parent_constraints.get("write_whitelist",
+                      parent_constraints.get("agent_calendar_write_access"))
 
-        # Guest accessing own calendar → needs User OAuth (no user logged in)
-        if access_type == "user" and user_role == "viewer":
+    # Calendar read
+    if tool_name == "google_calendar_events_list":
+        target = resource_context.get("target_calendar", "") or tool_input.get("target_calendar", "")
+
+        # Step 1: target == self? → User OAuth, always allowed
+        if target and user_email and target.lower() == user_email.lower():
+            return None  # Own resource — always allowed
+
+        # Step 1b: Guest accessing "my" calendar → needs User OAuth but not logged in
+        if not target or (resource_context.get("access_type") == "user" and user_role == "viewer"):
             return (
                 "This action requires your personal OAuth credentials to access your own resources, "
-                "but you are not logged in. Please log in to use google_calendar_events_list."
+                "but you are not logged in. Please log in to access your calendar."
             )
 
-        # Agent OAuth: check resource constraint whitelist
-        if access_type == "agent" and access_constraint is not None:
-            if access_constraint == "*":
-                return None  # Admin wildcard
-            if isinstance(access_constraint, list) and target:
-                allowed = False
-                for pattern in access_constraint:
-                    if pattern.startswith("org:"):
-                        org_id = pattern.split(":", 1)[1]
-                        target_user = USERS.get(target, {})
-                        if target_user.get("tenant") == org_id:
-                            allowed = True
-                            break
-                    elif target == pattern:
-                        allowed = True
-                        break
-                if not allowed:
-                    target_user = USERS.get(target, {})
-                    target_org = target_user.get("tenant", "unknown")
-                    constraint_display = ", ".join(str(p) for p in access_constraint)
-                    return (
-                        f"Resource constraint violation: {target} (org: {target_org}) "
-                        f"is outside your allowed resources. "
-                        f"DelegationToken.resource_constraints.agent_calendar_access = [{constraint_display}]. "
-                        f"The Agent OAuth can access cross-org, but your delegation policy restricts it."
-                    )
+        # Step 2: target in target_whitelist? → Agent OAuth
+        if target_whitelist is not None:
+            if target_whitelist == "*":
+                return None  # Admin wildcard — any target
+            if isinstance(target_whitelist, list):
+                if _is_in_whitelist(target, target_whitelist):
+                    return None  # Target in whitelist — allowed via Agent OAuth
+                # Step 3: NOT in whitelist → DENIED
+                target_user = USERS.get(target, {})
+                target_org = target_user.get("tenant", "unknown")
+                constraint_display = ", ".join(str(p) for p in target_whitelist)
+                return (
+                    f"Resource constraint violation: {target} (org: {target_org}) "
+                    f"is outside your allowed resources. "
+                    f"DelegationToken.resource_constraints.target_whitelist = [{constraint_display}]. "
+                    f"The Agent OAuth can access cross-org, but your delegation policy restricts it."
+                )
         return None
 
-    # Calendar write: check agent_calendar_write_access
+    # Calendar write
     if tool_name == "google_calendar_events_insert":
-        target = tool_input.get("target_calendar", "")
-        user_email = parent_constraints.get("user_email", "")
+        target = tool_input.get("target_calendar", "") or resource_context.get("target_calendar", "")
 
-        # Guest accessing own calendar write → needs User OAuth
-        user_role = resource_context.get("_user_role", "")
-        if resource_context.get("access_type") == "user" and user_role == "viewer":
+        # Step 1: target == self? → User OAuth, always allowed (own calendar write)
+        if target and user_email and target.lower() == user_email.lower():
+            return None  # Own resource — always allowed
+
+        # Step 1b: Guest → needs User OAuth but not logged in
+        if user_role == "viewer":
             return (
                 "This action requires your personal OAuth credentials, "
                 "but you are not logged in. Please log in to create calendar events."
             )
 
-        # Writing to others: check write constraint
+        # Step 2: Writing to others → check write_whitelist
         if target and user_email and target.lower() != user_email.lower():
-            write_constraint = parent_constraints.get("agent_calendar_write_access")
-            if write_constraint is None or write_constraint == []:
+            if write_whitelist is None or write_whitelist == []:
                 return (
                     f"Resource constraint violation: no write access to others' calendars. "
-                    f"DelegationToken.resource_constraints.agent_calendar_write_access is empty."
+                    f"DelegationToken.resource_constraints.write_whitelist is empty."
                 )
-            if write_constraint == "*":
+            if write_whitelist == "*":
                 return None  # Admin wildcard
-            if isinstance(write_constraint, list):
-                allowed = False
-                for pattern in write_constraint:
-                    if pattern.startswith("org:"):
-                        org_id = pattern.split(":", 1)[1]
-                        target_user = USERS.get(target, {})
-                        if target_user.get("tenant") == org_id:
-                            allowed = True
-                            break
-                    elif target == pattern:
-                        allowed = True
-                        break
-                if not allowed:
-                    target_user = USERS.get(target, {})
-                    target_org = target_user.get("tenant", "unknown")
-                    constraint_display = ", ".join(str(p) for p in write_constraint)
-                    return (
-                        f"Resource constraint violation: cannot write to {target} (org: {target_org}). "
-                        f"DelegationToken.resource_constraints.agent_calendar_write_access = [{constraint_display}]. "
-                        f"The Agent OAuth can write cross-org, but your delegation policy restricts it."
-                    )
+            if isinstance(write_whitelist, list):
+                if _is_in_whitelist(target, write_whitelist):
+                    return None  # Target in write whitelist — allowed
+                target_user = USERS.get(target, {})
+                target_org = target_user.get("tenant", "unknown")
+                constraint_display = ", ".join(str(p) for p in write_whitelist)
+                return (
+                    f"Resource constraint violation: cannot write to {target} (org: {target_org}). "
+                    f"DelegationToken.resource_constraints.write_whitelist = [{constraint_display}]. "
+                    f"The Agent OAuth can write cross-org, but your delegation policy restricts it."
+                )
         return None
 
     return None  # No policy check for other tools
+
+
+def _is_in_whitelist(target: str, whitelist: list) -> bool:
+    """Check if a target is in a whitelist (supports exact match + org: pattern)."""
+    from mock_data import USERS
+    for pattern in whitelist:
+        if pattern.startswith("org:"):
+            org_id = pattern.split(":", 1)[1]
+            target_user = USERS.get(target, {})
+            if target_user.get("tenant") == org_id:
+                return True
+        elif target == pattern:
+            return True
+    return False
 
 
 async def _ensure_worker_ids():

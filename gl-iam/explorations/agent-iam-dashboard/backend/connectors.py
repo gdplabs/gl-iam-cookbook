@@ -128,7 +128,7 @@ def check_user_oauth_required(request_input: dict, tool_name: str) -> str | None
 async def calendar_list_events(
     request: ToolRequest,
     agent: AgentIdentity = Depends(get_current_agent),
-    _: None = Depends(require_agent_scope("calendar:read")),
+    _: None = Depends(require_agent_scope("google_calendar_events_list")),
     token: DelegationToken = Depends(get_delegation_token),
 ):
     ref = get_delegation_ref(token)
@@ -151,7 +151,7 @@ async def calendar_list_events(
 async def calendar_create_event(
     request: ToolRequest,
     agent: AgentIdentity = Depends(get_current_agent),
-    _: None = Depends(require_agent_scope("calendar:write")),
+    _: None = Depends(require_agent_scope("google_calendar_events_insert")),
     token: DelegationToken = Depends(get_delegation_token),
 ):
     ref = get_delegation_ref(token)
@@ -177,7 +177,7 @@ async def calendar_create_event(
 async def slack_post_message(
     request: ToolRequest,
     agent: AgentIdentity = Depends(get_current_agent),
-    _: None = Depends(require_agent_scope("slack:post")),
+    _: None = Depends(require_agent_scope("slack_send_message")),
     token: DelegationToken = Depends(get_delegation_token),
 ):
     ref = get_delegation_ref(token)
@@ -196,7 +196,7 @@ async def slack_post_message(
 async def notion_get_page(
     request: ToolRequest,
     agent: AgentIdentity = Depends(get_current_agent),
-    _: None = Depends(require_agent_scope("notion:read")),
+    _: None = Depends(require_agent_scope("notion_get_page")),
     token: DelegationToken = Depends(get_delegation_token),
 ):
     ref = get_delegation_ref(token)
@@ -214,7 +214,7 @@ async def notion_get_page(
 async def gmail_send(
     request: ToolRequest,
     agent: AgentIdentity = Depends(get_current_agent),
-    _: None = Depends(require_agent_scope("gmail:send")),
+    _: None = Depends(require_agent_scope("google_mail_send_email")),
     token: DelegationToken = Depends(get_delegation_token),
 ):
     ref = get_delegation_ref(token)
@@ -250,7 +250,7 @@ async def gmail_send(
 async def meemo_create_mom(
     request: ToolRequest,
     agent: AgentIdentity = Depends(get_current_agent),
-    _: None = Depends(require_agent_scope("meemo:write")),
+    _: None = Depends(require_agent_scope("meemo_create_meeting_notes")),
     token: DelegationToken = Depends(get_delegation_token),
 ):
     ref = get_delegation_ref(token)
@@ -290,7 +290,7 @@ async def meemo_create_mom(
 async def meemo_read_mom(
     request: ToolRequest,
     agent: AgentIdentity = Depends(get_current_agent),
-    _: None = Depends(require_agent_scope("meemo:read")),
+    _: None = Depends(require_agent_scope("meemo_get_meeting_details")),
     token: DelegationToken = Depends(get_delegation_token),
 ):
     ref = get_delegation_ref(token)
@@ -361,7 +361,7 @@ async def meemo_read_mom(
 async def gdoc_create(
     request: ToolRequest,
     agent: AgentIdentity = Depends(get_current_agent),
-    _: None = Depends(require_agent_scope("gdoc:write")),
+    _: None = Depends(require_agent_scope("google_docs_create_document")),
     token: DelegationToken = Depends(get_delegation_token),
 ):
     ref = get_delegation_ref(token)
@@ -383,7 +383,7 @@ async def gdoc_create(
 async def gdoc_read(
     request: ToolRequest,
     agent: AgentIdentity = Depends(get_current_agent),
-    _: None = Depends(require_agent_scope("gdoc:read")),
+    _: None = Depends(require_agent_scope("google_docs_get_document")),
     token: DelegationToken = Depends(get_delegation_token),
 ):
     ref = get_delegation_ref(token)
@@ -418,7 +418,7 @@ async def gdoc_read(
 async def gdoc_share(
     request: ToolRequest,
     agent: AgentIdentity = Depends(get_current_agent),
-    _: None = Depends(require_agent_scope("gdoc:share")),
+    _: None = Depends(require_agent_scope("google_drive_share_file")),
     token: DelegationToken = Depends(get_delegation_token),
 ):
     ref = get_delegation_ref(token)
@@ -499,7 +499,7 @@ async def gdoc_share(
 async def invoice_send(
     request: ToolRequest,
     agent: AgentIdentity = Depends(get_current_agent),
-    _: None = Depends(require_agent_scope("invoice:send")),
+    _: None = Depends(require_agent_scope("invoice_send")),
     token: DelegationToken = Depends(get_delegation_token),
 ):
     ref = get_delegation_ref(token)
@@ -531,7 +531,7 @@ async def invoice_send(
 async def directory_lookup(
     request: ToolRequest,
     agent: AgentIdentity = Depends(get_current_agent),
-    _: None = Depends(require_agent_scope("directory:lookup")),
+    _: None = Depends(require_agent_scope("directory_lookup")),
     token: DelegationToken = Depends(get_delegation_token),
 ):
     """Look up a person's email address by name. Always uses Agent OAuth

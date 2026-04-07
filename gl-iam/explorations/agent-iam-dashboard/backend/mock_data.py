@@ -23,7 +23,7 @@ USERS = {
         "tenant": "GLC",
         "role": "admin",
         "active": True,
-        "features": ["invoice:send"],
+        "features": ["invoice_send"],
         "is_super_user": False,
     },
     "guest@gdplabs.id": {
@@ -64,7 +64,7 @@ USERS = {
         "tenant": "GLC",
         "role": "member",
         "active": True,
-        "features": ["invoice:send"],
+        "features": ["invoice_send"],
         "is_super_user": False,
     },
     "other-pm@gdplabs.id": {
@@ -72,7 +72,7 @@ USERS = {
         "tenant": "GLC",
         "role": "member",
         "active": True,
-        "features": [],  # NO invoice:send
+        "features": [],  # NO invoice_send
         "is_super_user": False,
     },
     # Deactivated user (for UC-GLCHAT-03.2)

@@ -92,18 +92,18 @@ function buildDecisionSteps(result: ScenarioRunResult): DecisionStep[] {
           value: `${friendlyName} → NOT available for ${user?.role ?? "this"} role`,
           passed: false,
           detail: `The ${bt.tool} tool requires a feature entitlement that is configured per-user, not per-role. ` +
-            `Admin (Pak On) has "invoice:send" feature. Member (Maylina) does not. ` +
+            `Admin (Pak On) has "invoice_send" feature. Member (Maylina) does not. ` +
             `This is enforced at ABAC scope attenuation — the scope is removed before delegation.`,
         });
       }
-    } else if (user?.role === "admin" && aip.effective_scopes?.includes("invoice:send")) {
+    } else if (user?.role === "admin" && aip.effective_scopes?.includes("invoice_send")) {
       // Admin has the feature — show it as passed
       const scenarioTitle = result.scenario?.title ?? "";
       if (scenarioTitle.toLowerCase().includes("invoice")) {
         steps.push({
           label: "Feature-Level Access Control",
-          check: 'Does user have "invoice:send" feature entitlement?',
-          value: "Admin (Pak On) has invoice:send feature → GRANTED",
+          check: 'Does user have "invoice_send" feature entitlement?',
+          value: "Admin (Pak On) has invoice_send feature → GRANTED",
           passed: true,
           detail: "Feature entitlements are per-user config, checked at ABAC before delegation token creation.",
         });
@@ -123,10 +123,10 @@ function buildDecisionSteps(result: ScenarioRunResult): DecisionStep[] {
     // Get resource constraints from delegation token
     // Try to extract constraints from the result
     const constraints = result.abac ? {
-      agent_calendar_access: result.user?.role === "admin" ? "*"
+      target_whitelist: result.user?.role === "admin" ? "*"
         : result.user?.role === "member" ? '["onlee@gdplabs.id", "org:GLC"]'
         : '["onlee@gdplabs.id"]',
-      agent_calendar_write_access: result.user?.role === "admin" ? "*"
+      write_whitelist: result.user?.role === "admin" ? "*"
         : result.user?.role === "member" ? '["onlee@gdplabs.id"]'
         : "[]",
     } : null;
@@ -136,7 +136,7 @@ function buildDecisionSteps(result: ScenarioRunResult): DecisionStep[] {
         const toolName = pr.step.includes("→") ? pr.step.split("→")[1] : pr.step;
         steps.push({
           label: "Resource Constraint (Agent Worker Policy)",
-          check: `Is target allowed by agent_calendar_access?`,
+          check: `Is target allowed by target_whitelist?`,
           value: `${toolName} → DENIED by policy`,
           passed: false,
           detail: pr.error,
@@ -152,7 +152,7 @@ function buildDecisionSteps(result: ScenarioRunResult): DecisionStep[] {
         value: `${toolNames} → PASSED`,
         passed: true,
         detail: constraints
-          ? `Constraints: agent_calendar_access = ${constraints.agent_calendar_access}`
+          ? `Constraints: target_whitelist = ${constraints.target_whitelist}`
           : undefined,
       });
     }
