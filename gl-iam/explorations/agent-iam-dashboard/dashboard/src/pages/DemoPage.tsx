@@ -4,6 +4,8 @@ import { ScenarioBuilder } from "@/components/scenario/ScenarioBuilder";
 import { DelegationFlow } from "@/components/delegation/DelegationFlow";
 import { ScopeAttenuationTable } from "@/components/delegation/ScopeAttenuationTable";
 import { CredentialPolicyPanel } from "@/components/delegation/CredentialPolicyPanel";
+import { AgentConfigPanel } from "@/components/delegation/AgentConfigPanel";
+import { EnforcementMatrix } from "@/components/delegation/EnforcementMatrix";
 import { PolicyDecisionTrace } from "@/components/delegation/PolicyDecisionTrace";
 import { ChatSimulation } from "@/components/results/ChatSimulation";
 import { ExecutionLog } from "@/components/results/ExecutionLog";
@@ -88,6 +90,18 @@ export function DemoPage({
               <DelegationFlow result={currentResult} />
               <Separator />
               <ScopeAttenuationTable result={currentResult} />
+
+              <Separator />
+              <AgentConfigPanel
+                agentName={
+                  currentResult.aip_response?.delegation_chain
+                    .find((e) => e.depth === 2)
+                    ?.agent_id?.split(":").pop()
+                }
+              />
+
+              <Separator />
+              <EnforcementMatrix result={currentResult} />
 
               <Separator />
               <PolicyDecisionTrace result={currentResult} />

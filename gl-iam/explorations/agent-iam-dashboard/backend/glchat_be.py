@@ -457,11 +457,9 @@ async def run_agent(
         constraints["target_whitelist"] = ["onlee@gdplabs.id"]  # viewer/guest — only Pak On
         constraints["write_whitelist"] = []                      # no write to others
 
-    # Add scenario-specific resource constraints
-    if resource_context.get("target_calendar"):
-        constraints["target_calendar"] = resource_context["target_calendar"]
-    # Note: write_to_others is detected at tool level by comparing
-    # target_calendar vs user_email — not set as a constraint here
+    # Note: target_calendar is NOT in the DelegationToken — it's only known
+    # after the LLM calls directory_lookup to resolve the name.
+    # The token carries the RULES (target_whitelist), not the TARGETS.
 
     # User features (for feature-level scope)
     if user_features:

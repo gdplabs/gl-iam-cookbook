@@ -92,14 +92,23 @@ export function ScopeAttenuationTable({ result }: ScopeAttenuationTableProps) {
   const aip = result.aip_response;
   if (!aip || aip.delegation_chain.length === 0) return null;
 
-  // Add user scopes as d1
+  // Add user scopes as d1 and agent ceiling
   const userScopes = result.abac?.user_scopes;
+  const agentCeiling = result.abac?.agent_ceiling;
   const byDepth = collectScopesByDepth(aip.delegation_chain);
   if (userScopes) {
     byDepth[1] = new Set(userScopes);
   }
+  const agentCeilingSet = new Set(agentCeiling ?? []);
 
+  // Include agent ceiling scopes in the all-scopes list
   const allScopes = collectAllScopes(aip.delegation_chain, userScopes);
+  if (agentCeiling) {
+    for (const s of agentCeiling) {
+      if (!allScopes.includes(s)) allScopes.push(s);
+    }
+    allScopes.sort();
+  }
   const maxDepthPresent = Math.max(...aip.delegation_chain.map((e) => e.depth));
 
   // Extract agent name, user role, and access_type for credential routing
@@ -123,7 +132,8 @@ export function ScopeAttenuationTable({ result }: ScopeAttenuationTableProps) {
                 <tr className="border-b border-border text-muted-foreground">
                   <th className="py-1.5 pr-4 text-left font-medium">Scope</th>
                   <th className="px-2 py-1.5 text-center font-medium">d1 User</th>
-                  <th className="px-2 py-1.5 text-center font-medium">d2 Agent</th>
+                  <th className="px-2 py-1.5 text-center font-medium text-amber-400/70">Agent Ceiling</th>
+                  <th className="px-2 py-1.5 text-center font-medium">d2 Agent<br/><span className="text-[8px] font-normal text-muted-foreground">(intersection)</span></th>
                   <th className="px-2 py-1.5 text-center font-medium">d3 Worker</th>
                   <th className="px-2 py-1.5 text-center font-medium">d4 Tool</th>
                   <th className="px-2 py-1.5 text-center font-medium">Credential</th>
@@ -136,11 +146,26 @@ export function ScopeAttenuationTable({ result }: ScopeAttenuationTableProps) {
                   return (
                     <tr key={scope} className="border-b border-border/50">
                       <td className="py-1.5 pr-4 font-mono">{scope}</td>
-                      {[1, 2, 3, 4].map((d) => (
+                      {/* d1 User */}
+                      <td className="px-2 py-1.5 text-center">
+                        <ScopeCell
+                          present={byDepth[1]?.has(scope) ?? false}
+                          applicable={!!userScopes}
+                        />
+                      </td>
+                      {/* Agent Ceiling */}
+                      <td className="px-2 py-1.5 text-center">
+                        <ScopeCell
+                          present={agentCeilingSet.has(scope)}
+                          applicable={agentCeilingSet.size > 0}
+                        />
+                      </td>
+                      {/* d2 Agent (intersection), d3 Worker, d4 Tool */}
+                      {[2, 3, 4].map((d) => (
                         <td key={d} className="px-2 py-1.5 text-center">
                           <ScopeCell
                             present={byDepth[d]?.has(scope) ?? false}
-                            applicable={d <= maxDepthPresent || (d === 1 && !!userScopes)}
+                            applicable={d <= maxDepthPresent}
                           />
                         </td>
                       ))}
