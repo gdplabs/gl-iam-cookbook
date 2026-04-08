@@ -455,10 +455,11 @@ async def run_agent(
     delegation_chain = []
     execution_log = []
 
-    # d2: orchestrator
+    # d2: orchestrator — use agent name from ID (e.g., "agent:org-dashboard:scheduling-agent" → "scheduling-agent")
+    agent_display_name = agent_id.split(":")[-1] if ":" in agent_id else agent_id
     delegation_chain.append({
         "depth": 2,
-        "label": "orchestrator",
+        "label": agent_display_name,
         "agent_id": agent_id,
         "scopes": sorted(effective_scopes),
         "token": token.token,
