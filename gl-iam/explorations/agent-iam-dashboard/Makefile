@@ -114,6 +114,21 @@ reset-db:
 
 start: run
 
+start-dashboard:
+	cd dashboard && npm run dev
+
+start-services:
+	@echo "Starting 3 backend services in background..."
+	cd backend && uv run python glchat_be.py > /tmp/glchat_be.log 2>&1 &
+	@sleep 3
+	cd backend && uv run python aip_backend.py > /tmp/aip_backend.log 2>&1 &
+	@sleep 2
+	cd backend && uv run python connectors.py > /tmp/connectors.log 2>&1 &
+	@sleep 2
+	@echo "  🔵 GLChat BE        → http://localhost:8000"
+	@echo "  🟣 AIP Backend      → http://localhost:8001"
+	@echo "  🟢 GL Connectors    → http://localhost:8002"
+
 stop:
 	@echo "Stopping services..."
 	@pkill -f "python glchat_be.py" 2>/dev/null || true
