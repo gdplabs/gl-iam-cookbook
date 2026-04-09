@@ -21,11 +21,13 @@ from pydantic import BaseModel
 from gl_iam import (
     AgentRegistration,
     AgentType,
-    AuditEvent,
+    ConsoleAuditHandler,
     DelegationScope,
     IAMGateway,
     TaskContext,
     User,
+    set_audit_context,
+    clear_audit_context,
 )
 from gl_iam.core.types import PasswordCredentials, UserCreateInput
 from gl_iam.fastapi import (
@@ -36,25 +38,6 @@ from gl_iam.fastapi import (
 from gl_iam.providers.postgresql import PostgreSQLConfig, PostgreSQLProvider
 
 load_dotenv()
-
-
-# ============================================================================
-# Audit Log
-# ============================================================================
-audit_log: list[dict] = []
-
-
-def audit_callback(event: AuditEvent):
-    """Capture audit events into an in-memory log."""
-    audit_log.append(
-        {
-            "event_type": event.event_type.value,
-            "resource_id": event.resource_id,
-            "severity": event.severity.value,
-            "timestamp": event.timestamp.isoformat(),
-            "details": event.details,
-        }
-    )
 
 
 # ============================================================================
@@ -84,13 +67,16 @@ async def lifespan(app: FastAPI):
         default_org_id=default_org_id,
     )
     provider = PostgreSQLProvider(config)
+    # Use ConsoleAuditHandler for structured JSON audit logging.
+    # Note: from_fullstack_provider() does not accept audit_handlers,
+    # so we use the explicit IAMGateway constructor.
     gateway = IAMGateway(
         auth_provider=provider,
         user_store=provider,
         session_provider=provider,
         organization_provider=provider,
         agent_provider=provider,
-        audit_callback=audit_callback,
+        audit_handlers=[ConsoleAuditHandler()],
     )
     set_iam_gateway(gateway, default_organization_id=default_org_id)
 
@@ -104,6 +90,22 @@ app = FastAPI(
     description="GL-IAM Agent Lifecycle Management",
     lifespan=lifespan,
 )
+
+
+# ============================================================================
+# Audit Context Middleware
+# ============================================================================
+@app.middleware("http")
+async def audit_context_middleware(request, call_next):
+    """Attach request IP and user agent to all audit events automatically."""
+    set_audit_context(
+        ip_address=request.client.host if request.client else None,
+        user_agent=request.headers.get("user-agent"),
+    )
+    try:
+        return await call_next(request)
+    finally:
+        clear_audit_context()
 
 
 # ============================================================================
@@ -379,14 +381,22 @@ async def delegate(
 
 
 # ============================================================================
-# Audit Log Endpoint
+# Audit Log Info
 # ============================================================================
 @app.get("/audit-log")
 async def get_audit_log(user: User = Depends(get_current_user)):
-    """Return captured audit events."""
+    """Audit log info.
+
+    This example uses ConsoleAuditHandler which logs events to stdout.
+    Check the terminal output for structured JSON audit events.
+
+    For queryable database-backed audit logs, see the audit-trail-fastapi
+    cookbook example which demonstrates DatabaseAuditHandler with filters.
+    """
     return {
-        "events": audit_log,
-        "total": len(audit_log),
+        "message": "Audit events are logged to console (stdout). Check terminal output.",
+        "handler": "ConsoleAuditHandler",
+        "tip": "See the audit-trail-fastapi example for database-backed audit with query filters.",
     }
 
 

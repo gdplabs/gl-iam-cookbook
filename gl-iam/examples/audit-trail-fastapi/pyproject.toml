@@ -1,7 +1,7 @@
 [project]
-name = "agent-lifecycle"
+name = "audit-trail-fastapi"
 version = "0.0.0"
-description = "GL-IAM Agent Lifecycle Management with FastAPI"
+description = "GL-IAM Audit Trail with FastAPI — Production Setup"
 requires-python = ">=3.11,<3.14"
 readme = "README.md"
 dependencies = [

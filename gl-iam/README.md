@@ -62,10 +62,16 @@ Each Django example demonstrates three view patterns:
 | [agent-delegation-django](examples/agent-delegation-django/) | Core agent delegation with Django | FBV, CBV, and DRF patterns for agent endpoints |
 | [agent-delegation-chain](examples/agent-delegation-chain/) | Multi-hop delegation chains | Scope narrowing, chain inspection, orchestrator→worker delegation |
 | [agent-scope-constraints](examples/agent-scope-constraints/) | Resource constraint validators | String equality, set subset, numeric LTE constraints |
-| [agent-lifecycle](examples/agent-lifecycle/) | Agent suspend, revoke & audit | Lifecycle management, audit event capture |
+| [agent-lifecycle](examples/agent-lifecycle/) | Agent suspend, revoke & audit | Lifecycle management, ConsoleAuditHandler |
 | [agent-cross-service](examples/agent-cross-service/) | Cross-service delegation | Two-service setup, minimal gateway for receiving service |
 | [agent-keycloak](examples/agent-keycloak/) | Agent delegation with Keycloak | Keycloak user auth + GL-IAM agent delegation |
 | [agent-stackauth](examples/agent-stackauth/) | Agent delegation with Stack Auth | Stack Auth token bridge to GL-IAM delegation tokens |
+
+### Audit Trail Examples
+
+| Example | Description | Use Case |
+|---------|-------------|----------|
+| [audit-trail-fastapi](examples/audit-trail-fastapi/) | Production audit trail setup | Multi-handler composition, request context, queryable audit log |
 
 ### SSO Partner Registry Examples
 
