@@ -48,7 +48,7 @@ async def admin(_: None = Depends(require_org_admin()), user: User = Depends(get
 
 ```bash
 # All examples use UV for dependency management
-cd gl-iam/examples/<example-name>
+cd traditional-iam/<example-name>   # or: agent-iam/<example-name>
 ./setup.sh  # or: uv sync
 
 # FastAPI examples
@@ -61,36 +61,41 @@ uv run python manage.py runserver
 ## Project Structure
 
 ```
-gl-iam/
-├── examples/
-│   ├── fastapi-postgresql/        # FastAPI + self-managed PostgreSQL
-│   ├── fastapi-keycloak/          # FastAPI + Keycloak enterprise SSO
-│   ├── fastapi-stackauth/         # FastAPI + Stack Auth
-│   ├── django-postgresql/         # Django + self-managed PostgreSQL
-│   ├── django-keycloak/           # Django + Keycloak enterprise SSO
-│   ├── django-stackauth/          # Django + Stack Auth
-│   ├── aip-integration/           # AI Agent Platform basic setup
-│   ├── aip-integration-advanced/  # AI Agent Platform advanced patterns
-│   ├── aip-server-integration/    # Add GL-IAM to existing AIP server
-│   ├── rbac-showcase/             # RBAC demo with multi-provider support
-│   ├── bosa-migration/            # BOSA Core Auth → GL-IAM migration
-│   ├── api-key-hierarchy/         # API key management with SOLID patterns
-│   ├── agent-cross-service/       # Agent cross-service authentication
-│   ├── agent-delegation-chain/    # Agent delegation chain pattern
-│   ├── agent-delegation-django/   # Agent delegation with Django
-│   ├── agent-delegation-fastapi/  # Agent delegation with FastAPI
-│   ├── agent-keycloak/            # Agent authentication with Keycloak
-│   ├── agent-lifecycle/           # Agent lifecycle management
-│   ├── agent-scope-constraints/   # Agent scope constraint patterns
-│   ├── agent-stackauth/           # Agent authentication with Stack Auth
-│   ├── dpop-keycloak/             # DPoP token binding with Keycloak
-│   ├── sso-jwt-bridge/            # SSO JWT bridge pattern
-│   ├── sso-token-exchange/        # SSO token exchange flow
-│   └── third-party-integration/   # Third-party service integration
-└── explorations/
-    ├── agent-iam-delegation-e2e/              # Agent IAM delegation end-to-end demo
-    ├── keycloak-dpop-mtls-lab/                # DPoP + mTLS concepts lab with Keycloak
-    └── token-refresh-for-long-running-agents/ # TokenManager for agents
+gl-iam-cookbook/
+├── traditional-iam/                   # Human users & services
+│   ├── fastapi-postgresql/            # FastAPI + self-managed PostgreSQL
+│   ├── fastapi-keycloak/              # FastAPI + Keycloak enterprise SSO
+│   ├── fastapi-stackauth/             # FastAPI + Stack Auth
+│   ├── django-postgresql/             # Django + self-managed PostgreSQL
+│   ├── django-keycloak/               # Django + Keycloak enterprise SSO
+│   ├── django-stackauth/              # Django + Stack Auth
+│   ├── rbac-showcase/                 # RBAC demo with multi-provider support
+│   ├── api-key-hierarchy/             # API key management with SOLID patterns
+│   ├── dpop-keycloak/                 # DPoP token binding with Keycloak
+│   ├── sso-token-exchange/            # SSO token exchange flow
+│   ├── sso-jwt-bridge/                # SSO JWT bridge pattern
+│   ├── third-party-integration/       # Third-party service integration
+│   ├── audit-trail-fastapi/           # Audit trail with FastAPI
+│   └── bosa-migration/               # BOSA Core Auth → GL-IAM migration
+│
+├── agent-iam/                         # AI agents & delegation
+│   ├── agent-delegation-fastapi/      # Agent delegation with FastAPI
+│   ├── agent-delegation-django/       # Agent delegation with Django
+│   ├── agent-delegation-chain/        # Agent delegation chain pattern
+│   ├── agent-scope-constraints/       # Agent scope constraint patterns
+│   ├── agent-lifecycle/               # Agent lifecycle management
+│   ├── agent-cross-service/           # Agent cross-service authentication
+│   ├── agent-keycloak/                # Agent authentication with Keycloak
+│   ├── agent-stackauth/               # Agent authentication with Stack Auth
+│   ├── aip-integration/               # AI Agent Platform basic setup
+│   ├── aip-integration-advanced/      # AI Agent Platform advanced patterns
+│   └── aip-server-integration/        # Add GL-IAM to existing AIP server
+│
+└── explorations/                      # Experimental prototypes
+    ├── agent-iam-dashboard/           # Agent IAM dashboard
+    ├── agent-iam-delegation-e2e/      # Agent IAM delegation end-to-end demo
+    ├── keycloak-dpop-mtls-lab/        # DPoP + mTLS concepts lab with Keycloak
+    └── token-refresh-for-long-running-agents/
 ```
 
 ## Architecture Patterns
@@ -189,12 +194,12 @@ class ProtectedView(APIView):
 
 ```bash
 # FastAPI
-cd gl-iam/examples/fastapi-postgresql
+cd traditional-iam/fastapi-postgresql
 uv sync
 uv run main.py  # http://localhost:8000
 
 # Django
-cd gl-iam/examples/django-postgresql
+cd traditional-iam/django-postgresql
 uv sync
 uv run python manage.py runserver  # http://localhost:8000
 ```
@@ -209,7 +214,7 @@ docker run -d --name postgres \
   -p 5432:5432 postgres:15
 
 # Keycloak (required for *-keycloak examples)
-cd gl-iam/examples/rbac-showcase  # or any keycloak example
+cd traditional-iam/rbac-showcase  # or any keycloak example
 docker-compose up -d
 ```
 
