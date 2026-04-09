@@ -7,7 +7,7 @@ Welcome to the **GL-IAM Cookbook** — a collection of production-ready examples
 1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/GDP-ADMIN/gl-iam-cookbook.git
+   git clone https://github.com/gdplabs/gl-iam-cookbook.git
    cd gl-iam-cookbook
    ```
 
