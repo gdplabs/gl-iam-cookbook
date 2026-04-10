@@ -45,6 +45,8 @@ gl-iam-cookbook/
 │   ├── rbac-showcase/             # RBAC with multi-provider support
 │   ├── api-key-hierarchy/         # API key management with SOLID patterns
 │   ├── dpop-keycloak/             # DPoP token binding with Keycloak
+│   ├── ldap-keycloak/             # LDAP/AD authentication via Keycloak
+│   ├── saml-keycloak/             # SAML 2.0 federation via Keycloak
 │   ├── sso-token-exchange/        # SSO with HMAC token exchange
 │   ├── sso-jwt-bridge/            # SSO with JWT bridge
 │   ├── third-party-integration/   # Third-party OAuth (GitHub flow)
@@ -98,6 +100,8 @@ Each Django example demonstrates three view patterns:
 | [rbac-showcase](traditional-iam/rbac-showcase/) | RBAC with multi-provider support | Role mapping, hierarchy, SIMI pattern |
 | [api-key-hierarchy](traditional-iam/api-key-hierarchy/) | API key management with SOLID patterns | 3-tier API keys, scope-based authorization |
 | [dpop-keycloak](traditional-iam/dpop-keycloak/) | DPoP token binding with Keycloak | Proof-of-possession, replay protection |
+| [ldap-keycloak](traditional-iam/ldap-keycloak/) | LDAP/AD authentication via Keycloak | User Federation, group-to-role mapping |
+| [saml-keycloak](traditional-iam/saml-keycloak/) | SAML 2.0 SSO via Keycloak | Identity Brokering, attribute mapping |
 | [third-party-integration](traditional-iam/third-party-integration/) | Full GitHub OAuth flow | Encrypted credential storage, multi-account support |
 | [audit-trail-fastapi](traditional-iam/audit-trail-fastapi/) | Audit trail with FastAPI | Structured event logging |
 

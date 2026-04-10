@@ -1,0 +1,104 @@
+{
+  "id": "gl-iam-saml-demo",
+  "realm": "gl-iam-saml-demo",
+  "displayName": "GL-IAM SAML Demo",
+  "enabled": true,
+  "sslRequired": "none",
+  "loginWithEmailAllowed": true,
+  "roles": {
+    "realm": [
+      {
+        "id": "role-admin",
+        "name": "admin",
+        "description": "Administrator role with full access"
+      },
+      {
+        "id": "role-member",
+        "name": "member",
+        "description": "Standard member role"
+      }
+    ]
+  },
+  "defaultRoles": ["member"],
+  "clients": [
+    {
+      "clientId": "glchat-backend",
+      "name": "GLChat Backend",
+      "enabled": true,
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "glchat-backend-secret",
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": true,
+      "protocol": "openid-connect",
+      "defaultClientScopes": ["profile", "roles", "email"],
+      "redirectUris": ["http://localhost:8000/*"]
+    }
+  ],
+  "identityProviders": [
+    {
+      "alias": "corporate-saml-idp",
+      "displayName": "Corporate SSO (SAML)",
+      "providerId": "saml",
+      "enabled": true,
+      "trustEmail": true,
+      "firstBrokerLoginFlowAlias": "first broker login",
+      "config": {
+        "singleSignOnServiceUrl": "http://localhost:8180/realms/corporate-idp/protocol/saml",
+        "singleLogoutServiceUrl": "http://localhost:8180/realms/corporate-idp/protocol/saml",
+        "nameIDPolicyFormat": "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
+        "principalType": "ATTRIBUTE",
+        "principalAttribute": "email",
+        "signatureAlgorithm": "RSA_SHA256",
+        "wantAuthnRequestsSigned": "false",
+        "wantAssertionsSigned": "true",
+        "validateSignature": "false",
+        "postBindingResponse": "true",
+        "postBindingAuthnRequest": "true",
+        "syncMode": "FORCE"
+      }
+    }
+  ],
+  "identityProviderMappers": [
+    {
+      "name": "email-mapper",
+      "identityProviderAlias": "corporate-saml-idp",
+      "identityProviderMapper": "saml-user-attribute-idp-mapper",
+      "config": {
+        "syncMode": "FORCE",
+        "user.attribute": "email",
+        "attribute.name": "email"
+      }
+    },
+    {
+      "name": "first-name-mapper",
+      "identityProviderAlias": "corporate-saml-idp",
+      "identityProviderMapper": "saml-user-attribute-idp-mapper",
+      "config": {
+        "syncMode": "FORCE",
+        "user.attribute": "firstName",
+        "attribute.name": "firstName"
+      }
+    },
+    {
+      "name": "last-name-mapper",
+      "identityProviderAlias": "corporate-saml-idp",
+      "identityProviderMapper": "saml-user-attribute-idp-mapper",
+      "config": {
+        "syncMode": "FORCE",
+        "user.attribute": "lastName",
+        "attribute.name": "lastName"
+      }
+    },
+    {
+      "name": "default-member-role",
+      "identityProviderAlias": "corporate-saml-idp",
+      "identityProviderMapper": "hardcoded-role-idp-mapper",
+      "config": {
+        "syncMode": "INHERIT",
+        "role": "member"
+      }
+    }
+  ],
+  "accessTokenLifespan": 3600
+}
