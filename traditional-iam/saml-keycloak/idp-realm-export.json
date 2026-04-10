@@ -1,0 +1,107 @@
+{
+  "id": "corporate-idp",
+  "realm": "corporate-idp",
+  "displayName": "Corporate Identity Provider (SAML IdP)",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "roles": {
+    "realm": [
+      {
+        "name": "employee",
+        "description": "Corporate employee"
+      },
+      {
+        "name": "manager",
+        "description": "Corporate manager"
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "http://localhost:8080/realms/gl-iam-saml-demo",
+      "name": "GL-IAM SP (Keycloak)",
+      "enabled": true,
+      "protocol": "saml",
+      "frontchannelLogout": true,
+      "attributes": {
+        "saml.assertion.signature": "true",
+        "saml.server.signature": "true",
+        "saml_name_id_format": "email",
+        "saml.force.post.binding": "true",
+        "saml_assertion_consumer_url_post": "http://localhost:8080/realms/gl-iam-saml-demo/broker/corporate-saml-idp/endpoint",
+        "saml_single_logout_service_url_post": "http://localhost:8080/realms/gl-iam-saml-demo/broker/corporate-saml-idp/endpoint"
+      },
+      "protocolMappers": [
+        {
+          "name": "email",
+          "protocol": "saml",
+          "protocolMapper": "saml-user-attribute-mapper",
+          "config": {
+            "user.attribute": "email",
+            "friendly.name": "email",
+            "attribute.name": "email",
+            "attribute.nameformat": "Basic"
+          }
+        },
+        {
+          "name": "firstName",
+          "protocol": "saml",
+          "protocolMapper": "saml-user-attribute-mapper",
+          "config": {
+            "user.attribute": "firstName",
+            "friendly.name": "firstName",
+            "attribute.name": "firstName",
+            "attribute.nameformat": "Basic"
+          }
+        },
+        {
+          "name": "lastName",
+          "protocol": "saml",
+          "protocolMapper": "saml-user-attribute-mapper",
+          "config": {
+            "user.attribute": "lastName",
+            "friendly.name": "lastName",
+            "attribute.name": "lastName",
+            "attribute.nameformat": "Basic"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "alice@corporate.com",
+      "email": "alice@corporate.com",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Alice",
+      "lastName": "Corporate",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "alice123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["employee"]
+    },
+    {
+      "username": "bob@corporate.com",
+      "email": "bob@corporate.com",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Bob",
+      "lastName": "Manager",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "bob123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["employee", "manager"]
+    }
+  ]
+}

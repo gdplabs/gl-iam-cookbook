@@ -72,6 +72,8 @@ gl-iam-cookbook/
 │   ├── rbac-showcase/                 # RBAC demo with multi-provider support
 │   ├── api-key-hierarchy/             # API key management with SOLID patterns
 │   ├── dpop-keycloak/                 # DPoP token binding with Keycloak
+│   ├── ldap-keycloak/                 # LDAP/AD authentication via Keycloak
+│   ├── saml-keycloak/                 # SAML 2.0 federation via Keycloak
 │   ├── sso-token-exchange/            # SSO token exchange flow
 │   ├── sso-jwt-bridge/                # SSO JWT bridge pattern
 │   ├── third-party-integration/       # Third-party service integration

@@ -1,0 +1,69 @@
+services:
+  # Keycloak #1 — SAML Identity Provider (simulates Azure AD, Okta, etc.)
+  # In production, this would be your corporate IdP
+  saml-idp:
+    image: quay.io/keycloak/keycloak:26.0
+    container_name: saml-keycloak-idp
+    command: start-dev --import-realm
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_HTTP_PORT: 8180
+      KC_HOSTNAME: localhost
+      KC_HTTP_ENABLED: "true"
+    ports:
+      - "8180:8180"
+    volumes:
+      - ./idp-realm-export.json:/opt/keycloak/data/import/idp-realm-export.json:ro
+    networks:
+      - saml-network
+
+  # Keycloak database (for SP)
+  keycloak-db:
+    image: postgres:16-alpine
+    container_name: saml-keycloak-sp-db
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: keycloak
+    volumes:
+      - keycloak_sp_db_data:/var/lib/postgresql/data
+    networks:
+      - saml-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keycloak -d keycloak"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Keycloak #2 — Service Provider (your application's Keycloak)
+  # This is the Keycloak that GL-IAM connects to
+  keycloak-sp:
+    image: quay.io/keycloak/keycloak:26.0
+    container_name: saml-keycloak-sp
+    command: start-dev --import-realm
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://keycloak-db:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: keycloak
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_HOSTNAME: localhost
+      KC_HTTP_ENABLED: "true"
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./sp-realm-export.json:/opt/keycloak/data/import/sp-realm-export.json:ro
+    networks:
+      - saml-network
+    depends_on:
+      keycloak-db:
+        condition: service_healthy
+
+networks:
+  saml-network:
+    driver: bridge
+
+volumes:
+  keycloak_sp_db_data:

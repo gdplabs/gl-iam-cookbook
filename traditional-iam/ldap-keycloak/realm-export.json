@@ -1,0 +1,114 @@
+{
+  "id": "gl-iam-ldap-demo",
+  "realm": "gl-iam-ldap-demo",
+  "displayName": "GL-IAM LDAP Demo",
+  "enabled": true,
+  "sslRequired": "none",
+  "loginWithEmailAllowed": true,
+  "roles": {
+    "realm": [
+      {
+        "id": "role-admin",
+        "name": "admin",
+        "description": "Administrator role with full access"
+      },
+      {
+        "id": "role-member",
+        "name": "member",
+        "description": "Standard member role"
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "glchat-backend",
+      "name": "GLChat Backend",
+      "enabled": true,
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "glchat-backend-secret",
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": true,
+      "protocol": "openid-connect",
+      "defaultClientScopes": ["profile", "roles", "email"]
+    }
+  ],
+  "components": {
+    "org.keycloak.storage.UserStorageProvider": [
+      {
+        "name": "ldap",
+        "providerId": "ldap",
+        "config": {
+          "vendor": ["other"],
+          "connectionUrl": ["ldap://openldap:389"],
+          "bindDn": ["cn=admin,dc=example,dc=org"],
+          "bindCredential": ["adminpassword"],
+          "usersDn": ["ou=People,dc=example,dc=org"],
+          "usernameLDAPAttribute": ["uid"],
+          "rdnLDAPAttribute": ["uid"],
+          "uuidLDAPAttribute": ["entryUUID"],
+          "userObjectClasses": ["inetOrgPerson"],
+          "editMode": ["READ_ONLY"],
+          "syncRegistrations": ["false"],
+          "importEnabled": ["true"],
+          "fullSyncPeriod": ["-1"],
+          "changedSyncPeriod": ["-1"],
+          "searchScope": ["2"],
+          "batchSizeForSync": ["1000"],
+          "enabled": ["true"],
+          "priority": ["0"]
+        },
+        "subComponents": {
+          "org.keycloak.storage.ldap.mappers.LDAPStorageMapper": [
+            {
+              "name": "username",
+              "providerId": "user-attribute-ldap-mapper",
+              "config": {
+                "ldap.attribute": ["uid"],
+                "user.model.attribute": ["username"],
+                "read.only": ["true"],
+                "always.read.value.from.ldap": ["false"],
+                "is.mandatory.in.ldap": ["true"]
+              }
+            },
+            {
+              "name": "email",
+              "providerId": "user-attribute-ldap-mapper",
+              "config": {
+                "ldap.attribute": ["mail"],
+                "user.model.attribute": ["email"],
+                "read.only": ["true"],
+                "always.read.value.from.ldap": ["false"],
+                "is.mandatory.in.ldap": ["true"]
+              }
+            },
+            {
+              "name": "first name",
+              "providerId": "user-attribute-ldap-mapper",
+              "config": {
+                "ldap.attribute": ["givenName"],
+                "user.model.attribute": ["firstName"],
+                "read.only": ["true"],
+                "always.read.value.from.ldap": ["false"],
+                "is.mandatory.in.ldap": ["true"]
+              }
+            },
+            {
+              "name": "last name",
+              "providerId": "user-attribute-ldap-mapper",
+              "config": {
+                "ldap.attribute": ["sn"],
+                "user.model.attribute": ["lastName"],
+                "read.only": ["true"],
+                "always.read.value.from.ldap": ["false"],
+                "is.mandatory.in.ldap": ["true"]
+              }
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "defaultRoles": ["member"],
+  "accessTokenLifespan": 3600
+}
