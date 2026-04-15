@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Trusted Partner Portal — GLChat embedded</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: system-ui, -apple-system, sans-serif; margin: 0; background: #f7f4ff; color: #1e1b4b; }
+  header { background: #4f46e5; color: white; padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; }
+  header h1 { margin: 0; font-size: 1.2rem; }
+  header .who { font-size: .9rem; opacity: .9; }
+  main { display: grid; grid-template-columns: 1.6fr 1fr; gap: 1.25rem; padding: 1.25rem; height: calc(100vh - 64px); min-height: 600px; }
+  .portal-content { background: white; border-radius: 10px; padding: 1.25rem; box-shadow: 0 1px 3px rgba(0,0,0,.08); overflow-y: auto; display: flex; flex-direction: column; }
+  .portal-content h2 { color: #4f46e5; margin: 0 0 .5rem; }
+  .portal-content p { line-height: 1.5; font-size: .9rem; }
+  .widget-col { display: flex; flex-direction: column; gap: .5rem; min-height: 0; }
+  .widget-shell { background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,.08); display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
+  .widget-shell .widget-header { background: #0f766e; color: white; padding: .5rem .75rem; font-size: .85rem; font-weight: 600; flex: 0 0 auto; }
+  iframe { width: 100%; flex: 1 1 auto; border: 0; display: block; min-height: 0; }
+  .login-box { background: #eef2ff; border-radius: 10px; padding: .9rem 1rem; margin-top: .75rem; }
+  .login-box h3 { margin: 0 0 .4rem; color: #4f46e5; font-size: .95rem; }
+  .row { display: flex; gap: .5rem; flex-wrap: wrap; margin: .3rem 0; }
+  input, button { padding: .5rem .7rem; font-size: .92rem; border-radius: 6px; border: 1px solid #c4b5fd; }
+  input { flex: 1; min-width: 180px; }
+  button { background: #4f46e5; color: white; border: 0; cursor: pointer; font-weight: 600; }
+  button:hover { background: #4338ca; }
+  button.secondary { background: #e0e7ff; color: #3730a3; }
+  .pw-wrap { position: relative; flex: 1; min-width: 180px; display: flex; }
+  .pw-wrap input { width: 100%; padding-right: 2.5rem; }
+  .pw-peek { position: absolute; right: .35rem; top: 50%; transform: translateY(-50%); background: transparent; border: 0; padding: .25rem .4rem; cursor: pointer; font-size: 1rem; color: #4338ca; line-height: 1; }
+  .pw-peek:hover { color: #1e1b4b; }
+
+  /* Trace panel — pinned at bottom of the portal column, always visible */
+  #trace-panel { margin-top: auto; background: #0b1120; border-radius: 10px; padding: 0; box-shadow: 0 1px 3px rgba(0,0,0,.2); display: flex; flex-direction: column; min-height: 260px; max-height: 44vh; overflow: hidden; }
+  #trace-panel .trace-head { display: flex; justify-content: space-between; align-items: center; padding: .5rem .9rem; color: #94a3b8; border-bottom: 1px solid #1e293b; flex: 0 0 auto; }
+  #trace-panel .trace-head strong { color: #e2e8f0; font-size: .85rem; }
+  #trace-panel .trace-head button { background: #1e293b; color: #cbd5e1; font-size: .7rem; padding: .25rem .6rem; }
+  #trace { font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: .78rem; line-height: 1.45; padding: .5rem .75rem; overflow-y: auto; color: #cbd5e1; flex: 1 1 auto; min-height: 0; }
+  .evt { padding: .2rem 0; border-left: 3px solid transparent; padding-left: .55rem; margin: .15rem 0; }
+  .evt.step { border-left-color: #60a5fa; background: rgba(96,165,250,.08); padding: .35rem .55rem; margin: .4rem 0 .15rem; }
+  .evt.step .title { color: #93c5fd; font-weight: 700; font-size: .82rem; letter-spacing: .02em; }
+  .evt.req { border-left-color: #fbbf24; }
+  .evt.res { border-left-color: #86efac; }
+  .evt.err { border-left-color: #fca5a5; background: rgba(252,165,165,.08); }
+  .evt.note { border-left-color: #a78bfa; color: #c4b5fd; font-style: italic; }
+  .evt .ts { color: #64748b; margin-right: .4rem; }
+  .actor { display: inline-block; padding: 0 .3rem; border-radius: 3px; font-size: .68rem; font-weight: 700; margin-right: .25rem; vertical-align: middle; }
+  .actor.user   { background: #7c3aed; color: white; }
+  .actor.pbe    { background: #0891b2; color: white; }
+  .actor.gbe    { background: #0f766e; color: white; }
+  .actor.widget { background: #b45309; color: white; }
+  .actor.you    { background: #475569; color: white; }
+  .method { color: #fbbf24; font-weight: 700; margin-right: .3rem; }
+  .path { color: #f1f5f9; }
+  .status-2 { color: #86efac; font-weight: 700; }
+  .status-4 { color: #fca5a5; font-weight: 700; }
+  .status-5 { color: #fca5a5; font-weight: 700; }
+  .kv { color: #94a3b8; margin-right: .5rem; }
+  .kv b { color: #e2e8f0; font-weight: 500; }
+  .lat { color: #a78bfa; }
+  details.payload { margin-top: .15rem; }
+  details.payload summary { cursor: pointer; color: #64748b; font-size: .7rem; list-style: none; }
+  details.payload summary::before { content: "▸ "; }
+  details.payload[open] summary::before { content: "▾ "; }
+  details.payload pre { background: #020617; color: #94a3b8; padding: .4rem .6rem; border-radius: 4px; margin: .25rem 0 .15rem; font-size: .7rem; white-space: pre-wrap; word-break: break-all; border: 1px solid #1e293b; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Trusted Partner Portal</h1>
+  <div class="who" id="who">not logged in</div>
+</header>
+
+<main>
+  <section class="portal-content">
+    <h2>Welcome to the partner portal</h2>
+    <p>This panel represents the partner's own application. A user logs in <strong>once</strong>
+    with their partner credentials. On successful login, the embedded GLChat widget on the
+    right automatically signs them into GLChat via <strong>IdP-initiated SSO</strong> &mdash;
+    no second login, no redirect, no pop-up.</p>
+
+    <p>Topology simulated by this cookbook:
+    <code>partner site (localhost:3001)</code>
+    → <code>partner backend (:8001)</code>
+    → <code>GLChat backend (:8000)</code>
+    → <code>GLChat widget iframe (:3003)</code>.
+    The one-time SSO token travels server-to-server and is delivered to the widget via
+    <code>postMessage</code> &mdash; never in the URL query string.</p>
+
+    <div class="login-box" id="login-box">
+      <h3>Sign in</h3>
+      <div class="row">
+        <input id="email" placeholder="email" value="alice@trusted-partner.example.com" />
+        <span class="pw-wrap">
+          <input id="password" type="password" placeholder="password" value="alice-pass" />
+          <button type="button" class="pw-peek" id="pw-peek" aria-label="Show password" title="Show password">👁</button>
+        </span>
+      </div>
+      <div class="row">
+        <button id="login-btn">Log in</button>
+        <button class="secondary" id="logout-btn" hidden>Log out</button>
+      </div>
+    </div>
+
+    <div id="trace-panel">
+      <div class="trace-head">
+        <strong>Live SSO trace</strong>
+        <div>
+          <button id="clear-trace">clear</button>
+        </div>
+      </div>
+      <div id="trace"></div>
+    </div>
+  </section>
+
+  <aside class="widget-col">
+    <div class="widget-shell">
+      <div class="widget-header">GLChat &mdash; embedded widget (cross-origin iframe to :3003)</div>
+      <iframe id="widget-frame" src="http://localhost:3003/" title="GLChat widget"></iframe>
+    </div>
+    <div style="font-size:.78rem; color:#475569; padding: 0 .25rem;">
+      The iframe broadcasts <code>postMessage({type:"widget_ready"})</code> once loaded.
+      This page replies with <code>{type:"sso_token", token}</code>. The widget then
+      exchanges the token for a session JWT and renders the user's chat.
+    </div>
+  </aside>
+</main>
+
+<script>
+  const PARTNER_BE = "http://localhost:8001";
+  const GLCHAT_WIDGET_ORIGIN = "http://localhost:3003";
+
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s).replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+
+  function tnow() {
+    const d = new Date();
+    return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}.${String(d.getMilliseconds()).padStart(3,'0')}`;
+  }
+  function actorTag(actor) {
+    const map = {user:"user", pbe:"partner&nbsp;BE", gbe:"GLChat&nbsp;BE", widget:"widget", you:"you"};
+    return `<span class="actor ${actor}">${map[actor] || actor}</span>`;
+  }
+  function appendEvt(html, cls="") {
+    const el = document.createElement("div");
+    el.className = "evt " + cls;
+    el.innerHTML = `<span class="ts">${tnow()}</span>${html}`;
+    $("trace").appendChild(el);
+    $("trace").scrollTop = $("trace").scrollHeight;
+  }
+  function step(n, title, desc) {
+    appendEvt(`<div class="title">STEP ${n} — ${esc(title)}</div>${desc ? `<div style="color:#94a3b8;margin-top:.15rem;">${esc(desc)}</div>` : ""}`, "step");
+  }
+  function note(msg) { appendEvt(esc(msg), "note"); }
+  function req(from, to, method, path, body) {
+    const payload = body ? `<details class="payload"><summary>payload (${Object.keys(body).length} fields)</summary><pre>${esc(JSON.stringify(body, null, 2))}</pre></details>` : "";
+    appendEvt(`${actorTag(from)} → ${actorTag(to)}  <span class="method">${method}</span><span class="path">${esc(path)}</span>${payload}`, "req");
+  }
+  function res(from, to, status, body, latencyMs) {
+    const sCls = "status-" + String(status)[0];
+    const lat = latencyMs != null ? ` <span class="lat">(${latencyMs} ms)</span>` : "";
+    const payload = body !== undefined ? `<details class="payload"><summary>response body</summary><pre>${esc(typeof body === "string" ? body : JSON.stringify(body, null, 2))}</pre></details>` : "";
+    appendEvt(`${actorTag(from)} → ${actorTag(to)}  <span class="${sCls}">${status}</span>${lat}${payload}`, status >= 400 ? "err" : "res");
+  }
+  function pm(direction, who, type, detail) {
+    const arrow = direction === "out" ? "→" : "←";
+    const detailHtml = detail ? `<span class="kv"><b>${esc(detail)}</b></span>` : "";
+    appendEvt(`${actorTag(direction === "out" ? "you" : who)} ${arrow} ${actorTag(direction === "out" ? who : "you")}  <span style="color:#d8b4fe">postMessage</span> <span class="kv">type=<b>${esc(type)}</b></span> ${detailHtml}`, "note");
+  }
+
+  $("clear-trace").onclick = () => ($("trace").innerHTML = "");
+
+  // Password peek toggle
+  const pw = $("password");
+  $("pw-peek").onclick = () => {
+    const shown = pw.type === "text";
+    pw.type = shown ? "password" : "text";
+    $("pw-peek").textContent = shown ? "👁" : "🙈";
+    $("pw-peek").setAttribute("aria-label", shown ? "Show password" : "Hide password");
+    $("pw-peek").setAttribute("title", shown ? "Show password" : "Hide password");
+  };
+
+  let widgetReady = false;
+  let pendingToken = null;
+
+  window.addEventListener("message", (ev) => {
+    // Silently drop messages from untrusted origins (browser extensions,
+    // devtools, other tabs) — logging them produces a heartbeat-looking stream.
+    if (ev.origin !== GLCHAT_WIDGET_ORIGIN) return;
+    // Only log SSO-relevant message types; ignore noisy framework messages.
+    if (ev.data?.type === "widget_ready") {
+      if (widgetReady) return;  // don't log duplicate widget_ready if iframe re-fires
+      widgetReady = true;
+      pm("in", "widget", "widget_ready");
+      if (pendingToken) sendTokenToWidget(pendingToken);
+    }
+  });
+
+  function sendTokenToWidget(token) {
+    const frame = $("widget-frame").contentWindow;
+    frame.postMessage({type: "sso_token", token}, GLCHAT_WIDGET_ORIGIN);
+    pm("out", "widget", "sso_token", `token=${token.slice(0,12)}…`);
+    pendingToken = null;
+  }
+
+  async function timedFetch(url, opts) {
+    const t0 = performance.now();
+    const r = await fetch(url, opts);
+    const ms = Math.round(performance.now() - t0);
+    let body;
+    const ct = r.headers.get("content-type") || "";
+    try { body = ct.includes("json") ? await r.clone().json() : await r.clone().text(); } catch { body = undefined; }
+    return { r, body, ms };
+  }
+
+  $("login-btn").onclick = async () => {
+    step(1, "User logs in to the partner site",
+         "The partner site posts credentials to its OWN backend. GLChat is not involved yet.");
+    req("user", "pbe", "POST", "/api/login", {email: $("email").value, password: "***"});
+
+    const {r, body, ms} = await timedFetch(`${PARTNER_BE}/api/login`, {
+      method: "POST", credentials: "include",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({email: $("email").value, password: $("password").value}),
+    });
+    res("pbe", "user", r.status, body, ms);
+    if (!r.ok) return;
+    $("who").textContent = `Logged in as ${body.display_name}`;
+    $("login-btn").hidden = true;
+    $("logout-btn").hidden = false;
+    note("Partner issues its own session cookie (HttpOnly). Partner is now the IdP.");
+
+    step(2, "Partner BE mints an HMAC-signed SSO assertion for GLChat",
+         "Server-to-server call: partner BE → GLChat BE /api/v1/sso/token. The partner's consumer_secret never leaves its server.");
+    req("user", "pbe", "POST", "/api/start-sso");
+
+    const sso = await timedFetch(`${PARTNER_BE}/api/start-sso`, {method: "POST", credentials: "include"});
+    if (!sso.r.ok) { res("pbe", "user", sso.r.status, sso.body, sso.ms); return; }
+    res("pbe", "user", sso.r.status, {sso_token: sso.body.sso_token.slice(0,16)+"…", widget_url: sso.body.widget_url}, sso.ms);
+    note(`Under the hood partner BE sent HMAC-SHA256(secret, "timestamp|key|payload") with a fresh nonce to /api/v1/sso/token. GLChat BE validated signature + IP + email-domain + timestamp (60s) + nonce (replay).`);
+
+    step(3, "Hand the one-time SSO token to the widget via postMessage",
+         "Token never touches the URL query string → no leakage in Referer or server logs.");
+    if (widgetReady) sendTokenToWidget(sso.body.sso_token);
+    else { pendingToken = sso.body.sso_token; note("Widget not ready yet; will forward as soon as widget_ready arrives."); }
+  };
+
+  $("logout-btn").onclick = async () => {
+    note("User clicked logout.");
+    await fetch(`${PARTNER_BE}/api/logout`, {method: "POST", credentials: "include"});
+    $("who").textContent = "not logged in";
+    $("login-btn").hidden = false;
+    $("logout-btn").hidden = true;
+    $("widget-frame").src = "http://localhost:3003/";
+    widgetReady = false;
+    note("Partner session cookie cleared; widget iframe reloaded to drop its session.");
+  };
+
+  note("Partner site ready. Click 'Log in' to start the SSO flow.");
+</script>
+</body>
+</html>

@@ -1,7 +1,7 @@
 [project]
-name = "sso-token-exchange"
+name = "sso-glchat-production"
 version = "0.0.0"
-description = "GL-IAM SSO Token Exchange example (IdP-Initiated SSO with HMAC signatures)"
+description = "Production-grade IdP-Initiated SSO cookbook: GLChat + Trusted Partner with Redis, audit trail, rate limiting, admin auth, CSP, nonce protection"
 requires-python = ">=3.11,<3.14"
 readme = "README.md"
 dependencies = [
@@ -9,6 +9,9 @@ dependencies = [
   "uvicorn>=0.34.0,<0.35.0",
   "python-dotenv>=1.0.0,<2.0.0",
   "httpx>=0.27.0,<0.28.0",
+  "redis[hiredis]>=5.0.0,<6.0.0",
+  "slowapi>=0.1.9,<0.2.0",
+  "itsdangerous>=2.2.0,<3.0.0",
   "gl-iam[fastapi,postgresql]",
 ]
 

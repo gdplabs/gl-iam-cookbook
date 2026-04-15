@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>GLChat Admin — SSO Partners</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 980px; margin: 2rem auto; padding: 1rem; }
+  header { border-bottom: 2px solid #0891b2; padding-bottom: .5rem; }
+  h1 { color: #0891b2; margin: 0; }
+  section.panel { background: #ecfeff; padding: 1rem 1.25rem; border-radius: 8px; margin: 1rem 0; }
+  input, button, textarea { padding: .4rem .6rem; font-size: .95rem; border-radius: 6px; border: 1px solid #a5f3fc; }
+  button { background: #0891b2; color: white; border: 0; cursor: pointer; }
+  button.danger { background: #b91c1c; }
+  .pw-wrap { position: relative; display: inline-flex; }
+  .pw-wrap input { padding-right: 2.3rem; }
+  .pw-peek { position: absolute; right: .3rem; top: 50%; transform: translateY(-50%); background: transparent; border: 0; padding: .15rem .3rem; cursor: pointer; font-size: 1rem; color: #0e7490; }
+  table { width: 100%; border-collapse: collapse; margin-top: .5rem; }
+  th, td { text-align: left; padding: .4rem; border-bottom: 1px solid #cffafe; font-size: .88rem; }
+  .row { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; margin: .25rem 0; }
+  pre { background: #083344; color: #e0f2fe; padding: .5rem; border-radius: 6px; font-size: .8rem; white-space: pre-wrap; word-break: break-all; }
+  .hidden { display: none; }
+  .badge { display: inline-block; padding: .1rem .4rem; border-radius: 4px; font-size: .72rem; }
+  .badge.ok { background: #bbf7d0; color: #14532d; }
+  .badge.warn { background: #fde68a; color: #78350f; }
+  .badge.err { background: #fecaca; color: #7f1d1d; }
+  details { margin-top: .5rem; }
+</style>
+</head>
+<body>
+<header>
+  <h1>GLChat Admin</h1>
+  <p><em>SSO Partner management · Audit log viewer · Platform-admin only</em></p>
+</header>
+
+<section id="login-panel" class="panel">
+  <h2>Admin login</h2>
+  <div class="row">
+    <input id="admin-email" placeholder="email" value="admin@glchat.example.com" />
+    <span class="pw-wrap">
+      <input id="admin-password" type="password" placeholder="password" value="AdminPass123!" />
+      <button type="button" class="pw-peek" id="admin-pw-peek" aria-label="Show password" title="Show password">👁</button>
+    </span>
+    <button id="admin-login">Log in</button>
+  </div>
+  <pre id="login-log"></pre>
+</section>
+
+<section id="app-panel" class="panel hidden">
+  <h2>Register partner</h2>
+  <div class="row">
+    <input id="p-name" placeholder="partner_name" value="Trusted Partner" />
+    <input id="p-origins" placeholder="allowed_origins (comma)" value="http://localhost:3001" size="40" />
+  </div>
+  <div class="row">
+    <input id="p-domains" placeholder="allowed_email_domains" value="trusted-partner.example.com" size="30" />
+    <input id="p-ips" placeholder="allowed_source_ips CIDR (optional)" size="30" />
+  </div>
+  <div class="row">
+    <input id="p-max" type="number" placeholder="max_users" value="10" />
+    <input id="p-roles" placeholder="allowed_roles (comma)" value="member" />
+    <button id="create-btn">Create partner</button>
+  </div>
+  <pre id="create-log"></pre>
+
+  <h2>Partners</h2>
+  <button id="refresh-partners">Refresh</button>
+  <table id="partners-tbl"><thead><tr>
+    <th>Name</th><th>consumer_key</th><th>domains</th><th>max</th><th>roles</th><th>status</th><th>actions</th>
+  </tr></thead><tbody></tbody></table>
+
+  <h2>Audit events</h2>
+  <div class="row">
+    <input id="audit-sso" placeholder="sso.event filter (e.g. signature_failed)" size="30" />
+    <button id="refresh-audit">Refresh audit log</button>
+  </div>
+  <table id="audit-tbl"><thead><tr>
+    <th>time</th><th>severity</th><th>event_type</th><th>sso.event</th><th>message</th><th>ip</th>
+  </tr></thead><tbody></tbody></table>
+</section>
+
+<script>
+  const BE = "http://localhost:8000";
+  let adminToken = null;
+  const $ = (id) => document.getElementById(id);
+  const hdrs = () => ({"Content-Type": "application/json", "Authorization": `Bearer ${adminToken}`});
+
+  // Password peek toggle
+  const adminPw = $("admin-password");
+  $("admin-pw-peek").onclick = () => {
+    const shown = adminPw.type === "text";
+    adminPw.type = shown ? "password" : "text";
+    $("admin-pw-peek").textContent = shown ? "👁" : "🙈";
+  };
+
+  $("admin-login").onclick = async () => {
+    const r = await fetch(`${BE}/login`, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({email: $("admin-email").value, password: $("admin-password").value}),
+    });
+    if (!r.ok) { $("login-log").textContent = "Login failed: " + await r.text(); return; }
+    adminToken = (await r.json()).access_token;
+    $("login-log").textContent = "Logged in as platform admin.";
+    $("app-panel").classList.remove("hidden");
+    refreshPartners(); refreshAudit();
+  };
+
+  const split = (v) => v.split(",").map(s => s.trim()).filter(Boolean);
+
+  $("create-btn").onclick = async () => {
+    const body = {
+      partner_name: $("p-name").value,
+      allowed_origins: split($("p-origins").value),
+      allowed_email_domains: split($("p-domains").value) || null,
+      allowed_source_ips: split($("p-ips").value) || null,
+      max_users: $("p-max").value ? parseInt($("p-max").value) : null,
+      allowed_roles: split($("p-roles").value) || null,
+    };
+    const r = await fetch(`${BE}/admin/partners`, {method: "POST", headers: hdrs(), body: JSON.stringify(body)});
+    $("create-log").textContent = await r.text();
+    refreshPartners();
+  };
+
+  async function refreshPartners() {
+    const r = await fetch(`${BE}/admin/partners`, {headers: hdrs()});
+    if (!r.ok) return;
+    const rows = await r.json();
+    const tb = $("partners-tbl").querySelector("tbody");
+    tb.innerHTML = "";
+    for (const p of rows) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${p.partner_name}</td>
+        <td><code>${p.consumer_key}</code></td>
+        <td>${(p.allowed_email_domains||[]).join(", ")}</td>
+        <td>${p.max_users ?? "—"}</td>
+        <td>${(p.allowed_roles||[]).join(", ")}</td>
+        <td><span class="badge ${p.is_active ? "ok" : "err"}">${p.is_active ? "active" : "inactive"}</span></td>
+        <td>
+          <button data-rotate="${p.id}">Rotate (1h grace)</button>
+          <button class="danger" data-deact="${p.id}">Deactivate</button>
+        </td>`;
+      tb.appendChild(tr);
+    }
+    tb.querySelectorAll("[data-rotate]").forEach(b => b.onclick = () => rotate(b.dataset.rotate));
+    tb.querySelectorAll("[data-deact]").forEach(b => b.onclick = () => deactivate(b.dataset.deact));
+  }
+
+  async function rotate(id) {
+    const r = await fetch(`${BE}/admin/partners/${id}/rotate`, {
+      method: "POST", headers: hdrs(), body: JSON.stringify({grace_period_seconds: 3600})
+    });
+    alert(await r.text()); refreshPartners(); refreshAudit();
+  }
+
+  async function deactivate(id) {
+    if (!confirm("Deactivate partner?")) return;
+    await fetch(`${BE}/admin/partners/${id}/deactivate`, {method: "POST", headers: hdrs()});
+    refreshPartners(); refreshAudit();
+  }
+
+  $("refresh-partners").onclick = refreshPartners;
+  $("refresh-audit").onclick = refreshAudit;
+
+  async function refreshAudit() {
+    const params = new URLSearchParams({limit: "50"});
+    if ($("audit-sso").value) params.set("sso_event", $("audit-sso").value);
+    const r = await fetch(`${BE}/admin/audit-log?${params}`, {headers: hdrs()});
+    if (!r.ok) return;
+    const {events} = await r.json();
+    const tb = $("audit-tbl").querySelector("tbody");
+    tb.innerHTML = "";
+    for (const e of events) {
+      const sev = e.severity === "warning" ? "warn" : e.severity === "error" ? "err" : "ok";
+      const ssoEv = (e.details||{})["sso.event"] || "—";
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${e.timestamp.slice(11,19)}</td>
+        <td><span class="badge ${sev}">${e.severity}</span></td>
+        <td>${e.event_type}</td>
+        <td><code>${ssoEv}</code></td>
+        <td>${e.message || ""}</td>
+        <td>${e.ip_address || ""}</td>`;
+      tb.appendChild(tr);
+    }
+  }
+</script>
+</body>
+</html>

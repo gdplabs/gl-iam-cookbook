@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>GLChat Widget</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { font-family: system-ui, -apple-system, sans-serif; margin: 0; background: #f0fdfa; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+  #stage { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+  .state { flex: 1 1 auto; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 1rem; text-align: center; color: #0f766e; }
+  .state.idle { color: #64748b; }
+  .state h2 { margin: .25rem 0; font-size: 1rem; }
+  .state p { font-size: .85rem; margin: .25rem 0; color: #475569; }
+  .spinner { width: 32px; height: 32px; border: 3px solid #ccfbf1; border-top-color: #0f766e; border-radius: 50%; animation: spin 1s linear infinite; margin: .5rem auto; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .chat { flex: 1 1 auto; display: flex; flex-direction: column; padding: 1rem; gap: .5rem; overflow-y: auto; min-height: 0; }
+  .bubble { background: #ccfbf1; padding: .6rem .9rem; border-radius: 12px; max-width: 90%; font-size: .88rem; line-height: 1.4; }
+  .bubble.user { background: #4f46e5; color: white; align-self: flex-end; }
+  .composer { padding: .5rem; background: white; border-top: 1px solid #ccfbf1; display: flex; gap: .5rem; }
+  .composer input { flex: 1; padding: .4rem .6rem; border-radius: 6px; border: 1px solid #ccfbf1; font-size: .88rem; }
+  .composer button { padding: .4rem .8rem; border-radius: 6px; border: 0; background: #0f766e; color: white; cursor: pointer; }
+
+  .trace-wrap { flex: 0 0 45%; background: #0b1120; border-top: 2px solid #0f766e; min-height: 220px; max-height: 55vh; display: flex; flex-direction: column; resize: vertical; overflow: hidden; }
+  .trace-head { color: #94a3b8; font-size: .7rem; padding: .25rem .6rem; background: #0f172a; display: flex; justify-content: space-between; align-items: center; flex: 0 0 auto; }
+  #wlog-scroll { overflow-y: auto; flex: 1 1 auto; }
+  .trace-head strong { color: #ccfbf1; }
+  .trace-head button { background: #1e293b; color: #94a3b8; border: 0; font-size: .65rem; padding: .15rem .4rem; border-radius: 3px; cursor: pointer; }
+  #wlog { font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: .7rem; padding: .3rem .6rem; color: #cbd5e1; line-height: 1.4; }
+  .wevt { padding: .1rem 0; border-left: 2px solid transparent; padding-left: .4rem; margin: .05rem 0; }
+  .wevt.step { border-left-color: #60a5fa; color: #93c5fd; font-weight: 700; padding: .2rem .4rem; background: rgba(96,165,250,.08); }
+  .wevt.ok   { border-left-color: #86efac; color: #86efac; }
+  .wevt.err  { border-left-color: #fca5a5; color: #fca5a5; }
+  .wevt.warn { border-left-color: #fbbf24; color: #fbbf24; }
+  .wevt .ts { color: #64748b; margin-right: .35rem; }
+  details.payload { margin-left: .15rem; }
+  details.payload summary { cursor: pointer; color: #64748b; font-size: .65rem; list-style: none; }
+  details.payload summary::before { content: "▸ "; }
+  details.payload[open] summary::before { content: "▾ "; }
+  details.payload pre { background: #020617; color: #94a3b8; padding: .3rem .5rem; border-radius: 3px; margin: .15rem 0; font-size: .65rem; white-space: pre-wrap; word-break: break-all; border: 1px solid #1e293b; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="idle" class="state idle">
+    <h2>GLChat</h2>
+    <p>Waiting for SSO from the partner site…</p>
+    <p style="font-size:.72rem; opacity:.7;">(Log in to the partner portal to start a session.)</p>
+  </div>
+</div>
+
+<div class="trace-wrap">
+  <div class="trace-head">
+    <strong>widget debug log</strong>
+    <button id="wclear">clear</button>
+  </div>
+  <div id="wlog-scroll">
+    <div id="wlog"></div>
+  </div>
+</div>
+
+<script>
+  const GLCHAT_BE = "http://localhost:8000";
+  const ALLOWED_PARENT_ORIGINS = ["http://localhost:3001"];
+
+  const $ = (id) => document.getElementById(id);
+  const esc = (s) => String(s).replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+  function tnow() {
+    const d = new Date();
+    return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}.${String(d.getMilliseconds()).padStart(3,'0')}`;
+  }
+  function wlog(msg, cls="") {
+    const el = document.createElement("div");
+    el.className = "wevt " + cls;
+    el.innerHTML = `<span class="ts">${tnow()}</span>${msg}`;
+    $("wlog").appendChild(el);
+    const scroll = $("wlog-scroll");
+    scroll.scrollTop = scroll.scrollHeight;
+  }
+  function step(n, title) { wlog(`STEP ${n} — ${esc(title)}`, "step"); }
+  function payload(label, body) {
+    return `<details class="payload"><summary>${esc(label)}</summary><pre>${esc(typeof body === "string" ? body : JSON.stringify(body, null, 2))}</pre></details>`;
+  }
+  $("wclear").onclick = () => ($("wlog").innerHTML = "");
+
+  function stage(html) { $("stage").innerHTML = html; }
+  function idleView() {
+    stage(`<div id="idle" class="state idle"><h2>GLChat</h2><p>Waiting for SSO from the partner site…</p><p style="font-size:.72rem; opacity:.7;">(Log in to the partner portal to start a session.)</p></div>`);
+  }
+  function authingView() {
+    stage(`<div class="state"><div class="spinner"></div><h2>Signing you into GLChat…</h2><p style="font-size:.72rem;">Exchanging one-time SSO token for a session JWT.</p></div>`);
+  }
+  function activeView(user) {
+    stage(`
+      <div style="background:#0f766e; color:white; padding:.5rem .75rem; font-size:.85rem;">
+        GLChat &mdash; signed in as <b>${esc(user.display_name || user.email)}</b>
+      </div>
+      <div class="chat" id="chat"></div>
+      <form class="composer" id="composer">
+        <input id="msg" placeholder="Type a message… (mock UI)" />
+        <button type="submit">Send</button>
+      </form>
+    `);
+    addBubble(`Welcome, ${user.display_name || user.email}! You are authenticated via GL-IAM IdP-initiated SSO.`, false);
+    addBubble("This is a mock widget; every real GLChat API call would use your session JWT as a Bearer token.", false);
+    $("composer").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const v = $("msg").value.trim(); if (!v) return;
+      addBubble(v, true);
+      $("msg").value = "";
+      setTimeout(() => addBubble("(Mock reply — a real GLChat BE would stream an LLM response here.)", false), 300);
+    });
+  }
+  function addBubble(text, isUser) {
+    const b = document.createElement("div");
+    b.className = "bubble" + (isUser ? " user" : "");
+    b.textContent = text;
+    $("chat")?.appendChild(b);
+    if ($("chat")) $("chat").scrollTop = $("chat").scrollHeight;
+  }
+
+  // Announce readiness to the parent site
+  step(1, "Widget loaded, broadcasting widget_ready to parent");
+  window.parent?.postMessage({type: "widget_ready"}, "*");
+  wlog("→ postMessage(widget_ready) to parent (targetOrigin='*')", "ok");
+
+  let sessionJwt = null;
+
+  window.addEventListener("message", async (ev) => {
+    // Silently drop messages from untrusted origins — logging them every time
+    // (browser extensions, devtools, other tabs) looks like a heartbeat.
+    if (!ALLOWED_PARENT_ORIGINS.includes(ev.origin)) return;
+    if (ev.data?.type !== "sso_token") return;
+
+    const token = ev.data.token;
+    step(2, "Received sso_token from parent via postMessage");
+    wlog(`← parent origin <b>${esc(ev.origin)}</b> OK`, "ok");
+    wlog(`received token <b>${esc(token.slice(0,16))}…</b> (one-time, TTL 60s)`);
+
+    step(3, "Exchange token for session JWT");
+    wlog(`→ <b>POST ${GLCHAT_BE}/api/v1/sso/authenticate</b>` + payload("request body", {sso_token: token.slice(0,16)+"…"}));
+    authingView();
+
+    const t0 = performance.now();
+    const r = await fetch(`${GLCHAT_BE}/api/v1/sso/authenticate`, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({sso_token: token}),
+    });
+    const ms = Math.round(performance.now() - t0);
+    if (!r.ok) {
+      const txt = await r.text();
+      wlog(`← GLChat BE <b>${r.status}</b> (${ms}ms) — authentication failed` + payload("error", txt), "err");
+      idleView();
+      return;
+    }
+    const {access_token, token_type} = await r.json();
+    sessionJwt = access_token;
+    wlog(`← GLChat BE <b>200</b> (${ms}ms) — session JWT issued`, "ok");
+    wlog(`JWT <b>${esc(access_token.slice(0,18))}…</b> token_type=${esc(token_type)}`);
+
+    step(4, "Call /api/v1/me to fetch user profile with JWT");
+    wlog(`→ <b>GET ${GLCHAT_BE}/api/v1/me</b> Authorization: Bearer ${esc(access_token.slice(0,12))}…`);
+
+    const me = await (await fetch(`${GLCHAT_BE}/api/v1/me`, {
+      headers: {Authorization: `Bearer ${sessionJwt}`},
+    })).json();
+    wlog(`← GLChat BE <b>200</b>` + payload("user profile", me), "ok");
+
+    step(5, "Render authenticated UI");
+    activeView(me);
+    wlog(`user.id=<b>${esc(me.id)}</b> email=<b>${esc(me.email)}</b> roles=${esc(JSON.stringify(me.roles))}`, "ok");
+    wlog("SSO complete — no second login, no redirect, no popup.", "ok");
+  });
+</script>
+</body>
+</html>
