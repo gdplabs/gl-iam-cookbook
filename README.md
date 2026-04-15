@@ -47,8 +47,9 @@ gl-iam-cookbook/
 │   ├── dpop-keycloak/             # DPoP token binding with Keycloak
 │   ├── ldap-keycloak/             # LDAP/AD authentication via Keycloak
 │   ├── saml-keycloak/             # SAML 2.0 federation via Keycloak
-│   ├── sso-token-exchange/        # SSO with HMAC token exchange
-│   ├── sso-jwt-bridge/            # SSO with JWT bridge
+│   ├── sso-token-exchange/        # SSO with HMAC token exchange (SDK primitive only)
+│   ├── sso-jwt-bridge/            # SSO with JWT bridge (single-partner simpler pattern)
+│   ├── sso-glchat-production/     # Production-grade IdP-initiated SSO (end-to-end, all §12 gaps)
 │   ├── third-party-integration/   # Third-party OAuth (GitHub flow)
 │   ├── audit-trail-fastapi/       # Audit trail with FastAPI
 │   └── bosa-migration/            # BOSA Core Auth migration guide
@@ -111,8 +112,11 @@ Based on a real product requirement: **Lokadata x GLChat SSO** — enabling auto
 
 | Example | Description | Features |
 |---------|-------------|----------|
-| [sso-token-exchange](traditional-iam/sso-token-exchange/) | Server-side HMAC token exchange (Recommended) | Multi-partner, key rotation, JIT provisioning |
-| [sso-jwt-bridge](traditional-iam/sso-jwt-bridge/) | JWT-signed token SSO (Simpler) | Single trusted partner, stateless verification |
+| [sso-token-exchange](traditional-iam/sso-token-exchange/) | Server-side HMAC token exchange (SDK primitive) | Multi-partner, key rotation, JIT provisioning |
+| [sso-jwt-bridge](traditional-iam/sso-jwt-bridge/) | JWT-signed token SSO (simpler pattern) | Single trusted partner, stateless verification |
+| [sso-glchat-production](traditional-iam/sso-glchat-production/) | **Production-grade IdP-initiated SSO — end-to-end demo** | 5-component topology (partner FE+BE, GLChat BE + admin + widget), Redis one-time tokens, nonce replay protection, per-`consumer_key` rate limiting, dynamic CSP `frame-ancestors`, `postMessage` token delivery, platform-admin-protected partner CRUD, secret rotation with grace period, structured audit trail, rich step-banner logs |
+
+> `sso-token-exchange` shows the SDK primitive in isolation; `sso-glchat-production` wraps it with every production concern from [§12 of the architecture doc](https://github.com/GDP-ADMIN/gl-sdk/blob/main/libs/gl-iam/docs/architecture/IDP_VS_SP_INITIATED_SSO_COMPARISON.md) and a realistic 3-backend + 2-frontend topology you can walk through in a browser. Start there if you're adopting IdP-initiated SSO for real.
 
 ### Migration
 
