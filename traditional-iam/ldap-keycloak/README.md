@@ -38,23 +38,49 @@ docker-compose up -d
 
 Wait ~30 seconds for Keycloak to import the realm and connect to OpenLDAP.
 
-Verify Keycloak is ready:
+Verify Keycloak is ready (health endpoints are served on the management port 9000):
 
 ```bash
-curl -s http://localhost:8080/health/ready | jq .
+curl -s http://localhost:9000/health/ready | jq .
 ```
 
 ### 3. Sync LDAP Users
 
-After Keycloak starts, trigger a user sync from the admin console:
+After Keycloak starts, trigger a user sync. Pick **one** of the two options below.
+
+#### Option A — Admin console (Keycloak 26 UI)
 
 1. Go to http://localhost:8080/admin (admin / admin)
 2. Select realm **gl-iam-ldap-demo**
-3. Go to **User federation** → **ldap**
-4. Click **Synchronize all users**
+3. Go to **User federation** → click **ldap** to open its Settings page
+4. Top-right **Action** dropdown → **Sync all users**
+   > In Keycloak 26 the standalone "Synchronize all users" button was moved into this Action menu. Older Keycloak versions show the button inline on the provider page.
 5. Assign roles to synced users:
    - Go to **Users** → find `jdoe` → **Role mapping** → Assign **member**
    - Go to **Users** → find `asmith` → **Role mapping** → Assign **admin** + **member**
+
+#### Option B — Command line (kcadm.sh)
+
+```bash
+# 1. Log in once
+docker exec ldap-keycloak /opt/keycloak/bin/kcadm.sh config credentials \
+  --server http://localhost:8080 --realm master --user admin --password admin
+
+# 2. Find the LDAP provider's component id
+LDAP_ID=$(docker exec ldap-keycloak /opt/keycloak/bin/kcadm.sh get components \
+  -r gl-iam-ldap-demo --query 'type=org.keycloak.storage.UserStorageProvider' \
+  --fields id --format csv --noquotes | tail -1)
+
+# 3. Trigger full sync (quote the URL so the shell does not eat the '?')
+docker exec ldap-keycloak /opt/keycloak/bin/kcadm.sh create \
+  "user-storage/$LDAP_ID/sync?action=triggerFullSync" -r gl-iam-ldap-demo
+
+# 4. Assign roles
+docker exec ldap-keycloak /opt/keycloak/bin/kcadm.sh add-roles \
+  -r gl-iam-ldap-demo --uusername jdoe --rolename member
+docker exec ldap-keycloak /opt/keycloak/bin/kcadm.sh add-roles \
+  -r gl-iam-ldap-demo --uusername asmith --rolename admin --rolename member
+```
 
 ### 4. Run the Application
 

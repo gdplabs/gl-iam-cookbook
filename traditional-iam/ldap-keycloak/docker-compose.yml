@@ -47,8 +47,10 @@ services:
       KEYCLOAK_ADMIN_PASSWORD: admin
       KC_HOSTNAME: localhost
       KC_HTTP_ENABLED: "true"
+      KC_HEALTH_ENABLED: "true"
     ports:
       - "8080:8080"
+      - "9000:9000"   # Keycloak management port (health/metrics). Change host side if 9000 is taken, e.g. "9100:9000".
     volumes:
       - ./realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
     networks:
