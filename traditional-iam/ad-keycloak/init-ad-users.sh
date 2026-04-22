@@ -7,6 +7,21 @@ set -e
 DC_HOST="ldap://samba-ad:389"
 ADMIN_AUTH="Administrator%Password123!"
 
+# The DC healthcheck can flip green before the LDAP listener accepts remote binds.
+# Probe with an authenticated list call and retry until it works (up to ~60s).
+echo "Waiting for AD DC to accept remote LDAP binds…"
+for i in {1..30}; do
+  if samba-tool user list -U "$ADMIN_AUTH" -H "$DC_HOST" >/dev/null 2>&1; then
+    echo "DC is accepting remote binds."
+    break
+  fi
+  if [ "$i" = "30" ]; then
+    echo "ERROR: DC never became bindable over LDAP." >&2
+    exit 1
+  fi
+  sleep 2
+done
+
 create_user() {
   local username="$1"
   local password="$2"
