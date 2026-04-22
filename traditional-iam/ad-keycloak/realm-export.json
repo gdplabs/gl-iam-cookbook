@@ -1,0 +1,124 @@
+{
+  "id": "gl-iam-ad-demo",
+  "realm": "gl-iam-ad-demo",
+  "displayName": "GL-IAM AD Demo",
+  "enabled": true,
+  "sslRequired": "none",
+  "loginWithEmailAllowed": true,
+  "roles": {
+    "realm": [
+      {
+        "id": "role-admin",
+        "name": "admin",
+        "description": "Administrator role with full access"
+      },
+      {
+        "id": "role-member",
+        "name": "member",
+        "description": "Standard member role"
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "glchat-backend",
+      "name": "GLChat Backend",
+      "enabled": true,
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "glchat-backend-secret",
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": true,
+      "protocol": "openid-connect",
+      "defaultClientScopes": ["profile", "roles", "email"]
+    }
+  ],
+  "components": {
+    "org.keycloak.storage.UserStorageProvider": [
+      {
+        "name": "ad",
+        "providerId": "ldap",
+        "config": {
+          "vendor": ["ad"],
+          "connectionUrl": ["ldap://samba-ad:389"],
+          "bindDn": ["CN=Administrator,CN=Users,DC=example,DC=org"],
+          "bindCredential": ["Password123!"],
+          "usersDn": ["CN=Users,DC=example,DC=org"],
+          "usernameLDAPAttribute": ["sAMAccountName"],
+          "rdnLDAPAttribute": ["cn"],
+          "uuidLDAPAttribute": ["objectGUID"],
+          "userObjectClasses": ["person, organizationalPerson, user"],
+          "editMode": ["READ_ONLY"],
+          "syncRegistrations": ["false"],
+          "importEnabled": ["true"],
+          "fullSyncPeriod": ["-1"],
+          "changedSyncPeriod": ["-1"],
+          "searchScope": ["2"],
+          "batchSizeForSync": ["1000"],
+          "pagination": ["true"],
+          "connectionPooling": ["true"],
+          "useTruststoreSpi": ["ldapsOnly"],
+          "allowKerberosAuthentication": ["false"],
+          "trustEmail": ["true"],
+          "enabled": ["true"],
+          "priority": ["0"]
+        },
+        "subComponents": {
+          "org.keycloak.storage.ldap.mappers.LDAPStorageMapper": [
+            {
+              "name": "username",
+              "providerId": "user-attribute-ldap-mapper",
+              "config": {
+                "ldap.attribute": ["sAMAccountName"],
+                "user.model.attribute": ["username"],
+                "read.only": ["true"],
+                "always.read.value.from.ldap": ["false"],
+                "is.mandatory.in.ldap": ["true"]
+              }
+            },
+            {
+              "name": "email",
+              "providerId": "user-attribute-ldap-mapper",
+              "config": {
+                "ldap.attribute": ["mail"],
+                "user.model.attribute": ["email"],
+                "read.only": ["true"],
+                "always.read.value.from.ldap": ["false"],
+                "is.mandatory.in.ldap": ["false"]
+              }
+            },
+            {
+              "name": "first name",
+              "providerId": "user-attribute-ldap-mapper",
+              "config": {
+                "ldap.attribute": ["givenName"],
+                "user.model.attribute": ["firstName"],
+                "read.only": ["true"],
+                "always.read.value.from.ldap": ["false"],
+                "is.mandatory.in.ldap": ["false"]
+              }
+            },
+            {
+              "name": "last name",
+              "providerId": "user-attribute-ldap-mapper",
+              "config": {
+                "ldap.attribute": ["sn"],
+                "user.model.attribute": ["lastName"],
+                "read.only": ["true"],
+                "always.read.value.from.ldap": ["false"],
+                "is.mandatory.in.ldap": ["false"]
+              }
+            },
+            {
+              "name": "MSAD account controls",
+              "providerId": "msad-user-account-control-mapper",
+              "config": {}
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "defaultRoles": ["member"],
+  "accessTokenLifespan": 3600
+}

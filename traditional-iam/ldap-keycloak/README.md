@@ -166,6 +166,26 @@ LDAP groups can be mapped to Keycloak roles using group-ldap-mapper:
 - LDAP group `admins` → Keycloak role `admin` → GL IAM `ORG_ADMIN`
 - LDAP group `members` → Keycloak role `member` → GL IAM `ORG_MEMBER`
 
+## Using with Active Directory
+
+For a runnable AD example, see [`../ad-keycloak/`](../ad-keycloak/). The bullets below are the minimal realm-export diff if you want to adapt **this** example in-place against a real AD (or Samba AD DC):
+
+1. **Use the AD vendor preset in the admin UI** — it auto-fills most fields correctly. Prefer it over editing `realm-export.json` by hand.
+2. **Fields to change** in the federation component (`realm-export.json` → `components.org.keycloak.storage.UserStorageProvider[0].config`):
+   - `vendor` → `ad`
+   - `usernameLDAPAttribute` → `sAMAccountName`
+   - `rdnLDAPAttribute` → `cn`
+   - `uuidLDAPAttribute` → `objectGUID`
+   - `userObjectClasses` → `person, organizationalPerson, user`
+   - `usersDn` → `CN=Users,DC=yourdomain,DC=com`
+   - `bindDn` → `CN=<service-account>,CN=Users,DC=yourdomain,DC=com`
+3. **Update the username mapper** sub-component: `ldap.attribute` → `sAMAccountName` (was `uid`). The `email`, `first name`, and `last name` mappers stay unchanged — AD uses `mail`, `givenName`, and `sn` too.
+4. **Add the `msad-user-account-control-mapper`** sub-component (the AD vendor preset installs it automatically via the UI; hand-authored JSON must include it explicitly). Without it, disabled or locked AD accounts still authenticate.
+5. **Gotchas**:
+   - AD requires paging: set `pagination: ["true"]` on the federation component.
+   - Use `ldaps://<dc>:636` + a trusted certificate in production, not `ldap://…:389`.
+   - Keep `editMode: READ_ONLY` and bind with a service account that has only the permissions Keycloak needs.
+
 ## Cleanup
 
 ```bash

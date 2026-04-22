@@ -1,0 +1,100 @@
+services:
+  # Samba AD DC — simulates a real Active Directory domain controller
+  # (provides sAMAccountName, objectGUID, AD object classes). INSECURELDAP=true
+  # and NOCOMPLEXITY=true are demo-only shortcuts; do not copy into production.
+  samba-ad:
+    image: nowsci/samba-domain:20260401025204
+    container_name: ad-keycloak-samba
+    hostname: dc1
+    domainname: example.org
+    privileged: true
+    environment:
+      DOMAIN: EXAMPLE.ORG
+      DOMAINPASS: "Password123!"
+      DNSFORWARDER: 8.8.8.8
+      HOSTIP: 127.0.0.1
+      NOCOMPLEXITY: "true"
+      INSECURELDAP: "true"
+    ports:
+      - "389:389"  # Published only so you can inspect with ldapsearch; Keycloak uses the internal network.
+    volumes:
+      - samba_data:/var/lib/samba
+      - samba_config:/etc/samba/external
+    healthcheck:
+      test: ["CMD", "samba-tool", "domain", "info", "127.0.0.1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+    networks:
+      - ad-network
+    restart: unless-stopped
+
+  # One-shot sidecar: seeds jdoe / asmith and their group memberships after the DC is ready.
+  ad-init:
+    image: nowsci/samba-domain:20260401025204
+    container_name: ad-keycloak-init
+    depends_on:
+      samba-ad:
+        condition: service_healthy
+    volumes:
+      - ./init-ad-users.sh:/init-ad-users.sh:ro
+    entrypoint: ["/bin/bash", "/init-ad-users.sh"]
+    networks:
+      - ad-network
+    restart: "no"
+
+  # Keycloak database
+  keycloak-db:
+    image: postgres:16-alpine
+    container_name: ad-keycloak-db
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: keycloak
+    volumes:
+      - keycloak_db_data:/var/lib/postgresql/data
+    networks:
+      - ad-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keycloak -d keycloak"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Keycloak — bridges Active Directory and your application via OIDC
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0
+    container_name: ad-keycloak
+    command: start-dev --import-realm
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://keycloak-db:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: keycloak
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_HOSTNAME: localhost
+      KC_HTTP_ENABLED: "true"
+      KC_HEALTH_ENABLED: "true"
+    ports:
+      - "8080:8080"
+      - "9000:9000"   # Keycloak management port (health/metrics). Change host side if 9000 is taken, e.g. "9100:9000".
+    volumes:
+      - ./realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
+    networks:
+      - ad-network
+    depends_on:
+      keycloak-db:
+        condition: service_healthy
+      samba-ad:
+        condition: service_healthy
+
+networks:
+  ad-network:
+    driver: bridge
+
+volumes:
+  samba_data:
+  samba_config:
+  keycloak_db_data:
