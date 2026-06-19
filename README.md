@@ -45,6 +45,7 @@ gl-iam-cookbook/
 │   ├── rbac-showcase/             # RBAC with multi-provider support
 │   ├── api-key-hierarchy/         # API key management with SOLID patterns
 │   ├── dpop-keycloak/             # DPoP token binding with Keycloak
+│   ├── dpop-standalone/           # DPoP without Keycloak (standalone, no DB)
 │   ├── ldap-keycloak/             # LDAP authentication via Keycloak
 │   ├── ad-keycloak/               # Active Directory authentication via Keycloak (Samba AD DC)
 │   ├── saml-keycloak/             # SAML 2.0 federation via Keycloak
@@ -102,6 +103,7 @@ Each Django example demonstrates three view patterns:
 | [rbac-showcase](traditional-iam/rbac-showcase/) | RBAC with multi-provider support | Role mapping, hierarchy, SIMI pattern |
 | [api-key-hierarchy](traditional-iam/api-key-hierarchy/) | API key management with SOLID patterns | 3-tier API keys, scope-based authorization |
 | [dpop-keycloak](traditional-iam/dpop-keycloak/) | DPoP token binding with Keycloak | Proof-of-possession, replay protection |
+| [dpop-standalone](traditional-iam/dpop-standalone/) | DPoP **without Keycloak** (standalone validation, no DB) | `StandaloneDPoPProvider`, `cnf.jkt` binding, replay protection |
 | [ldap-keycloak](traditional-iam/ldap-keycloak/) | LDAP authentication via Keycloak (OpenLDAP) | User Federation, group-to-role mapping |
 | [ad-keycloak](traditional-iam/ad-keycloak/) | Active Directory authentication via Keycloak (Samba AD DC) | AD vendor preset, `sAMAccountName`/`objectGUID`, MSAD UAC mapper |
 | [saml-keycloak](traditional-iam/saml-keycloak/) | SAML 2.0 SSO via Keycloak | Identity Brokering, attribute mapping |
