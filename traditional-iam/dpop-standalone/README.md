@@ -1,6 +1,6 @@
 # DPoP Without Keycloak (Standalone)
 
-This example demonstrates **DPoP (Demonstrating Proof of Possession)** with **no Keycloak and no database** — proving that DPoP in GL-IAM is backend-agnostic. All proof validation, replay protection, and `cnf.jkt` token-binding run locally using GL-IAM's `StandaloneDPoPProvider` (PyJWT + cryptography only).
+This example demonstrates **DPoP (Demonstrating Proof of Possession)** with **no Keycloak and no database**. It proves DPoP in GL-IAM is backend-agnostic: all proof validation, replay protection, and `cnf.jkt` token-binding run locally using GL-IAM's `StandaloneDPoPProvider` (PyJWT + cryptography only).
 
 DPoP binds an access token to a client's cryptographic key pair. Even if someone steals the token, they cannot use it without the matching **private key**.
 
@@ -11,12 +11,25 @@ DPoP binds an access token to a client's cryptographic key pair. Even if someone
 | Token forwarded to another endpoint | Easy | Proof is bound to method + URL |
 
 > [!IMPORTANT]
-> **Issuance note — read this.** GL-IAM now issues DPoP-bound tokens **first-party, no Keycloak**:
+> **Issuance note (read this).** GL-IAM now issues DPoP-bound tokens **first-party, no Keycloak**:
 > ```python
 > token = await gateway.create_dpop_bound_session(user, org_id, dpop_thumbprint=client.jwk_thumbprint)
 > # PostgreSQLSessionMixin.create_session adds cnf.jkt and sets token_type="DPoP"
 > ```
 > This example ships a tiny **demo issuer** (`issue_token.py`) that mints the *same* bound token **without a database**, only so the example stays zero-infra. In a real deployment use the gateway call above (it needs a Postgres-backed provider + a real user). Both the issuance and validation halves shown here are real, shipped GL-IAM capabilities.
+
+## Folder Structure
+
+```
+dpop-standalone/
+├── main.py            # FastAPI resource server (StandaloneDPoPProvider)
+├── issue_token.py     # demo Authorization Server: mints a cnf.jkt-bound token
+├── generate_key.py    # client EC P-256 key pair (private key stays local)
+├── create_proof.py    # signs a fresh DPoP proof per request
+├── pyproject.toml     # deps: gl-iam[fastapi] (no keycloak/postgresql extras)
+├── .env.example       # SECRET_KEY, shared by the issuer and resource server
+└── setup.sh           # uv sync + .env bootstrap
+```
 
 ## Architecture
 
@@ -36,7 +49,7 @@ DPoP binds an access token to a client's cryptographic key pair. Even if someone
 ## Prerequisites
 
 - Python 3.11+
-- [uv](https://docs.astral.sh/uv/) — `curl -LsSf https://astral.sh/uv/install.sh | sh`
+- [uv](https://docs.astral.sh/uv/): `curl -LsSf https://astral.sh/uv/install.sh | sh`
 - Access to the GDP Labs Gen AI SDK repo (request via ticket@gdplabs.id) + `gcloud auth login`
 - **No Keycloak. No PostgreSQL. No Docker.**
 
@@ -71,7 +84,7 @@ curl -s http://localhost:8000/api/protected \
 ## Testing the API
 
 ```bash
-# Public — no auth
+# Public, no auth
 curl -s http://localhost:8000/health
 curl -s http://localhost:8000/api/public
 
@@ -96,7 +109,7 @@ curl -i http://localhost:8000/api/protected -H "Authorization: DPoP $TOKEN" -H "
 | File | Role | Keycloak? |
 |------|------|-----------|
 | `generate_key.py` | Client creates an EC P-256 key pair via `DPoPClient`; private key stays local | No |
-| `issue_token.py` | **Demo Authorization Server** — mints an HS256 access token with `cnf.jkt` | No |
+| `issue_token.py` | **Demo Authorization Server**; mints an HS256 access token with `cnf.jkt` | No |
 | `create_proof.py` | Client signs a fresh DPoP proof per request (`DPoPClient.create_proof`) | No |
 | `main.py` | Resource server validates via `StandaloneDPoPProvider` | No |
 
@@ -110,13 +123,13 @@ dpop = StandaloneDPoPProvider(DPoPConfig(required=True, nonce_enabled=False))
 
 proof = await dpop.validate_dpop_proof(dpop_proof, method, uri, access_token=token)
 binding = await dpop.validate_token_binding(token, proof.value.jwk_thumbprint)
-# both .is_ok -> the caller holds the private key -> allow
+# both ok: the caller holds the private key, so allow
 ```
 
 Compare with [`dpop-keycloak`](../dpop-keycloak/): the *only* difference is the
 provider (`StandaloneDPoPProvider` vs `KeycloakDPoPProvider`) and who reads
 `cnf.jkt` (local token decode vs Keycloak introspection). Same `DPoPProvider`
-protocol — swap without touching endpoint code (LSP / SIMI).
+protocol, so you swap providers without touching endpoint code (LSP / SIMI).
 
 ## Production notes
 
@@ -126,7 +139,7 @@ protocol — swap without touching endpoint code (LSP / SIMI).
 
 ## Next Steps
 
-- [`dpop-keycloak`](../dpop-keycloak/) — the same flow with Keycloak as the issuer + binder
-- [`fastapi-postgresql`](../fastapi-postgresql/) — self-managed sessions; add `create_dpop_bound_session(...)` for DB-backed first-party DPoP issuance
-- [`api-key-hierarchy`](../api-key-hierarchy/) — API keys (bearer today; sender-constrained keys are on the roadmap)
+- [`dpop-keycloak`](../dpop-keycloak/): the same flow with Keycloak as the issuer and binder
+- [`fastapi-postgresql`](../fastapi-postgresql/): self-managed sessions; add `create_dpop_bound_session(...)` for DB-backed first-party DPoP issuance
+- [`api-key-hierarchy`](../api-key-hierarchy/): API keys (bearer today; sender-constrained keys are on the roadmap)
 - GL-IAM GitBook → Traditional IAM → DPoP → **DPoP Without Keycloak**

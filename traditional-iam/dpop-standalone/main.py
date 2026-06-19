@@ -3,7 +3,7 @@ DPoP Standalone Demo - FastAPI Resource Server (no Keycloak, no database).
 
 This server validates DPoP-bound access tokens using GL-IAM's
 StandaloneDPoPProvider. It proves that DPoP in GL-IAM does NOT depend on
-Keycloak — the proof validation, replay protection, and cnf.jkt token-binding
+Keycloak. The proof validation, replay protection, and cnf.jkt token-binding
 checks all run locally with PyJWT + cryptography.
 
 Request shape for the protected endpoint (RFC 9449):

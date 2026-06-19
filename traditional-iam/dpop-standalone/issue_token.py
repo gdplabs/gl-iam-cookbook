@@ -30,7 +30,7 @@ import uuid
 import jwt
 from dotenv import load_dotenv
 
-from gl_iam.dpop.thumbprint import compute_jwk_thumbprint
+from gl_iam.dpop import compute_jwk_thumbprint
 
 load_dotenv()
 

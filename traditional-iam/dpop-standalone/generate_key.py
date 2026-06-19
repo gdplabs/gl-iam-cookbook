@@ -47,8 +47,8 @@ def main():
     print("=" * 60)
     print(f"\nJWK Thumbprint (cnf.jkt): {client.jwk_thumbprint}")
     print("\nFiles saved:")
-    print(f"  - {keys_dir}/private_key.pem   (keep secret — never send this)")
-    print(f"  - {keys_dir}/jwk.json          (public — bound into the token)")
+    print(f"  - {keys_dir}/private_key.pem   (keep secret, never send this)")
+    print(f"  - {keys_dir}/jwk.json          (public, bound into the token)")
     print("\nUse the SAME key for issue_token.py and create_proof.py.")
     print("=" * 60)
 
