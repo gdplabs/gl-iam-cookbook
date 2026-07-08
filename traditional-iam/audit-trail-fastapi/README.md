@@ -222,6 +222,6 @@ Build your own handler by subclassing `AuditHandler` (see commented `WebhookAudi
 
 ## Next Steps
 
-- [Audit Trail GitBook tutorials](https://gdplabs.gitbook.io/sdk/gl-identity-and-access-management/identity-and-access-management/audit-trail)
+- [Audit Trail GitBook tutorials](https://gdplabs.gitbook.io/sdk/gl-identity-and-access-management/guides/audit-trail)
 - [Agent Lifecycle example](../agent-lifecycle/) — agent audit events with ConsoleAuditHandler
-- [Event Reference](https://gdplabs.gitbook.io/sdk/gl-identity-and-access-management/identity-and-access-management/audit-trail/event-reference) — complete list of 60+ event types
+- [Event Reference](https://gdplabs.gitbook.io/sdk/gl-identity-and-access-management/guides/audit-trail/event-reference) — complete list of 60+ event types

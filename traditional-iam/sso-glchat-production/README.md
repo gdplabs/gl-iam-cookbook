@@ -109,7 +109,7 @@ These matter in production but are explicitly out of this cookbook's scope — e
 - **Secret manager** for `GLCHAT_ENCRYPTION_KEY` and `GLCHAT_SECRET_KEY`. See [`gliam` CLI `--database-url-secret`](https://github.com/GDP-ADMIN/gl-sdk/blob/main/libs/gl-iam/gl_iam/cli/main.py) for an AWS Secrets Manager pattern.
 - **WAF / DDoS** — rate limiting here is per-`consumer_key` in-process; add a CDN/WAF layer in front.
 - **Clock sync** — both sides must run NTP; the 60 s window assumes so.
-- **Log sinks / SIEM** — this example uses `ConsoleAuditHandler` + `DatabaseAuditHandler`. Production should also add [OpenTelemetry](https://gdplabs.gitbook.io/sdk/gl-identity-and-access-management/identity-and-access-management/audit-trail/opentelemetry) + a forwarder.
+- **Log sinks / SIEM** — this example uses `ConsoleAuditHandler` + `DatabaseAuditHandler`. Production should also add [OpenTelemetry](https://gdplabs.gitbook.io/sdk/gl-identity-and-access-management/guides/audit-trail/opentelemetry) + a forwarder.
 - **Platform admin auth method** — admin logs in via password for demo simplicity. Real GLChat admin should use MFA or an existing SSO provider.
 
 ## References

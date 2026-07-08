@@ -220,4 +220,4 @@ docker-compose down -v
 - [fastapi-keycloak](../fastapi-keycloak/) — Standard Keycloak setup (no external directory)
 - [saml-keycloak](../saml-keycloak/) — SAML 2.0 federation via Keycloak
 - [rbac-showcase](../rbac-showcase/) — Advanced RBAC patterns
-- [GL-IAM GitBook: Enterprise Protocols](https://gdplabs.gitbook.io/sdk/gl-identity-and-access-management/tutorials/traditional-iam/enterprise-protocols)
+- [GL-IAM GitBook: Enterprise Protocols](https://gdplabs.gitbook.io/sdk/gl-identity-and-access-management/guides/traditional-iam/enterprise-protocols)
