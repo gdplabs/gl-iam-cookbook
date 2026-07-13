@@ -15,6 +15,7 @@ from pydantic import BaseModel
 
 from gl_iam import IAMGateway, User
 from gl_iam.fastapi import (
+    add_exception_handlers,
     get_current_user,
     require_org_admin,
     require_org_member,
@@ -55,6 +56,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="GL-IAM Keycloak Demo", lifespan=lifespan)
+add_exception_handlers(app)
 
 
 class UserResponse(BaseModel):

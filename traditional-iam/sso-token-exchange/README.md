@@ -99,7 +99,7 @@ Additionally, you need:
 
    ```bash
    git clone https://github.com/GDP-ADMIN/gl-iam-cookbook.git
-   cd gl-iam-cookbook/gl-iam/examples/sso-token-exchange/
+   cd gl-iam-cookbook/traditional-iam/sso-token-exchange/
    ```
 
 2. **Install dependencies**
@@ -157,7 +157,7 @@ Additionally, you need:
 In a second terminal:
 
 ```bash
-cd gl-iam-cookbook/gl-iam/examples/sso-token-exchange/
+cd gl-iam-cookbook/traditional-iam/sso-token-exchange/
 uv run partner_client.py
 ```
 
@@ -195,14 +195,19 @@ PAYLOAD='{"email":"alice@lokadata.example.com","display_name":"Alice","external_
 MESSAGE="${TIMESTAMP}|${CONSUMER_KEY}|${PAYLOAD}"
 SIGNATURE=$(echo -n "$MESSAGE" | openssl dgst -sha256 -hmac "$CONSUMER_SECRET" | awk '{print $2}')
 
+# NOTE: `payload` is itself a JSON string, so it must be embedded as an escaped
+# JSON string value (not spliced in raw) or the outer JSON becomes invalid.
+# `jq -n --arg` takes care of the escaping for us.
+BODY=$(jq -n \
+  --arg consumer_key "$CONSUMER_KEY" \
+  --arg signature "$SIGNATURE" \
+  --arg timestamp "$TIMESTAMP" \
+  --arg payload "$PAYLOAD" \
+  '{consumer_key: $consumer_key, signature: $signature, timestamp: $timestamp, payload: $payload}')
+
 curl -s -X POST http://localhost:8000/api/v1/sso/token \
   -H "Content-Type: application/json" \
-  -d "{
-    \"consumer_key\": \"${CONSUMER_KEY}\",
-    \"signature\": \"${SIGNATURE}\",
-    \"timestamp\": \"${TIMESTAMP}\",
-    \"payload\": \"${PAYLOAD}\"
-  }" | jq .
+  -d "$BODY" | jq .
 
 # Save the one-time token from the response:
 SSO_TOKEN="xxx"

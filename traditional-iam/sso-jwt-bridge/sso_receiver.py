@@ -28,7 +28,7 @@ from pydantic import BaseModel
 from gl_iam import IAMGateway, User
 from gl_iam.core.types import UserCreateInput
 from gl_iam.core.types.auth import ExternalIdentity
-from gl_iam.fastapi import get_current_user, get_iam_gateway, set_iam_gateway
+from gl_iam.fastapi import add_exception_handlers, get_current_user, get_iam_gateway, set_iam_gateway
 from gl_iam.providers.postgresql import PostgreSQLConfig, PostgreSQLProvider
 
 load_dotenv()
@@ -127,6 +127,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="SSO JWT Bridge Receiver", lifespan=lifespan)
+add_exception_handlers(app)  # <-- GL-IAM: map AuthenticationError/PermissionDeniedError to 401/403
 
 
 # ============================================================================

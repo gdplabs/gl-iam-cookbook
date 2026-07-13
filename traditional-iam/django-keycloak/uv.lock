@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 2
 requires-python = ">=3.11, <3.14"
 
 [[package]]
@@ -71,7 +71,7 @@ dependencies = [
 requires-dist = [
     { name = "django", specifier = ">=5.1.0,<6.0.0" },
     { name = "djangorestframework", specifier = ">=3.15.0,<4.0.0" },
-    { name = "gl-iam", extras = ["django", "keycloak"], git = "https://github.com/GDP-ADMIN/gl-sdk.git?subdirectory=libs%2Fgl-iam&branch=release%2Fgl-iam%2Fv0.1.x" },
+    { name = "gl-iam", extras = ["django", "keycloak"], git = "https://github.com/GDP-ADMIN/gl-sdk.git?subdirectory=libs%2Fgl-iam&branch=main" },
     { name = "python-dotenv", specifier = ">=1.0.0,<2.0.0" },
 ]
 
@@ -112,7 +112,7 @@ wheels = [
 [[package]]
 name = "gl-iam"
 version = "0.0.0"
-source = { git = "https://github.com/GDP-ADMIN/gl-sdk.git?subdirectory=libs%2Fgl-iam&branch=release%2Fgl-iam%2Fv0.1.x#acc790ff17b07585a528d81a61d02a2ac157ed73" }
+source = { git = "https://github.com/GDP-ADMIN/gl-sdk.git?subdirectory=libs%2Fgl-iam&branch=main#e9c5015592ee2ef92fd87504782e253926290181" }
 dependencies = [
     { name = "email-validator" },
     { name = "pydantic" },
@@ -126,6 +126,7 @@ django = [
 ]
 keycloak = [
     { name = "httpx" },
+    { name = "pyjwt" },
 ]
 
 [[package]]
@@ -256,6 +257,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/1f/f2/f11dd73284122713f5f89fc940f370d035fa8e1e078d446b3313955157fe/pydantic_core-2.41.5-pp311-pypy311_pp73-musllinux_1_1_armv7l.whl", hash = "sha256:a668ce24de96165bb239160b3d854943128f4334822900534f2fe947930e5770", size = 2330317, upload-time = "2025-11-04T13:43:40.406Z" },
     { url = "https://files.pythonhosted.org/packages/88/9d/b06ca6acfe4abb296110fb1273a4d848a0bfb2ff65f3ee92127b3244e16b/pydantic_core-2.41.5-pp311-pypy311_pp73-musllinux_1_1_x86_64.whl", hash = "sha256:f14f8f046c14563f8eb3f45f499cc658ab8d10072961e07225e507adb700e93f", size = 2316992, upload-time = "2025-11-04T13:43:43.602Z" },
     { url = "https://files.pythonhosted.org/packages/36/c7/cfc8e811f061c841d7990b0201912c3556bfeb99cdcb7ed24adc8d6f8704/pydantic_core-2.41.5-pp311-pypy311_pp73-win_amd64.whl", hash = "sha256:56121965f7a4dc965bff783d70b907ddf3d57f6eba29b6d2e5dabfaf07799c51", size = 2145302, upload-time = "2025-11-04T13:43:46.64Z" },
+]
+
+[[package]]
+name = "pyjwt"
+version = "2.13.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/3b/81/58d0ac84e1ef3a3843791d6954d94c0b33d526c75eeb1efbce9d0a4c4077/pyjwt-2.13.0.tar.gz", hash = "sha256:41571c89ca91598c79e8ef18a2d07367d4810fbbd6f637794879baf1b7703423", size = 107515, upload-time = "2026-05-21T19:54:36.618Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a3/5e/ecf12fdb62546d64385c158514e9b2b671f7832108ef2ecd2020ce0af2d1/pyjwt-2.13.0-py3-none-any.whl", hash = "sha256:66adcc2aff09b3f1bbd95fc1e1577df8ac8723c978552fd43304c8a290ac5728", size = 31274, upload-time = "2026-05-21T19:54:35.362Z" },
 ]
 
 [[package]]

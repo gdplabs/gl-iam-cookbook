@@ -11,7 +11,7 @@ This example demonstrates GL-IAM's resource constraint system for fine-grained a
 
 1. **Clone and navigate**:
    ```bash
-   cd gl-iam-cookbook/gl-iam/examples/agent-scope-constraints
+   cd gl-iam-cookbook/agent-iam/agent-scope-constraints
    ```
 
 2. **Run setup**:
@@ -41,11 +41,11 @@ This example demonstrates GL-IAM's resource constraint system for fine-grained a
 ```bash
 curl -X POST http://localhost:8000/register \
   -H "Content-Type: application/json" \
-  -d '{"email": "alice@example.com", "password": "secret123"}'
+  -d '{"email": "alice@example.com", "password": "SecurePass123!"}'
 
 TOKEN=$(curl -s -X POST http://localhost:8000/login \
   -H "Content-Type: application/json" \
-  -d '{"email": "alice@example.com", "password": "secret123"}' | jq -r '.access_token')
+  -d '{"email": "alice@example.com", "password": "SecurePass123!"}' | jq -r '.access_token')
 
 AGENT_ID=$(curl -s -X POST http://localhost:8000/setup \
   -H "Authorization: Bearer $TOKEN" | jq -r '.agent_id')

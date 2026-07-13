@@ -27,8 +27,11 @@ from gl_iam import (
     TaskContext,
     User,
 )
+from gl_iam.core import AuditConfig
+from gl_iam.core.exceptions import InvalidCredentialsError, UserAlreadyExistsError
 from gl_iam.core.types import PasswordCredentials, UserCreateInput
 from gl_iam.fastapi import (
+    add_exception_handlers,
     get_current_user,
     get_iam_gateway,
     set_iam_gateway,
@@ -45,12 +48,18 @@ audit_log: list[dict] = []
 
 
 def audit_callback(event: AuditEvent):
-    """Capture audit events into an in-memory log."""
+    """Capture audit events into an in-memory log.
+
+    AuditEvent uses pydantic's `use_enum_values=True`, so `event_type` and
+    `severity` are already plain strings here -- calling `.value` on them
+    raises AttributeError, which the gateway swallows in `_emit_audit_event`
+    and silently drops the event.
+    """
     audit_log.append(
         {
-            "event_type": event.event_type.value,
+            "event_type": event.event_type,
             "resource_id": event.resource_id,
-            "severity": event.severity.value,
+            "severity": event.severity,
             "timestamp": event.timestamp.isoformat(),
             "details": event.details,
         }
@@ -90,7 +99,7 @@ async def lifespan(app: FastAPI):
         session_provider=provider,
         organization_provider=provider,
         agent_provider=provider,
-        audit_callback=audit_callback,
+        audit_config=AuditConfig(callback=audit_callback),
     )
     set_iam_gateway(gateway, default_organization_id=default_org_id)
 
@@ -104,6 +113,7 @@ app = FastAPI(
     description="GL-IAM Agent Lifecycle Management",
     lifespan=lifespan,
 )
+add_exception_handlers(app)
 
 
 # ============================================================================
@@ -161,15 +171,20 @@ async def register(request: RegisterRequest):
     gateway = get_iam_gateway()
     org_id = os.getenv("DEFAULT_ORGANIZATION_ID", "default")
 
-    user = await gateway.user_store.create_user(
-        UserCreateInput(
-            email=request.email,
-            display_name=request.display_name or request.email.split("@")[0],
-        ),
-        organization_id=org_id,
-    )
+    try:
+        user = await gateway.user_store.create_user(
+            UserCreateInput(
+                email=request.email,
+                display_name=request.display_name or request.email.split("@")[0],
+            ),
+            organization_id=org_id,
+        )
 
-    await gateway.user_store.set_user_password(user.id, request.password, org_id)
+        await gateway.user_store.set_user_password(user.id, request.password, org_id)
+    except UserAlreadyExistsError as e:
+        raise HTTPException(status_code=409, detail=str(e)) from e
+    except InvalidCredentialsError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
     return {"id": user.id, "email": user.email, "display_name": user.display_name}
 

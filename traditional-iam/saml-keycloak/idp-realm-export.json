@@ -25,6 +25,7 @@
       "enabled": true,
       "protocol": "saml",
       "frontchannelLogout": true,
+      "redirectUris": ["http://localhost:8080/realms/gl-iam-saml-demo/broker/corporate-saml-idp/endpoint"],
       "attributes": {
         "saml.assertion.signature": "true",
         "saml.server.signature": "true",

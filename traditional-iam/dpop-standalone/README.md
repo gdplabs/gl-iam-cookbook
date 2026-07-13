@@ -60,7 +60,7 @@ cd traditional-iam/dpop-standalone
 ./setup.sh                       # installs deps, creates .env
 
 uv run generate_key.py           # 1. client key pair -> keys/
-TOKEN=$(uv run issue_token.py | tail -3 | head -1)   # 2. mint a bound token
+TOKEN=$(uv run issue_token.py | grep -E '^eyJ')      # 2. mint a bound token
 uv run main.py                   # 3. start the resource server (port 8000)
 ```
 

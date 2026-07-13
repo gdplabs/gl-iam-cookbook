@@ -23,7 +23,7 @@ Additionally, you need:
 
    ```bash
    git clone https://github.com/GDP-ADMIN/gl-iam-cookbook.git
-   cd gl-iam-cookbook/gl-iam/examples/aip-integration/
+   cd gl-iam-cookbook/agent-iam/aip-integration/
    ```
 
 2. **Install dependencies**

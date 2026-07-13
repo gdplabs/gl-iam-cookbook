@@ -57,7 +57,7 @@ main.py (Orchestrator)
 
    ```bash
    git clone https://github.com/GDP-ADMIN/gl-iam-cookbook.git
-   cd gl-iam-cookbook/gl-iam/examples/api-key-hierarchy/
+   cd gl-iam-cookbook/traditional-iam/api-key-hierarchy/
    ```
 
 2. **Install dependencies**

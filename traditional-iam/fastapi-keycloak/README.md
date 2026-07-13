@@ -22,7 +22,7 @@ Additionally, you need:
 
    ```bash
    git clone https://github.com/GDP-ADMIN/gl-iam-cookbook.git
-   cd gl-iam-cookbook/gl-iam/examples/fastapi-keycloak/
+   cd gl-iam-cookbook/traditional-iam/fastapi-keycloak/
    ```
 
 2. **Install dependencies**

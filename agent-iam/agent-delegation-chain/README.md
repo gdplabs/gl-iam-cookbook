@@ -11,7 +11,7 @@ This example demonstrates how delegation authority flows through multiple hops i
 
 1. **Clone and navigate**:
    ```bash
-   cd gl-iam-cookbook/gl-iam/examples/agent-delegation-chain
+   cd gl-iam-cookbook/agent-iam/agent-delegation-chain
    ```
 
 2. **Run setup**:
@@ -41,11 +41,11 @@ This example demonstrates how delegation authority flows through multiple hops i
 ```bash
 curl -X POST http://localhost:8000/register \
   -H "Content-Type: application/json" \
-  -d '{"email": "alice@example.com", "password": "secret123"}'
+  -d '{"email": "alice@example.com", "password": "SecurePass123!"}'
 
 TOKEN=$(curl -s -X POST http://localhost:8000/login \
   -H "Content-Type: application/json" \
-  -d '{"email": "alice@example.com", "password": "secret123"}' | jq -r '.access_token')
+  -d '{"email": "alice@example.com", "password": "SecurePass123!"}' | jq -r '.access_token')
 ```
 
 ### 2. Setup Orchestrator and Worker

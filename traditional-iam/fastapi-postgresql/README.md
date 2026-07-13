@@ -16,7 +16,7 @@ Additionally, you need:
 
    ```bash
    git clone https://github.com/GDP-ADMIN/gl-iam-cookbook.git
-   cd gl-iam-cookbook/gl-iam/examples/fastapi-postgresql/
+   cd gl-iam-cookbook/traditional-iam/fastapi-postgresql/
    ```
 
 2. **Install dependencies**

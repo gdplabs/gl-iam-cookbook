@@ -11,7 +11,7 @@ This example demonstrates GL-IAM agent delegation using Django with three integr
 
 1. **Clone and navigate**:
    ```bash
-   cd gl-iam-cookbook/gl-iam/examples/agent-delegation-django
+   cd gl-iam-cookbook/agent-iam/agent-delegation-django
    ```
 
 2. **Run setup**:
@@ -41,11 +41,11 @@ This example demonstrates GL-IAM agent delegation using Django with three integr
 ```bash
 curl -X POST http://localhost:8000/api/register/ \
   -H "Content-Type: application/json" \
-  -d '{"email": "alice@example.com", "password": "secret123"}'
+  -d '{"email": "alice@example.com", "password": "SecurePass123!"}'
 
 TOKEN=$(curl -s -X POST http://localhost:8000/api/login/ \
   -H "Content-Type: application/json" \
-  -d '{"email": "alice@example.com", "password": "secret123"}' | jq -r '.access_token')
+  -d '{"email": "alice@example.com", "password": "SecurePass123!"}' | jq -r '.access_token')
 ```
 
 ### 2. Register Agent and Delegate

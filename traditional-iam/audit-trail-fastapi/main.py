@@ -17,7 +17,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, Header, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy import select, func
 
@@ -29,6 +29,7 @@ from gl_iam import (
     set_audit_context,
     clear_audit_context,
 )
+from gl_iam.core import AuditConfig
 from gl_iam.core.types import PasswordCredentials, UserCreateInput
 from gl_iam.fastapi import (
     get_current_user,
@@ -96,7 +97,7 @@ async def lifespan(app: FastAPI):
         user_store=provider,
         session_provider=provider,
         organization_provider=provider,
-        audit_handlers=[composite],
+        audit_config=AuditConfig(handlers=[composite]),
     )
     set_iam_gateway(gateway, default_organization_id=default_org_id)
 
@@ -185,19 +186,29 @@ async def health():
 
 @app.post("/register")
 async def register(request: RegisterRequest):
-    """Register a new user. Triggers: user_created, credential_created."""
+    """Register a new user. Triggers: user_created.
+
+    Uses gateway.create_user_with_password() rather than
+    gateway.user_store.create_user() + set_user_password(): the user_store
+    passthrough talks to the provider directly and skips the gateway's audit
+    emission entirely, so no user_created event would ever be written.
+    """
     gateway = get_iam_gateway()
     org_id = os.getenv("DEFAULT_ORGANIZATION_ID", "default")
 
-    user = await gateway.user_store.create_user(
+    result = await gateway.create_user_with_password(
         UserCreateInput(
             email=request.email,
             display_name=request.display_name or request.email.split("@")[0],
         ),
+        password=request.password,
         organization_id=org_id,
     )
-    await gateway.user_store.set_user_password(user.id, request.password, org_id)
 
+    if result.is_err:
+        raise HTTPException(status_code=400, detail=result.error.message)
+
+    user = result.value
     return {"id": user.id, "email": user.email, "display_name": user.display_name}
 
 
@@ -235,17 +246,32 @@ async def admin_only(
     _: None = Depends(require_org_admin()),
     user: User = Depends(get_current_user),
 ):
-    """Admin-only endpoint. Triggers: permission_denied if user lacks ORG_ADMIN role."""
+    """Admin-only endpoint.
+
+    NOTE: require_org_admin() raises PermissionDeniedError directly and does
+    not go through IAMGateway._emit_audit_event, so denials here are NOT
+    currently persisted as permission_denied audit rows (SDK gap, not
+    something this example can wire up from route code).
+    """
     return {"message": f"Welcome admin {user.email}"}
 
 
 @app.post("/logout")
-async def logout(user: User = Depends(get_current_user)):
-    """Logout current user. Triggers: logout, session_revoked_all."""
+async def logout(
+    user: User = Depends(get_current_user),
+    authorization: str | None = Header(default=None),
+):
+    """Logout current user. Triggers: logout.
+
+    gateway.logout() revokes by access token, not user_id - it must receive
+    the actual bearer token (and only emits the logout audit event once
+    revoke_session() reports success).
+    """
     gateway = get_iam_gateway()
     org_id = os.getenv("DEFAULT_ORGANIZATION_ID", "default")
 
-    await gateway.logout(user.id, organization_id=org_id)
+    access_token = authorization.split(" ", 1)[1] if authorization else ""
+    await gateway.logout(access_token, organization_id=org_id, user_id=user.id)
     return {"message": "Logged out successfully"}
 
 
@@ -254,7 +280,13 @@ async def change_password(
     request: ChangePasswordRequest,
     user: User = Depends(get_current_user),
 ):
-    """Change password. Triggers: credential_password_updated."""
+    """Change password.
+
+    NOTE: IAMGateway has no set_user_password() wrapper, so this goes
+    through gateway.user_store.set_user_password() directly and does not
+    emit a credential_password_updated audit event (SDK gap: no gateway-level
+    audit hook exists for this operation).
+    """
     gateway = get_iam_gateway()
     org_id = os.getenv("DEFAULT_ORGANIZATION_ID", "default")
 

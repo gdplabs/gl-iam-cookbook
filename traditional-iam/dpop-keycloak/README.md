@@ -94,7 +94,7 @@ graph LR
 ### 1. Install dependencies
 
 ```bash
-cd gl-iam-cookbook/gl-iam/examples/dpop-keycloak
+cd gl-iam-cookbook/traditional-iam/dpop-keycloak
 ./setup.sh  # or: uv sync
 ```
 

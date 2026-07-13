@@ -275,7 +275,7 @@ The GL-IAM SDK is sourced from the gl-sdk repository:
 ```toml
 # pyproject.toml
 [tool.uv.sources]
-gl-iam = { git = "https://github.com/GDP-ADMIN/gl-sdk.git", subdirectory = "libs/gl-iam", branch = "feature/gl-iam-sdk" }
+gl-iam = { git = "https://github.com/GDP-ADMIN/gl-sdk.git", subdirectory = "libs/gl-iam", branch = "main" }
 ```
 
 Features used per example:

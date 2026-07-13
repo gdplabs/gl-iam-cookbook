@@ -39,29 +39,9 @@ services:
       keycloak-db:
         condition: service_healthy
 
-  gliam-db:
-    image: postgres:15-alpine
-    container_name: gliam-db
-    environment:
-      POSTGRES_DB: gliam
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - "5432:5432"
-    volumes:
-      - gliam_db_data:/var/lib/postgresql/data
-    networks:
-      - keycloak-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d gliam"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-
 networks:
   keycloak-network:
     driver: bridge
 
 volumes:
   keycloak_db_data:
-  gliam_db_data:

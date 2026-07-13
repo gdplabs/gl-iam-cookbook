@@ -58,7 +58,7 @@ wheels = [
 [[package]]
 name = "gl-iam"
 version = "0.0.0"
-source = { git = "https://github.com/GDP-ADMIN/gl-sdk.git?subdirectory=libs%2Fgl-iam&branch=feature%2Ftoken-refresh-for-long-running-agents#3ba9605d9de41e1c5c05d5c9253a773b3cff5265" }
+source = { git = "https://github.com/GDP-ADMIN/gl-sdk.git?subdirectory=libs%2Fgl-iam&branch=main#e9c5015592ee2ef92fd87504782e253926290181" }
 dependencies = [
     { name = "email-validator" },
     { name = "pydantic" },
@@ -235,7 +235,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "gl-iam", git = "https://github.com/GDP-ADMIN/gl-sdk.git?subdirectory=libs%2Fgl-iam&branch=feature%2Ftoken-refresh-for-long-running-agents" },
+    { name = "gl-iam", git = "https://github.com/GDP-ADMIN/gl-sdk.git?subdirectory=libs%2Fgl-iam&branch=main" },
     { name = "httpx", specifier = ">=0.27.0,<0.28.0" },
     { name = "python-dotenv", specifier = ">=1.0.0,<2.0.0" },
 ]

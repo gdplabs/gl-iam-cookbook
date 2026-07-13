@@ -85,7 +85,7 @@ Additionally, you need:
 
    ```bash
    git clone https://github.com/GDP-ADMIN/gl-iam-cookbook.git
-   cd gl-iam-cookbook/gl-iam/examples/sso-jwt-bridge/
+   cd gl-iam-cookbook/traditional-iam/sso-jwt-bridge/
    ```
 
 2. **Install dependencies**
@@ -143,7 +143,7 @@ Additionally, you need:
 In a second terminal:
 
 ```bash
-cd gl-iam-cookbook/gl-iam/examples/sso-jwt-bridge/
+cd gl-iam-cookbook/traditional-iam/sso-jwt-bridge/
 uv run partner_client.py
 ```
 

@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 2
 requires-python = ">=3.11, <3.14"
 
 [[package]]
@@ -93,7 +93,7 @@ wheels = [
 [[package]]
 name = "gl-iam"
 version = "0.0.0"
-source = { git = "https://github.com/GDP-ADMIN/gl-sdk.git?subdirectory=libs%2Fgl-iam&branch=release%2Fgl-iam%2Fv0.1.x#acc790ff17b07585a528d81a61d02a2ac157ed73" }
+source = { git = "https://github.com/GDP-ADMIN/gl-sdk.git?subdirectory=libs%2Fgl-iam&branch=main#f265ee0dd905ed799a100a80d1460c868a1d529d" }
 dependencies = [
     { name = "email-validator" },
     { name = "pydantic" },
@@ -106,6 +106,7 @@ fastapi = [
 ]
 keycloak = [
     { name = "httpx" },
+    { name = "pyjwt" },
 ]
 stackauth = [
     { name = "httpx" },
@@ -256,6 +257,15 @@ wheels = [
 ]
 
 [[package]]
+name = "pyjwt"
+version = "2.13.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/3b/81/58d0ac84e1ef3a3843791d6954d94c0b33d526c75eeb1efbce9d0a4c4077/pyjwt-2.13.0.tar.gz", hash = "sha256:41571c89ca91598c79e8ef18a2d07367d4810fbbd6f637794879baf1b7703423", size = 107515, upload-time = "2026-05-21T19:54:36.618Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a3/5e/ecf12fdb62546d64385c158514e9b2b671f7832108ef2ecd2020ce0af2d1/pyjwt-2.13.0-py3-none-any.whl", hash = "sha256:66adcc2aff09b3f1bbd95fc1e1577df8ac8723c978552fd43304c8a290ac5728", size = 31274, upload-time = "2026-05-21T19:54:35.362Z" },
+]
+
+[[package]]
 name = "python-dotenv"
 version = "1.2.1"
 source = { registry = "https://pypi.org/simple" }
@@ -289,7 +299,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "fastapi", specifier = ">=0.115.0,<0.116.0" },
-    { name = "gl-iam", extras = ["fastapi", "keycloak", "stackauth"], git = "https://github.com/GDP-ADMIN/gl-sdk.git?subdirectory=libs%2Fgl-iam&branch=release%2Fgl-iam%2Fv0.1.x" },
+    { name = "gl-iam", extras = ["fastapi", "keycloak", "stackauth"], git = "https://github.com/GDP-ADMIN/gl-sdk.git?subdirectory=libs%2Fgl-iam&branch=main" },
     { name = "httpx", specifier = ">=0.28.0,<0.29.0" },
     { name = "pydantic-settings", specifier = ">=2.0.0,<3.0.0" },
     { name = "python-dotenv", specifier = ">=1.0.0,<2.0.0" },

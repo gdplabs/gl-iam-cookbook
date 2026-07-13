@@ -43,6 +43,7 @@
       "serviceAccountsEnabled": true,
       "protocol": "openid-connect",
       "defaultClientScopes": [
+        "basic",
         "profile",
         "roles",
         "email"

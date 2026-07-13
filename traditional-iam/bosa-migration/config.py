@@ -3,7 +3,15 @@
 This module defines Pydantic Settings for loading configuration from environment.
 """
 
+from dotenv import load_dotenv
 from pydantic_settings import BaseSettings
+
+# pydantic-settings' env_file loader only populates fields declared on
+# Settings below - it does not export values into os.environ. GL-IAM's
+# PostgreSQLConfig reads ENVIRONMENT/ENV straight from os.environ (see
+# fail-secure check in PostgreSQLConfig.validate_security_settings), so we
+# need python-dotenv here too to make `cp .env.example .env` actually work.
+load_dotenv()
 
 
 class Settings(BaseSettings):
