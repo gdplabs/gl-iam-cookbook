@@ -38,23 +38,21 @@ _config = PostgreSQLConfig(
     encryption_key=settings.encryption_key,
     enable_auth_hosting=True,
     auto_create_tables=True,
+    default_org_id=settings.default_organization_id,
+    default_org_name=f"Organization {settings.default_organization_id}",
 )
 
 # Main provider (users, sessions, RBAC)
 provider = PostgreSQLProvider(_config)
 
 # API Key provider (3-tier model)
-api_key_provider = PostgreSQLApiKeyProvider(provider._engine, _config)
+api_key_provider = PostgreSQLApiKeyProvider(_config)
 
 # Third-party integration provider
 # Only initialize if encryption key is configured
 third_party_provider: PostgreSQLThirdPartyProvider | None = None
 if settings.encryption_key:
-    third_party_provider = PostgreSQLThirdPartyProvider(
-        provider._engine,
-        encryption_key=settings.encryption_key,
-        db_schema=_config.db_schema,
-    )
+    third_party_provider = PostgreSQLThirdPartyProvider(_config)
 
 
 async def ensure_all_tables() -> None:
@@ -64,9 +62,14 @@ async def ensure_all_tables() -> None:
     and additional tables (api_keys, third_party_integrations).
     Using Base.metadata.create_all() without specifying tables ensures proper
     ordering based on foreign key dependencies.
+
+    It also seeds the default organization row, mirroring what
+    ``PostgreSQLProvider._ensure_tables()`` does internally. Without this,
+    org-scoped inserts (users, organization-tier API keys) hit
+    ForeignKeyViolationError because ``organizations.id`` is never populated.
     """
-    from sqlalchemy import text
-    from gl_iam.providers.postgresql.models import Base
+    from sqlalchemy import select, text
+    from gl_iam.providers.postgresql.models import Base, OrganizationModel
 
     async with provider._engine.begin() as conn:
         # Create schema if it doesn't exist
@@ -75,6 +78,21 @@ async def ensure_all_tables() -> None:
 
         # Create ALL tables - this handles foreign key dependencies automatically
         await conn.run_sync(Base.metadata.create_all)
+
+    # Seed the default organization so org-scoped inserts succeed.
+    async with provider._session_factory() as session:
+        result = await session.execute(
+            select(OrganizationModel).where(OrganizationModel.id == settings.default_organization_id)
+        )
+        if result.scalar_one_or_none() is None:
+            session.add(
+                OrganizationModel(
+                    id=settings.default_organization_id,
+                    name=f"Organization {settings.default_organization_id}",
+                    slug=settings.default_organization_id,
+                )
+            )
+            await session.commit()
 
 
 # =============================================================================

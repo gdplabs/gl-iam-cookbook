@@ -15,8 +15,8 @@ Additionally, you need:
 1. **Clone the repository & open the directory**
 
    ```bash
-   git clone https://github.com/GDP-ADMIN/gl-iam-cookbook.git
-   cd gl-iam-cookbook/gl-iam/examples/bosa-migration/
+   git clone https://github.com/gdplabs/gl-iam-cookbook.git
+   cd gl-iam-cookbook/traditional-iam/bosa-migration/
    ```
 
 2. **Install dependencies**
@@ -324,11 +324,8 @@ config = PostgreSQLConfig(
 
 # Initialize providers
 provider = PostgreSQLProvider(config)
-api_key_provider = PostgreSQLApiKeyProvider(provider._engine, config)
-third_party_provider = PostgreSQLThirdPartyProvider(
-    provider._engine,
-    encryption_key=config.encryption_key,
-)
+api_key_provider = PostgreSQLApiKeyProvider(config)
+third_party_provider = PostgreSQLThirdPartyProvider(config)
 ```
 
 ### Authentication Flow

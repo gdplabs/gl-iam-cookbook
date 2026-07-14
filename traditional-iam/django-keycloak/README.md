@@ -29,8 +29,8 @@ Additionally, you need:
 1. **Clone the repository & open the directory**
 
    ```bash
-   git clone https://github.com/GDP-ADMIN/gl-iam-cookbook.git
-   cd gl-iam-cookbook/gl-iam/examples/django-keycloak/
+   git clone https://github.com/gdplabs/gl-iam-cookbook.git
+   cd gl-iam-cookbook/traditional-iam/django-keycloak/
    ```
 
 2. **Install dependencies**

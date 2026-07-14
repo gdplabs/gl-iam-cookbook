@@ -11,7 +11,7 @@ This example demonstrates how delegation tokens work across service boundaries. 
 
 1. **Clone and navigate**:
    ```bash
-   cd gl-iam-cookbook/gl-iam/examples/agent-cross-service
+   cd gl-iam-cookbook/agent-iam/agent-cross-service
    ```
 
 2. **Run setup**:
@@ -45,11 +45,11 @@ This example demonstrates how delegation tokens work across service boundaries. 
 ```bash
 curl -X POST http://localhost:8000/register \
   -H "Content-Type: application/json" \
-  -d '{"email": "alice@example.com", "password": "secret123"}'
+  -d '{"email": "alice@example.com", "password": "SecurePass123!"}'
 
 TOKEN=$(curl -s -X POST http://localhost:8000/login \
   -H "Content-Type: application/json" \
-  -d '{"email": "alice@example.com", "password": "secret123"}' | jq -r '.access_token')
+  -d '{"email": "alice@example.com", "password": "SecurePass123!"}' | jq -r '.access_token')
 ```
 
 ### 2. Register Agent on Service A

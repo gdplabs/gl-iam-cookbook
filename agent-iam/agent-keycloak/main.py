@@ -29,6 +29,7 @@ from gl_iam import (
 from gl_iam.core.types.agent import AgentIdentity
 from gl_iam.core.types.delegation import DelegationChain
 from gl_iam.fastapi import (
+    add_exception_handlers,
     get_current_agent,
     get_current_user,
     get_delegation_chain,
@@ -50,22 +51,31 @@ async def lifespan(app: FastAPI):
     Application lifespan context manager.
 
     Initializes the GL-IAM gateway with Keycloak provider.
-    The KeycloakProvider includes agent support via PostgreSQL-backed
-    agent tables when DATABASE_URL is configured.
+    KeycloakProvider registers agents as Keycloak clients via the Admin API,
+    so no agent database is required. Delegation tokens are GL-IAM JWTs, which
+    need SECRET_KEY for signing — Keycloak does not issue them.
     """
     config = KeycloakConfig(
         server_url=os.getenv("KEYCLOAK_SERVER_URL"),
         realm=os.getenv("KEYCLOAK_REALM"),
         client_id=os.getenv("KEYCLOAK_CLIENT_ID"),
         client_secret=os.getenv("KEYCLOAK_CLIENT_SECRET"),
-        database_url=os.getenv("DATABASE_URL"),
-        secret_key=os.getenv("SECRET_KEY"),
-        auto_create_tables=True,
+        # Registering an agent creates a Keycloak client through the Admin API,
+        # which is unavailable without these credentials.
+        admin_username=os.getenv("KEYCLOAK_ADMIN_USERNAME"),
+        admin_password=os.getenv("KEYCLOAK_ADMIN_PASSWORD"),
     )
     provider = KeycloakProvider(config=config)
 
-    # from_fullstack_provider auto-detects agent support
-    gateway = IAMGateway.from_fullstack_provider(provider)
+    # from_fullstack_provider cannot take a secret_key, and KeycloakConfig has no
+    # secret_key for it to fall back on, so wire the gateway explicitly.
+    gateway = IAMGateway(
+        auth_provider=provider,
+        user_store=provider,
+        session_provider=provider,
+        agent_provider=provider,
+        secret_key=os.getenv("SECRET_KEY"),
+    )
     set_iam_gateway(gateway, default_organization_id=os.getenv("KEYCLOAK_REALM"))
 
     is_healthy = await provider.health_check()
@@ -80,6 +90,10 @@ app = FastAPI(
     description="GL-IAM Agent Delegation using Keycloak authentication",
     lifespan=lifespan,
 )
+
+# Without this, the SDK's auth/scope dependencies raise domain exceptions that
+# FastAPI cannot render, so every denial surfaces as a 500 instead of 401/403.
+add_exception_handlers(app)
 
 
 # ============================================================================

@@ -8,8 +8,13 @@ dependencies = [
   "fastapi>=0.115.0,<0.116.0",
   "uvicorn>=0.34.0,<0.35.0",
   "python-dotenv>=1.0.0,<2.0.0",
-  "gl-iam[fastapi,postgresql]",
+  "gl-iam[fastapi,postgresql]>=0.3.7,<0.4.0",
 ]
 
 [tool.uv.sources]
-gl-iam = { git = "https://github.com/GDP-ADMIN/gl-sdk.git", subdirectory = "libs/gl-iam", branch = "feature/gl-iam-agent-iam" }
+gl-iam = { index = "gen-ai-internal" }
+
+[[tool.uv.index]]
+name = "gen-ai-internal"
+url = "https://asia-southeast2-python.pkg.dev/gdp-labs/gen-ai-internal/simple/"
+explicit = true

@@ -11,7 +11,7 @@ This example demonstrates the core GL-IAM agent delegation system using FastAPI 
 
 1. **Clone and navigate**:
    ```bash
-   cd gl-iam-cookbook/gl-iam/examples/agent-delegation-fastapi
+   cd gl-iam-cookbook/agent-iam/agent-delegation-fastapi
    ```
 
 2. **Run setup**:
@@ -47,7 +47,7 @@ curl http://localhost:8000/health
 ```bash
 curl -X POST http://localhost:8000/register \
   -H "Content-Type: application/json" \
-  -d '{"email": "alice@example.com", "password": "secret123"}'
+  -d '{"email": "alice@example.com", "password": "SecurePass123!"}'
 ```
 
 ### 3. Login
@@ -55,7 +55,7 @@ curl -X POST http://localhost:8000/register \
 ```bash
 TOKEN=$(curl -s -X POST http://localhost:8000/login \
   -H "Content-Type: application/json" \
-  -d '{"email": "alice@example.com", "password": "secret123"}' | jq -r '.access_token')
+  -d '{"email": "alice@example.com", "password": "SecurePass123!"}' | jq -r '.access_token')
 
 echo "User token: $TOKEN"
 ```

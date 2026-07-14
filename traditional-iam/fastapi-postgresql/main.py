@@ -12,9 +12,10 @@ from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel
 
-from gl_iam import IAMGateway, User
+from gl_iam import IAMGateway, User, UserAlreadyExistsError
 from gl_iam.core.types import PasswordCredentials, UserCreateInput
 from gl_iam.fastapi import (
+    add_exception_handlers,
     get_current_user,
     get_iam_gateway,
     require_org_admin,
@@ -60,6 +61,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Secure API", lifespan=lifespan)
+add_exception_handlers(app)
 
 
 # ============================================================================
@@ -115,13 +117,16 @@ async def register(request: RegisterRequest):
     gateway = get_iam_gateway()
     org_id = os.getenv("DEFAULT_ORGANIZATION_ID", "default")
 
-    user = await gateway.user_store.create_user(
-        UserCreateInput(
-            email=request.email,
-            display_name=request.display_name or request.email.split("@")[0],
-        ),
-        organization_id=org_id,
-    )
+    try:
+        user = await gateway.user_store.create_user(
+            UserCreateInput(
+                email=request.email,
+                display_name=request.display_name or request.email.split("@")[0],
+            ),
+            organization_id=org_id,
+        )
+    except UserAlreadyExistsError as e:
+        raise HTTPException(status_code=409, detail=str(e)) from e
 
     await gateway.user_store.set_user_password(user.id, request.password, org_id)
 

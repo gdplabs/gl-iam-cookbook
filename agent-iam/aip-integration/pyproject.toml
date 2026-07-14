@@ -9,13 +9,13 @@ dependencies = [
     "uvicorn>=0.34.0,<0.35.0",
     "python-dotenv>=1.0.0,<2.0.0",
     "pydantic>=2.0.0,<3.0.0",
-    "gl-iam[fastapi,postgresql]",
+    "gl-iam[fastapi,postgresql]>=0.3.7,<0.4.0",
 ]
 
 [tool.uv.sources]
-gl-iam = { git = "https://github.com/GDP-ADMIN/gl-sdk.git", subdirectory = "libs/gl-iam", branch = "main" }
+gl-iam = { index = "gen-ai-internal" }
 
-# Note: glaip-sdk is commented out as it requires separate installation
-# Uncomment when glaip-sdk is available
-# [tool.uv.sources.glaip-sdk]
-# glaip-sdk = { index = "gen-ai-internal" }
+[[tool.uv.index]]
+name = "gen-ai-internal"
+url = "https://asia-southeast2-python.pkg.dev/gdp-labs/gen-ai-internal/simple/"
+explicit = true

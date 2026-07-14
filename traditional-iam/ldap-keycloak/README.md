@@ -38,10 +38,10 @@ docker-compose up -d
 
 Wait ~30 seconds for Keycloak to import the realm and connect to OpenLDAP.
 
-Verify Keycloak is ready (health endpoints are served on the management port 9000):
+Verify Keycloak is ready (health endpoints are served on the management port, published on the host as 9100):
 
 ```bash
-curl -s http://localhost:9000/health/ready | jq .
+curl -s http://localhost:9100/health/ready | jq .
 ```
 
 ### 3. Sync LDAP Users

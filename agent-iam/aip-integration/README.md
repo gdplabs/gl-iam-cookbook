@@ -22,8 +22,8 @@ Additionally, you need:
 1. **Clone the repository & open the directory**
 
    ```bash
-   git clone https://github.com/GDP-ADMIN/gl-iam-cookbook.git
-   cd gl-iam-cookbook/gl-iam/examples/aip-integration/
+   git clone https://github.com/gdplabs/gl-iam-cookbook.git
+   cd gl-iam-cookbook/agent-iam/aip-integration/
    ```
 
 2. **Install dependencies**

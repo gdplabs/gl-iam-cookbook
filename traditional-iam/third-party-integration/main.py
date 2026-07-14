@@ -29,6 +29,7 @@ from gl_iam.core.exceptions import (
 )
 from gl_iam.core.types import PasswordCredentials, UserCreateInput
 from gl_iam.fastapi import (
+    add_exception_handlers,
     get_current_user,
     get_iam_gateway,
     require_org_admin,
@@ -81,6 +82,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Third-Party Integration API", lifespan=lifespan)
+add_exception_handlers(app)  # <-- GL-IAM: map AuthenticationError/PermissionDeniedError to 401/403
 
 
 # ============================================================================

@@ -23,10 +23,12 @@ from gl_iam import (
     TaskContext,
     User,
 )
+from gl_iam.core.exceptions import InvalidCredentialsError, UserAlreadyExistsError
 from gl_iam.core.types import PasswordCredentials, UserCreateInput
 from gl_iam.core.types.agent import AgentIdentity
 from gl_iam.core.types.delegation import DelegationChain, DelegationToken
 from gl_iam.fastapi import (
+    add_exception_handlers,
     get_current_agent,
     get_current_user,
     get_delegation_chain,
@@ -77,6 +79,7 @@ app = FastAPI(
     description="GL-IAM Agent Delegation with FastAPI",
     lifespan=lifespan,
 )
+add_exception_handlers(app)
 
 
 # ============================================================================
@@ -144,15 +147,20 @@ async def register(request: RegisterRequest):
     gateway = get_iam_gateway()
     org_id = os.getenv("DEFAULT_ORGANIZATION_ID", "default")
 
-    user = await gateway.user_store.create_user(
-        UserCreateInput(
-            email=request.email,
-            display_name=request.display_name or request.email.split("@")[0],
-        ),
-        organization_id=org_id,
-    )
+    try:
+        user = await gateway.user_store.create_user(
+            UserCreateInput(
+                email=request.email,
+                display_name=request.display_name or request.email.split("@")[0],
+            ),
+            organization_id=org_id,
+        )
 
-    await gateway.user_store.set_user_password(user.id, request.password, org_id)
+        await gateway.user_store.set_user_password(user.id, request.password, org_id)
+    except UserAlreadyExistsError as e:
+        raise HTTPException(status_code=409, detail=str(e)) from e
+    except InvalidCredentialsError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
     return {"id": user.id, "email": user.email, "display_name": user.display_name}
 

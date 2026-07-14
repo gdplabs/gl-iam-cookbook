@@ -23,6 +23,7 @@ from gl_iam import (
     DelegationScope,
     TaskContext,
 )
+from gl_iam.core.exceptions import InvalidCredentialsError, UserAlreadyExistsError
 from gl_iam.core.types import PasswordCredentials, UserCreateInput
 from gl_iam.django import (
     get_iam_gateway,
@@ -69,17 +70,22 @@ def register_user(request):
     gateway = get_iam_gateway()
     org_id = os.getenv("DEFAULT_ORGANIZATION_ID", "default")
 
-    user = run_sync(
-        gateway.user_store.create_user(
-            UserCreateInput(
-                email=data["email"],
-                display_name=data.get("display_name", data["email"].split("@")[0]),
-            ),
-            organization_id=org_id,
+    try:
+        user = run_sync(
+            gateway.user_store.create_user(
+                UserCreateInput(
+                    email=data["email"],
+                    display_name=data.get("display_name", data["email"].split("@")[0]),
+                ),
+                organization_id=org_id,
+            )
         )
-    )
 
-    run_sync(gateway.user_store.set_user_password(user.id, data["password"], org_id))
+        run_sync(gateway.user_store.set_user_password(user.id, data["password"], org_id))
+    except UserAlreadyExistsError as e:
+        return JsonResponse({"error": str(e)}, status=409)
+    except InvalidCredentialsError as e:
+        return JsonResponse({"error": str(e)}, status=400)
 
     return JsonResponse({"id": user.id, "email": user.email, "display_name": user.display_name})
 
@@ -282,22 +288,27 @@ class DRFRegisterView(APIView):
         gateway = get_iam_gateway()
         org_id = os.getenv("DEFAULT_ORGANIZATION_ID", "default")
 
-        user = run_sync(
-            gateway.user_store.create_user(
-                UserCreateInput(
-                    email=serializer.validated_data["email"],
-                    display_name=serializer.validated_data.get("display_name")
-                    or serializer.validated_data["email"].split("@")[0],
-                ),
-                organization_id=org_id,
+        try:
+            user = run_sync(
+                gateway.user_store.create_user(
+                    UserCreateInput(
+                        email=serializer.validated_data["email"],
+                        display_name=serializer.validated_data.get("display_name")
+                        or serializer.validated_data["email"].split("@")[0],
+                    ),
+                    organization_id=org_id,
+                )
             )
-        )
 
-        run_sync(
-            gateway.user_store.set_user_password(
-                user.id, serializer.validated_data["password"], org_id
+            run_sync(
+                gateway.user_store.set_user_password(
+                    user.id, serializer.validated_data["password"], org_id
+                )
             )
-        )
+        except UserAlreadyExistsError as e:
+            return Response({"error": str(e)}, status=status.HTTP_409_CONFLICT)
+        except InvalidCredentialsError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response(
             {"id": user.id, "email": user.email, "display_name": user.display_name},

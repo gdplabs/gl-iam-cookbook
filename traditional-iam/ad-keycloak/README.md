@@ -31,7 +31,7 @@ Samba AD DC ←→ Keycloak (User Federation, vendor=ad) ←→ FastAPI + GL-IAM
 - [uv](https://docs.astral.sh/uv/) — `curl -LsSf https://astral.sh/uv/install.sh | sh`
 - Docker and Docker Compose
 - Access to GDP Labs Gen AI SDK repository
-- **Stop `ldap-keycloak` first if it's running** — both examples use ports 389, 8080, and 9000:
+- **Stop `ldap-keycloak` first if it's running** — both examples use ports 389, 8080, and 9100:
   ```bash
   docker-compose -f ../ldap-keycloak/docker-compose.yml down
   ```
@@ -60,10 +60,10 @@ Startup sequence (~90s total):
 2. `ad-init` sidecar waits for the DC to pass its health check, then seeds `jdoe`, `asmith`, the `members`/`admins` groups, and their memberships.
 3. `keycloak-db` and `keycloak` start; Keycloak imports the realm and connects to the DC.
 
-Verify Keycloak is ready (health endpoints are served on the management port 9000):
+Verify Keycloak is ready (health endpoints are served on the management port, published on the host as 9100):
 
 ```bash
-curl -s http://localhost:9000/health/ready | jq .
+curl -s http://localhost:9100/health/ready | jq .
 ```
 
 Verify AD users were seeded:

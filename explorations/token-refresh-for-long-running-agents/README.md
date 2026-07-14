@@ -57,17 +57,23 @@ uv sync
 
 ### Development Note
 
-The `pyproject.toml` is configured to use the **git branch** for gl-iam:
+The `pyproject.toml` depends on a published GL-IAM release from the internal registry.
+`TokenManager`, which this exploration is built around, has since landed in the released
+SDK, so no branch pin is needed:
 
 ```toml
-# For remote usage (branch pushed to remote):
-gl-iam = { git = "https://github.com/GDP-ADMIN/gl-sdk.git", subdirectory = "libs/gl-iam", branch = "feature/token-refresh-for-long-running-agents" }
+dependencies = ["gl-iam>=0.3.7,<0.4.0"]
 
-# For local development (uncomment if needed):
-# gl-iam = { path = "../../../../gl-sdk/libs/gl-iam", editable = true }
+[tool.uv.sources]
+gl-iam = { index = "gen-ai-internal" }
 ```
 
-For local development, you can switch to the local path by uncommenting the path source.
+To develop against a local `gl-sdk` checkout instead, override the index with a path source:
+
+```toml
+[tool.uv.sources]
+gl-iam = { path = "../../../../gl-sdk/libs/gl-iam", editable = true }
+```
 
 ## Configuration
 

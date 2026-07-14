@@ -18,6 +18,7 @@ from gl_iam import IAMGateway
 from gl_iam.core.types.agent import AgentIdentity
 from gl_iam.core.types.delegation import DelegationChain
 from gl_iam.fastapi import (
+    add_exception_handlers,
     get_current_agent,
     get_delegation_chain,
     require_agent_scope,
@@ -65,6 +66,7 @@ app = FastAPI(
     description="Validates delegation tokens and provides protected resources",
     lifespan=lifespan,
 )
+add_exception_handlers(app)
 
 
 # ============================================================================

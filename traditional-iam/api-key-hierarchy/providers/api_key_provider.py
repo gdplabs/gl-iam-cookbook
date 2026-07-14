@@ -58,12 +58,13 @@ async def ensure_tables(provider: PostgreSQLApiKeyProvider) -> None:
         if not result.scalar():
             await conn.execute(
                 text(f"""
-                    INSERT INTO {settings.db_schema}.organizations (id, name, slug, created_at)
-                    VALUES (:id, :name, :slug, NOW())
+                    INSERT INTO {settings.db_schema}.organizations (id, name, slug, is_active, created_at)
+                    VALUES (:id, :name, :slug, :is_active, NOW())
                 """),
                 {
                     "id": settings.default_organization_id,
                     "name": f"Organization {settings.default_organization_id}",
                     "slug": settings.default_organization_id,
+                    "is_active": True,
                 },
             )

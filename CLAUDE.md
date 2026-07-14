@@ -274,9 +274,21 @@ The GL-IAM SDK is sourced from the gl-sdk repository:
 
 ```toml
 # pyproject.toml
+dependencies = ["gl-iam[fastapi,postgresql]>=0.3.7,<0.4.0"]
+
 [tool.uv.sources]
-gl-iam = { git = "https://github.com/GDP-ADMIN/gl-sdk.git", subdirectory = "libs/gl-iam", branch = "feature/gl-iam-sdk" }
+gl-iam = { index = "gen-ai-internal" }
+
+[[tool.uv.index]]
+name = "gen-ai-internal"
+url = "https://asia-southeast2-python.pkg.dev/gdp-labs/gen-ai-internal/simple/"
+explicit = true
 ```
+
+Examples pin a published release, not a branch of `gl-sdk`. `explicit = true` keeps `gl-iam`
+sourced solely from the internal registry while every other dependency resolves from PyPI.
+No `uv.lock` is committed, so `uv sync` always resolves the newest compatible release.
+Resolving requires a `gcloud` login — see Prerequisites in the root README.
 
 Features used per example:
 - `gl-iam[fastapi,postgresql]` - FastAPI + PostgreSQL provider

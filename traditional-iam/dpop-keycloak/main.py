@@ -19,6 +19,7 @@ from pydantic import BaseModel
 
 from gl_iam import DPoPConfig, IAMGateway, User
 from gl_iam.fastapi import (
+    add_exception_handlers,
     get_current_user,
     get_current_user_with_dpop,
     set_iam_gateway,
@@ -81,6 +82,7 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(title="DPoP Keycloak Demo", lifespan=lifespan)
+add_exception_handlers(app)
 
 
 class UserResponse(BaseModel):

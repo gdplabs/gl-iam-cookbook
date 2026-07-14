@@ -37,7 +37,7 @@
       "directAccessGrantsEnabled": true,
       "serviceAccountsEnabled": true,
       "protocol": "openid-connect",
-      "defaultClientScopes": ["profile", "roles", "email"]
+      "defaultClientScopes": ["basic", "profile", "roles", "email"]
     }
   ],
   "users": [

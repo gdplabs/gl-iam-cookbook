@@ -19,6 +19,21 @@ if grep -qE "^GLCHAT_ENCRYPTION_KEY=\s*$" .env; then
   echo "Generated GLCHAT_ENCRYPTION_KEY."
 fi
 
+# GL-IAM is published to GDP Labs' internal Artifact Registry, so uv needs a
+# short-lived OAuth token to resolve it. uv derives these variable names from the
+# index named "gen-ai-internal" in pyproject.toml.
+if ! command -v gcloud >/dev/null 2>&1; then
+    echo "ERROR: gcloud CLI not found, but GL-IAM is published to an internal registry."
+    echo "Install the Google Cloud SDK (https://cloud.google.com/sdk/docs/install), then:"
+    echo "  gcloud auth login"
+    exit 1
+fi
+
+echo "Authenticating to the gen-ai-internal registry..."
+UV_INDEX_GEN_AI_INTERNAL_USERNAME=oauth2accesstoken
+UV_INDEX_GEN_AI_INTERNAL_PASSWORD="$(gcloud auth print-access-token)"
+export UV_INDEX_GEN_AI_INTERNAL_USERNAME UV_INDEX_GEN_AI_INTERNAL_PASSWORD
+
 uv sync
 echo ""
 echo "Setup complete. Next steps:"

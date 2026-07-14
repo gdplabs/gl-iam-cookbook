@@ -21,8 +21,10 @@ from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel
 
 from gl_iam import IAMGateway, StandardRole, User
+from gl_iam.core.exceptions import UserAlreadyExistsError
 from gl_iam.core.types import PasswordCredentials, UserCreateInput
 from gl_iam.fastapi import (
+    add_exception_handlers,
     get_current_user,
     get_iam_gateway,
     require_org_member,
@@ -140,6 +142,7 @@ async def lifespan(app: FastAPI):
         secret_key=os.getenv("SECRET_KEY"),
         enable_auth_hosting=True,
         auto_create_tables=True,
+        default_org_id=os.getenv("DEFAULT_ORGANIZATION_ID", "default"),
     )
     provider = PostgreSQLProvider(config)
     gateway = IAMGateway.from_fullstack_provider(provider)
@@ -152,6 +155,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="GL-IAM + GL AIP SDK Advanced Integration", lifespan=lifespan)
+add_exception_handlers(app)  # <-- GL-IAM: map AuthenticationError/PermissionDeniedError to 401/403
 
 
 # =============================================================================
@@ -211,13 +215,17 @@ async def register(request: RegisterRequest):
     gateway = get_iam_gateway()
     org_id = os.getenv("DEFAULT_ORGANIZATION_ID", "default")
 
-    user = await gateway.user_store.create_user(
-        UserCreateInput(
-            email=request.email,
-            display_name=request.display_name or request.email.split("@")[0],
-        ),
-        organization_id=org_id,
-    )
+    try:
+        user = await gateway.user_store.create_user(
+            UserCreateInput(
+                email=request.email,
+                display_name=request.display_name or request.email.split("@")[0],
+            ),
+            organization_id=org_id,
+        )
+    except UserAlreadyExistsError as e:
+        raise HTTPException(status_code=409, detail=str(e)) from e
+
     await gateway.user_store.set_user_password(user.id, request.password, org_id)
 
     return {"id": user.id, "email": user.email, "display_name": user.display_name}

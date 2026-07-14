@@ -28,6 +28,41 @@ Welcome to the **GL-IAM Cookbook** — a collection of production-ready examples
 1. **Python 3.11+** — Can be [installed via UV](https://docs.astral.sh/uv/guides/install-python/).
 2. **UV** — Please check https://docs.astral.sh/uv/ on how to install it.
 3. **Docker** — Required for running PostgreSQL/Keycloak containers.
+4. **Google Cloud SDK** — The GL-IAM package is published to GDP Labs' internal Artifact
+   Registry, so `uv` needs a token to download it. [Install `gcloud`](https://cloud.google.com/sdk/docs/install),
+   then authenticate once:
+
+   ```bash
+   gcloud auth login
+   ```
+
+   Each example's `setup.sh` mints a short-lived token from that login and hands it to `uv`.
+   If you drive `uv` yourself instead of using `setup.sh`, export the token first:
+
+   ```bash
+   export UV_INDEX_GEN_AI_INTERNAL_USERNAME=oauth2accesstoken
+   export UV_INDEX_GEN_AI_INTERNAL_PASSWORD="$(gcloud auth print-access-token)"
+   uv sync
+   ```
+
+   If you do not have access to the registry, request it via ticket@gdplabs.id.
+
+## GL-IAM Versioning
+
+Examples depend on the published GL-IAM release rather than a branch of `gl-sdk`:
+
+```toml
+dependencies = ["gl-iam[fastapi,postgresql]>=0.3.7,<0.4.0"]
+
+[tool.uv.sources]
+gl-iam = { index = "gen-ai-internal" }
+```
+
+The lower bound is the oldest release an example is known to work against; the `<0.4.0`
+ceiling holds the line at the next breaking minor (GL-IAM is pre-1.0, so minor bumps are
+the breaking axis). No `uv.lock` is committed, so every `uv sync` picks up the newest
+compatible release — you get SDK fixes automatically, without the examples drifting onto
+eight different commits of `main` the way they previously did.
 
 ## Repository Structure
 

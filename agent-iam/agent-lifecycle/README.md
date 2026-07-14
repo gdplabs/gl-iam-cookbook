@@ -11,7 +11,7 @@ This example demonstrates the full agent lifecycle in GL-IAM: registration, susp
 
 1. **Clone and navigate**:
    ```bash
-   cd gl-iam-cookbook/gl-iam/examples/agent-lifecycle
+   cd gl-iam-cookbook/agent-iam/agent-lifecycle
    ```
 
 2. **Run setup**:
@@ -41,11 +41,11 @@ This example demonstrates the full agent lifecycle in GL-IAM: registration, susp
 ```bash
 curl -X POST http://localhost:8000/register \
   -H "Content-Type: application/json" \
-  -d '{"email": "alice@example.com", "password": "secret123"}'
+  -d '{"email": "alice@example.com", "password": "SecurePass123!"}'
 
 TOKEN=$(curl -s -X POST http://localhost:8000/login \
   -H "Content-Type: application/json" \
-  -d '{"email": "alice@example.com", "password": "secret123"}' | jq -r '.access_token')
+  -d '{"email": "alice@example.com", "password": "SecurePass123!"}' | jq -r '.access_token')
 ```
 
 ### 2. Register an Agent
@@ -150,14 +150,25 @@ ACTIVE ──suspend──> SUSPENDED ──reactivate──> ACTIVE
 
 ### Audit Event Types
 
-| Event | Triggered When |
-|-------|---------------|
-| `AGENT_REGISTERED` | Agent is created |
-| `AGENT_SUSPENDED` | Agent is suspended |
-| `AGENT_REACTIVATED` | Agent is reactivated |
-| `AGENT_REVOKED` | Agent is permanently revoked |
-| `DELEGATION_CREATED` | Delegation token is issued |
-| `DELEGATION_DENIED` | Delegation attempt is rejected |
+On the current SDK (`main`), only some lifecycle operations actually emit an
+audit event through `IAMGateway`. Verified by running the full lifecycle below
+and inspecting `/audit-log`:
+
+| Event | Fires on main? | Notes |
+|-------|-----------------|-------|
+| `AGENT_REGISTERED` | Yes | Emitted by `gateway.register_agent()` on success. |
+| `AGENT_SUSPENDED` | **No** | `gateway.suspend_agent()` updates the agent's status but does not call `_emit_audit_event`. The status change happens; no event is logged. |
+| `AGENT_REACTIVATED` | **No** | `reactivate_agent()` is not exposed on `IAMGateway` at all -- only on the provider (`gateway.agent_provider.reactivate_agent(...)`, see the `/agents/{id}/reactivate` handler below). Calling it directly bypasses the gateway's audit wiring entirely. |
+| `AGENT_REVOKED` | Yes | Emitted by `gateway.revoke_agent()` on success. |
+| `DELEGATION_CREATED` | Yes | Emitted by `gateway.delegate_to_agent()` on a successful delegation. |
+| `DELEGATION_DENIED` | **Does not exist as an event type.** | There is no `DELEGATION_DENIED` enum value in the SDK. `delegate_to_agent()` only maps specific error codes (`SCOPE_ESCALATION_DENIED`, `DELEGATION_DEPTH_EXCEEDED`, `RESOURCE_CONSTRAINT_VIOLATION`) to their own dedicated event types. A denial caused by a suspended/revoked/not-found agent (the cases this example demonstrates) falls through to the **same** `DELEGATION_CREATED` event type, just with `severity="warning"` -- so a denied delegation and a successful one currently look identical in `event_type`, distinguishable only by `severity`. |
+
+In short: register/revoke/successful-delegate are audited; suspend and
+reactivate are silent; and "denied delegation" is a `DELEGATION_CREATED`
+event with `severity=warning`, not a distinct event type. This is SDK
+behavior (`gl_iam/core/gateway.py`), not something this example's code can
+paper over -- treat the table above as the accurate contract, not the
+aspirational one.
 
 ### Key Dependencies
 

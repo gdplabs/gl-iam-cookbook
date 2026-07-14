@@ -8,8 +8,13 @@ dependencies = [
   "django>=5.1.0,<6.0.0",
   "djangorestframework>=3.15.0,<4.0.0",
   "python-dotenv>=1.0.0,<2.0.0",
-  "gl-iam[django,postgresql]",
+  "gl-iam[django,postgresql]>=0.3.7,<0.4.0",
 ]
 
 [tool.uv.sources]
-gl-iam = { git = "https://github.com/GDP-ADMIN/gl-sdk.git", subdirectory = "libs/gl-iam", branch = "main" }
+gl-iam = { index = "gen-ai-internal" }
+
+[[tool.uv.index]]
+name = "gen-ai-internal"
+url = "https://asia-southeast2-python.pkg.dev/gdp-labs/gen-ai-internal/simple/"
+explicit = true

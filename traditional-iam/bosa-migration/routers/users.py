@@ -7,6 +7,7 @@ BOSA Migration Mapping:
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
+from gl_iam.core.exceptions import PermissionDeniedError
 from gl_iam.core.types import UserCreateInput
 
 from config import settings
@@ -246,7 +247,7 @@ async def assign_role_to_user(
             organization_id=settings.default_organization_id,
             caller_id=current_user.id,
         )
-    except PermissionError as e:
+    except PermissionDeniedError as e:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=str(e),
@@ -293,7 +294,7 @@ async def remove_role_from_user(
             organization_id=settings.default_organization_id,
             caller_id=current_user.id,
         )
-    except PermissionError as e:
+    except PermissionDeniedError as e:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=str(e),
