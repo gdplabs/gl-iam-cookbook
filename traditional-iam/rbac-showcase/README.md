@@ -52,7 +52,7 @@ Additionally, you need:
 ### 1. Clone and Navigate
 
 ```bash
-git clone https://github.com/GDP-ADMIN/gl-iam-cookbook.git
+git clone https://github.com/gdplabs/gl-iam-cookbook.git
 cd gl-iam-cookbook/traditional-iam/rbac-showcase/
 ```
 
