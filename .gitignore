@@ -141,8 +141,10 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 
-# UV lock files (keep for reproducibility)
-# uv.lock
+# UV lock files.
+# Deliberately NOT committed: examples track the latest compatible gl-iam release, and a
+# committed lockfile would freeze each one to whichever SDK build it last resolved.
+uv.lock
 
 # IDE
 .idea/
