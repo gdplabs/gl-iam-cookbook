@@ -274,7 +274,7 @@ The GL-IAM SDK is sourced from the gl-sdk repository:
 
 ```toml
 # pyproject.toml
-dependencies = ["gl-iam[fastapi,postgresql]>=0.3.8,<0.4.0"]
+dependencies = ["gl-iam[fastapi,postgresql]>=0.3.7,<0.4.0"]
 
 [tool.uv.sources]
 gl-iam = { index = "gen-ai-internal" }

@@ -52,7 +52,7 @@ Welcome to the **GL-IAM Cookbook** — a collection of production-ready examples
 Examples depend on the published GL-IAM release rather than a branch of `gl-sdk`:
 
 ```toml
-dependencies = ["gl-iam[fastapi,postgresql]>=0.3.8,<0.4.0"]
+dependencies = ["gl-iam[fastapi,postgresql]>=0.3.7,<0.4.0"]
 
 [tool.uv.sources]
 gl-iam = { index = "gen-ai-internal" }

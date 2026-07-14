@@ -62,7 +62,7 @@ The `pyproject.toml` depends on a published GL-IAM release from the internal reg
 SDK, so no branch pin is needed:
 
 ```toml
-dependencies = ["gl-iam>=0.3.8,<0.4.0"]
+dependencies = ["gl-iam>=0.3.7,<0.4.0"]
 
 [tool.uv.sources]
 gl-iam = { index = "gen-ai-internal" }
