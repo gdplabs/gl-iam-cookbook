@@ -91,7 +91,8 @@ gl-iam-cookbook/
 │   ├── agent-stackauth/               # Agent authentication with Stack Auth
 │   ├── aip-integration/               # AI Agent Platform basic setup
 │   ├── aip-integration-advanced/      # AI Agent Platform advanced patterns
-│   └── aip-server-integration/        # Add GL-IAM to existing AIP server
+│   ├── aip-server-integration/        # Add GL-IAM to existing AIP server
+│   └── de-vertical-permission-gate/   # Per-tool scope gate inside a Digital Employee vertical
 │
 └── explorations/                      # Experimental prototypes
     ├── agent-iam-dashboard/           # Agent IAM dashboard

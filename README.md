@@ -102,7 +102,8 @@ gl-iam-cookbook/
 │   ├── agent-stackauth/           # Agent delegation with Stack Auth
 │   ├── aip-integration/           # Secure agent APIs (basic)
 │   ├── aip-integration-advanced/  # Secure agent APIs (advanced)
-│   └── aip-server-integration/    # Add GL-IAM to existing AIP server
+│   ├── aip-server-integration/    # Add GL-IAM to existing AIP server
+│   └── de-vertical-permission-gate/  # Per-tool scope enforcement inside a Digital Employee
 │
 └── explorations/                  # Experimental prototypes
     ├── agent-iam-dashboard/       # Agent IAM dashboard
@@ -192,6 +193,7 @@ For securing **AI agents** with delegation-based authentication.
 | [aip-server-integration](agent-iam/aip-server-integration/) | Add GL-IAM to existing AIP server | Unified auth (Bearer + API key) |
 | [aip-integration](agent-iam/aip-integration/) | Secure agent APIs with GL-IAM (basic) | New agent APIs from scratch |
 | [aip-integration-advanced](agent-iam/aip-integration-advanced/) | Advanced GL-IAM patterns for agents | Role-based tools, user-scoped memory |
+| [de-vertical-permission-gate](agent-iam/de-vertical-permission-gate/) | Per-tool scope enforcement from the DE layer | User grants/revokes a tool's scope; no AIP or DE Core change |
 
 ## SIMI Pattern
 
