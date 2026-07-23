@@ -38,10 +38,10 @@ from gl_iam.fastapi import (
     set_iam_gateway,
 )
 from gl_iam.core.exceptions import AuthenticationError, AuthorizationError
-from gl_iam.providers.postgresql import (
+from gl_iam.providers.native import (
     AuditEventModel,
-    PostgreSQLConfig,
-    PostgreSQLProvider,
+    NativeConfig,
+    NativeProvider,
 )
 
 load_dotenv()
@@ -53,7 +53,7 @@ logging.basicConfig(level=logging.INFO)
 # ============================================================================
 # Application Setup
 # ============================================================================
-provider: PostgreSQLProvider | None = None
+provider: NativeProvider | None = None
 
 
 @asynccontextmanager
@@ -70,8 +70,8 @@ async def lifespan(app: FastAPI):
 
     default_org_id = os.getenv("DEFAULT_ORGANIZATION_ID", "default")
 
-    # Step 1: Enable audit logging in PostgreSQLConfig
-    config = PostgreSQLConfig(
+    # Step 1: Enable audit logging in NativeConfig
+    config = NativeConfig(
         database_url=os.getenv("DATABASE_URL"),
         secret_key=os.getenv("SECRET_KEY"),
         enable_audit_log=True,  # Creates audit_events table + enables DatabaseAuditHandler
@@ -80,7 +80,7 @@ async def lifespan(app: FastAPI):
         auto_create_tables=True,
         default_org_id=default_org_id,
     )
-    provider = PostgreSQLProvider(config)
+    provider = NativeProvider(config)
 
     # Step 2: Build composite handler (console + database)
     console_handler = ConsoleAuditHandler()
@@ -324,7 +324,7 @@ async def get_audit_log(
     """
     from sqlalchemy.ext.asyncio import AsyncSession
 
-    prov: PostgreSQLProvider = app.state.provider
+    prov: NativeProvider = app.state.provider
     async with AsyncSession(prov.engine) as session:
         # Build query with optional filters
         query = select(AuditEventModel).order_by(AuditEventModel.timestamp.desc())

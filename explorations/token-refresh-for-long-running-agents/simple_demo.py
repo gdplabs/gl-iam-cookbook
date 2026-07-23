@@ -43,7 +43,7 @@ class MockUserStore:
     """Minimal mock user store to satisfy IAMGateway requirements.
 
     In production, you would use a real provider like StackAuthProvider,
-    KeycloakProvider, or PostgreSQLProvider.
+    KeycloakProvider, or NativeProvider.
     """
 
     async def get_user(self, user_id: str, organization_id: str | None = None) -> User | None:

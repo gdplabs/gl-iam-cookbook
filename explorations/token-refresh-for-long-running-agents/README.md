@@ -57,18 +57,15 @@ uv sync
 
 ### Development Note
 
-The `pyproject.toml` depends on a published GL-IAM release from the internal registry.
+The `pyproject.toml` depends on a published GL-IAM release from PyPI.
 `TokenManager`, which this exploration is built around, has since landed in the released
 SDK, so no branch pin is needed:
 
 ```toml
-dependencies = ["gl-iam>=0.3.7,<0.4.0"]
-
-[tool.uv.sources]
-gl-iam = { index = "gen-ai-internal" }
+dependencies = ["gl-iam>=0.3.10,<0.4.0"]
 ```
 
-To develop against a local `gl-sdk` checkout instead, override the index with a path source:
+To develop against a local `gl-sdk` checkout instead, override with a path source:
 
 ```toml
 [tool.uv.sources]

@@ -12,13 +12,5 @@ dependencies = [
   "redis[hiredis]>=5.0.0,<6.0.0",
   "slowapi>=0.1.9,<0.2.0",
   "itsdangerous>=2.2.0,<3.0.0",
-  "gl-iam[fastapi,postgresql]>=0.3.7,<0.4.0",
+  "gl-iam[fastapi,native]>=0.3.10,<0.4.0",
 ]
-
-[tool.uv.sources]
-gl-iam = { index = "gen-ai-internal" }
-
-[[tool.uv.index]]
-name = "gen-ai-internal"
-url = "https://asia-southeast2-python.pkg.dev/gdp-labs/gen-ai-internal/simple/"
-explicit = true

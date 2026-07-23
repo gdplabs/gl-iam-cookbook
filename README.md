@@ -28,34 +28,17 @@ Welcome to the **GL-IAM Cookbook** — a collection of production-ready examples
 1. **Python 3.11+** — Can be [installed via UV](https://docs.astral.sh/uv/guides/install-python/).
 2. **UV** — Please check https://docs.astral.sh/uv/ on how to install it.
 3. **Docker** — Required for running PostgreSQL/Keycloak containers.
-4. **Google Cloud SDK** — The GL-IAM package is published to GDP Labs' internal Artifact
-   Registry, so `uv` needs a token to download it. [Install `gcloud`](https://cloud.google.com/sdk/docs/install),
-   then authenticate once:
 
-   ```bash
-   gcloud auth login
-   ```
-
-   Each example's `setup.sh` mints a short-lived token from that login and hands it to `uv`.
-   If you drive `uv` yourself instead of using `setup.sh`, export the token first:
-
-   ```bash
-   export UV_INDEX_GEN_AI_INTERNAL_USERNAME=oauth2accesstoken
-   export UV_INDEX_GEN_AI_INTERNAL_PASSWORD="$(gcloud auth print-access-token)"
-   uv sync
-   ```
-
-   If you do not have access to the registry, request it via ticket@gdplabs.id.
+GL-IAM is published on [PyPI](https://pypi.org/project/gl-iam/), so there is nothing else
+to set up — no registry access, tokens, or authentication. Each example's `setup.sh` (or a
+plain `uv sync`) installs it directly.
 
 ## GL-IAM Versioning
 
-Examples depend on the published GL-IAM release rather than a branch of `gl-sdk`:
+Examples depend on the published GL-IAM release from PyPI:
 
 ```toml
-dependencies = ["gl-iam[fastapi,postgresql]>=0.3.7,<0.4.0"]
-
-[tool.uv.sources]
-gl-iam = { index = "gen-ai-internal" }
+dependencies = ["gl-iam[fastapi,native]>=0.3.10,<0.4.0"]
 ```
 
 The lower bound is the oldest release an example is known to work against; the `<0.4.0`
@@ -102,7 +85,8 @@ gl-iam-cookbook/
 │   ├── agent-stackauth/           # Agent delegation with Stack Auth
 │   ├── aip-integration/           # Secure agent APIs (basic)
 │   ├── aip-integration-advanced/  # Secure agent APIs (advanced)
-│   └── aip-server-integration/    # Add GL-IAM to existing AIP server
+│   ├── aip-server-integration/    # Add GL-IAM to existing AIP server
+│   └── de-vertical-permission-gate/  # Per-tool scope enforcement inside a Digital Employee
 │
 └── explorations/                  # Experimental prototypes
     ├── agent-iam-dashboard/       # Agent IAM dashboard
@@ -119,10 +103,10 @@ For securing **human users** and **service-to-service** communication.
 
 | Example | Description | Provider |
 |---------|-------------|----------|
-| [fastapi-postgresql](traditional-iam/fastapi-postgresql/) | Self-managed user store with PostgreSQL | PostgreSQLProvider |
+| [fastapi-postgresql](traditional-iam/fastapi-postgresql/) | Self-managed user store with PostgreSQL | NativeProvider |
 | [fastapi-keycloak](traditional-iam/fastapi-keycloak/) | Enterprise identity with Keycloak | KeycloakProvider |
 | [fastapi-stackauth](traditional-iam/fastapi-stackauth/) | Modern auth with Stack Auth | StackAuthProvider |
-| [django-postgresql](traditional-iam/django-postgresql/) | Self-managed user store with PostgreSQL | PostgreSQLProvider |
+| [django-postgresql](traditional-iam/django-postgresql/) | Self-managed user store with PostgreSQL | NativeProvider |
 | [django-keycloak](traditional-iam/django-keycloak/) | Enterprise identity with Keycloak | KeycloakProvider |
 | [django-stackauth](traditional-iam/django-stackauth/) | Modern auth with Stack Auth | StackAuthProvider |
 
@@ -192,13 +176,14 @@ For securing **AI agents** with delegation-based authentication.
 | [aip-server-integration](agent-iam/aip-server-integration/) | Add GL-IAM to existing AIP server | Unified auth (Bearer + API key) |
 | [aip-integration](agent-iam/aip-integration/) | Secure agent APIs with GL-IAM (basic) | New agent APIs from scratch |
 | [aip-integration-advanced](agent-iam/aip-integration-advanced/) | Advanced GL-IAM patterns for agents | Role-based tools, user-scoped memory |
+| [de-vertical-permission-gate](agent-iam/de-vertical-permission-gate/) | Per-tool scope enforcement from the DE layer | User grants/revokes a tool's scope; no AIP or DE Core change |
 
 ## SIMI Pattern
 
 All examples demonstrate the **Single Interface Multiple Implementation (SIMI)** pattern. The same GL-IAM code works regardless of which provider you use:
 
 ```python
-# SAME CODE — works with PostgreSQL, Keycloak, StackAuth
+# SAME CODE — works with Native, Keycloak, StackAuth
 @app.get("/protected")
 async def protected(user: User = Depends(get_current_user)):
     return {"user": user.email}

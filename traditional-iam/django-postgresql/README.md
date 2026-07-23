@@ -1,6 +1,8 @@
-# Django with PostgreSQL Provider
+# Django with Native Provider (PostgreSQL-backed)
 
 Add authentication and authorization to your Django application using GL-IAM with a self-managed PostgreSQL user store.
+
+> **Naming note:** the provider class is `NativeProvider` (from `gl_iam.providers.native`); it was previously `PostgreSQLProvider`. It is still backed by a PostgreSQL database — only the class name changed. The old `PostgreSQL*` names and the `gl_iam.providers.postgresql` import path still work as deprecated aliases.
 
 This example demonstrates **three different Django view patterns** with GL-IAM:
 
@@ -66,7 +68,7 @@ Additionally, you need:
 
    Output:
    ```
-   GL-IAM gateway initialized with PostgreSQL provider
+   GL-IAM gateway initialized with Native provider
    Starting development server at http://127.0.0.1:8000/
    ```
 
@@ -149,13 +151,13 @@ Unlike FastAPI's lifespan context manager, Django uses `AppConfig.ready()`:
 ```python
 class ApiConfig(AppConfig):
     def ready(self):
-        config = PostgreSQLConfig(
+        config = NativeConfig(
             database_url=os.getenv("DATABASE_URL"),
             secret_key=os.getenv("SECRET_KEY"),
             enable_auth_hosting=True,
             auto_create_tables=True,
         )
-        provider = PostgreSQLProvider(config)
+        provider = NativeProvider(config)
         gateway = IAMGateway.from_fullstack_provider(provider)
         set_iam_gateway(gateway)
 ```
@@ -226,4 +228,4 @@ GL-IAM uses a role hierarchy where higher roles include lower role permissions:
 
 ## Reference
 
-This example is based on the [GL-IAM Django with PostgreSQL Provider tutorial](https://gdplabs.gitbook.io/sdk/tutorials/gl-iam/django-with-postgresql-provider).
+This example is based on the [GL-IAM Django with Native Provider tutorial](https://gdplabs.gitbook.io/sdk/tutorials/gl-iam/django-with-postgresql-provider).

@@ -191,7 +191,7 @@ async def get_audit_log(
     from sqlalchemy import func, select
     from sqlalchemy.ext.asyncio import AsyncSession
 
-    from gl_iam.providers.postgresql import AuditEventModel
+    from gl_iam.providers.native import AuditEventModel
 
     async with AsyncSession(request.app.state.provider.engine) as session:
         q = select(AuditEventModel).order_by(AuditEventModel.timestamp.desc())

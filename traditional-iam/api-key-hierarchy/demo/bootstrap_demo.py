@@ -10,12 +10,12 @@ PLATFORM keys are special:
 """
 
 from gl_iam.core.types.api_key import ApiKey, ApiKeyTier
-from gl_iam.providers.postgresql import PostgreSQLApiKeyProvider
+from gl_iam.providers.native import NativeApiKeyProvider
 
 from services import KeyCreationService
 
 
-async def run_bootstrap_demo(provider: PostgreSQLApiKeyProvider) -> ApiKey:
+async def run_bootstrap_demo(provider: NativeApiKeyProvider) -> ApiKey:
     """Demonstrate PLATFORM key creation for system bootstrap.
 
     In a real system, this would only run once during initial setup.

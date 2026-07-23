@@ -44,7 +44,6 @@ Every row below is implemented here and asserted by `scripts/demo_e2e.py`.
 
 - Docker + Docker Compose
 - Python 3.11+ and [uv](https://docs.astral.sh/uv/)
-- `gcloud auth login` (GL-IAM SDK is pulled from `gen-ai-internal` registry for some transitive deps)
 
 ## Quick start
 

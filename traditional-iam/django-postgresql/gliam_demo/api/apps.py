@@ -21,7 +21,7 @@ class ApiConfig(AppConfig):
         Initialize GL-IAM gateway when Django starts.
 
         This is called once when Django starts up. We configure the
-        PostgreSQL provider and set it as the global IAM gateway.
+        Native provider and set it as the global IAM gateway.
         """
         import sys
 
@@ -30,14 +30,14 @@ class ApiConfig(AppConfig):
 
         from gl_iam import IAMGateway
         from gl_iam.django import set_iam_gateway
-        from gl_iam.providers.postgresql import (
-            PostgreSQLProvider,
-            PostgreSQLConfig,
+        from gl_iam.providers.native import (
+            NativeProvider,
+            NativeConfig,
         )
 
         default_org_id = os.getenv("DEFAULT_ORGANIZATION_ID", "default")
 
-        config = PostgreSQLConfig(
+        config = NativeConfig(
             database_url=os.getenv("DATABASE_URL"),
             secret_key=os.getenv("SECRET_KEY"),
             enable_auth_hosting=True,
@@ -45,9 +45,9 @@ class ApiConfig(AppConfig):
             default_org_id=default_org_id,
             use_null_pool=True,
         )
-        provider = PostgreSQLProvider(config)
+        provider = NativeProvider(config)
         gateway = IAMGateway.from_fullstack_provider(provider)
 
         set_iam_gateway(gateway)
 
-        print("GL-IAM gateway initialized with PostgreSQL provider")
+        print("GL-IAM gateway initialized with Native provider")

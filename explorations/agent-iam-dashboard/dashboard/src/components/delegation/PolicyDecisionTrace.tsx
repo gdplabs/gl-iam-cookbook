@@ -63,7 +63,7 @@ function buildDecisionSteps(result: ScenarioRunResult): DecisionStep[] {
         ? "Admin → User+Agent (User OAuth first, Agent OAuth fallback)"
         : user.role === "member"
           ? "Member → Agent OAuth only (whitelisted resources)"
-          : "Guest → Agent OAuth only (Pak On calendar only)"
+          : "Guest → Agent OAuth only (Nadia calendar only)"
       : user.role === "viewer"
         ? "Guest → requires User OAuth → DENIED (not logged in)"
         : `${user.role} → User OAuth (accessing own resources)`;
@@ -92,7 +92,7 @@ function buildDecisionSteps(result: ScenarioRunResult): DecisionStep[] {
           value: `${friendlyName} → NOT available for ${user?.role ?? "this"} role`,
           passed: false,
           detail: `The ${bt.tool} tool requires a feature entitlement that is configured per-user, not per-role. ` +
-            `Admin (Pak On) has "invoice_send" feature. Member (Maylina) does not. ` +
+            `Admin (Nadia) has "invoice_send" feature. Member (Maya) does not. ` +
             `This is enforced at ABAC scope attenuation — the scope is removed before delegation.`,
         });
       }
@@ -103,7 +103,7 @@ function buildDecisionSteps(result: ScenarioRunResult): DecisionStep[] {
         steps.push({
           label: "Feature-Level Access Control",
           check: 'Does user have "invoice_send" feature entitlement?',
-          value: "Admin (Pak On) has invoice_send feature → GRANTED",
+          value: "Admin (Nadia) has invoice_send feature → GRANTED",
           passed: true,
           detail: "Feature entitlements are per-user config, checked at ABAC before delegation token creation.",
         });
@@ -124,10 +124,10 @@ function buildDecisionSteps(result: ScenarioRunResult): DecisionStep[] {
     // Try to extract constraints from the result
     const constraints = result.abac ? {
       target_whitelist: result.user?.role === "admin" ? "*"
-        : result.user?.role === "member" ? '["onlee@gdplabs.id", "org:GLC"]'
-        : '["onlee@gdplabs.id"]',
+        : result.user?.role === "member" ? '["nadia@example.com", "org:Acme"]'
+        : '["nadia@example.com"]',
       write_whitelist: result.user?.role === "admin" ? "*"
-        : result.user?.role === "member" ? '["onlee@gdplabs.id"]'
+        : result.user?.role === "member" ? '["nadia@example.com"]'
         : "[]",
     } : null;
 

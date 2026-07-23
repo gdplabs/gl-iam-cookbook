@@ -1,7 +1,7 @@
 """GLChat backend — production-grade IdP-Initiated SSO receiver.
 
 Wires:
-  - PostgreSQL provider (users, sessions, partner registry, audit log)
+  - Native provider (users, sessions, partner registry, audit log)
   - Redis-backed one-time token + nonce stores
   - Console + Database audit handlers
   - Rate limiting, CSP, audit-context middleware
@@ -27,7 +27,7 @@ from gl_iam import (
 from gl_iam.core.gateway import AuditConfig
 from gl_iam.core.exceptions import AuthenticationError, AuthorizationError
 from gl_iam.fastapi import set_iam_gateway
-from gl_iam.providers.postgresql import PostgreSQLConfig, PostgreSQLProvider
+from gl_iam.providers.native import NativeConfig, NativeProvider
 
 from glchat_backend import audit as audit_module
 from glchat_backend.config import get_settings
@@ -42,7 +42,7 @@ from glchat_backend.services.token_store import OneTimeTokenStore
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s — %(message)s")
 
 # Exposed at module scope so routers/admin.py can query the audit table.
-glchat_provider: PostgreSQLProvider | None = None
+glchat_provider: NativeProvider | None = None
 
 
 @asynccontextmanager
@@ -50,7 +50,7 @@ async def lifespan(app: FastAPI):
     global glchat_provider
     settings = get_settings()
 
-    config = PostgreSQLConfig(
+    config = NativeConfig(
         database_url=settings.database_url,
         secret_key=settings.secret_key,
         encryption_key=settings.encryption_key,
@@ -62,7 +62,7 @@ async def lifespan(app: FastAPI):
         audit_batch_size=10,
         auto_create_tables=True,
     )
-    glchat_provider = PostgreSQLProvider(config)
+    glchat_provider = NativeProvider(config)
 
     handlers = [ConsoleAuditHandler()]
     if (db_handler := glchat_provider.create_audit_handler()):

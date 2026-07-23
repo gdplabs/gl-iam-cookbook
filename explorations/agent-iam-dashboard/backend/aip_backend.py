@@ -29,7 +29,7 @@ from gl_iam.fastapi import (
     set_iam_gateway,
 )
 from gl_iam import ConsoleAuditHandler
-from gl_iam.providers.postgresql import PostgreSQLAgentProvider, PostgreSQLConfig, DatabaseAuditHandler
+from gl_iam.providers.native import NativeAgentProvider, NativeConfig, DatabaseAuditHandler
 
 from shared import add_audit_routes, add_cors, audit_log
 
@@ -174,9 +174,9 @@ KEYWORD_TO_TOOLS = {
     "access": ["meemo_get_meeting_details", "google_docs_get_document"],
     "invoice": ["invoice_send"],
     # Directory lookup — triggered when prompt mentions a person's name
-    "sandy's": ["directory_lookup", "google_calendar_events_list"],
-    "pak on's": ["directory_lookup", "google_calendar_events_list"],
-    "petry's": ["directory_lookup", "google_calendar_events_list"],
+    "sam's": ["directory_lookup", "google_calendar_events_list"],
+    "nadia's": ["directory_lookup", "google_calendar_events_list"],
+    "priya's": ["directory_lookup", "google_calendar_events_list"],
     "colleague": ["directory_lookup"],
     # AIP
     "report": ["google_docs_get_document", "google_docs_create_document", "google_mail_send_email"],
@@ -369,14 +369,14 @@ def plan_tools(
 # =============================================================================
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    config = PostgreSQLConfig(
+    config = NativeConfig(
         database_url=os.getenv("DATABASE_URL"),
         secret_key=os.getenv("SECRET_KEY"),
         enable_third_party_provider=False,
         auto_create_tables=True,
         default_org_id=os.getenv("DEFAULT_ORGANIZATION_ID", "default"),
     )
-    agent_provider = PostgreSQLAgentProvider(config)
+    agent_provider = NativeAgentProvider(config)
     gateway = IAMGateway.for_agent_auth(
         agent_provider=agent_provider,
         secret_key=os.getenv("SECRET_KEY"),

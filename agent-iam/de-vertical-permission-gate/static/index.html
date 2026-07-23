@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>DE Permission Console — GL-IAM</title>
+<style>
+  :root {
+    --bg: #0f1216; --panel: #171b21; --line: #262c35; --text: #e6e9ef;
+    --muted: #8b95a5; --allow: #3fb950; --deny: #f85149; --warn: #d29922;
+    --accent: #58a6ff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 14px/1.55 ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  header {
+    padding: 20px 28px; border-bottom: 1px solid var(--line);
+    display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap;
+  }
+  h1 { font-size: 17px; margin: 0 0 4px; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin: 0 0 12px; }
+  .sub { color: var(--muted); font-size: 13px; }
+  main { display: grid; grid-template-columns: 340px 1fr 380px; gap: 18px; padding: 18px 28px 40px; }
+  @media (max-width: 1100px) { main { grid-template-columns: 1fr; } }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+  .panel + .panel { margin-top: 18px; }
+  .row {
+    display: flex; justify-content: space-between; align-items: center; gap: 12px;
+    padding: 11px 0; border-bottom: 1px solid var(--line);
+  }
+  .row:last-child { border-bottom: 0; }
+  .scope { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--accent); }
+  .label { font-size: 13px; }
+  button {
+    font: inherit; font-size: 12px; padding: 6px 12px; border-radius: 6px; cursor: pointer;
+    border: 1px solid var(--line); background: #21262d; color: var(--text); white-space: nowrap;
+  }
+  button:hover { border-color: var(--muted); }
+  button.on { background: rgba(63,185,80,.14); border-color: var(--allow); color: var(--allow); }
+  button.off { background: rgba(248,81,73,.12); border-color: var(--deny); color: var(--deny); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #06121f; font-weight: 600; }
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+  .pill {
+    display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 20px;
+    border: 1px solid var(--line); color: var(--muted);
+  }
+  .pill.pending { border-color: var(--warn); color: var(--warn); }
+  .pill.allow { border-color: var(--allow); color: var(--allow); }
+  .pill.deny { border-color: var(--deny); color: var(--deny); }
+  .step { border: 1px solid var(--line); border-radius: 8px; padding: 12px; margin-bottom: 10px; }
+  .step.allow { border-left: 3px solid var(--allow); }
+  .step.deny { border-left: 3px solid var(--deny); }
+  .step-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  pre {
+    margin: 8px 0 0; padding: 10px; background: #0d1117; border-radius: 6px; overflow-x: auto;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; color: #b9c2d0;
+  }
+  .chain { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; color: #b9c2d0; }
+  .chain span { color: var(--accent); }
+  .audit { max-height: 420px; overflow-y: auto; }
+  .audit div { padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 12px; }
+  .audit div:last-child { border-bottom: 0; }
+  .audit .t { font-family: ui-monospace, Menlo, monospace; font-size: 11px; }
+  .warning { color: var(--warn); }
+  .empty { color: var(--muted); font-size: 13px; padding: 8px 0; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Digital Employee — Permission Console</h1>
+    <div class="sub" id="whoami">loading…</div>
+  </div>
+  <div>
+    <span class="pill" id="agent-status">—</span>
+    <button id="kill">Kill switch</button>
+  </div>
+</header>
+
+<main>
+  <section>
+    <div class="panel">
+      <h2>Permissions you granted</h2>
+      <div id="permissions"></div>
+    </div>
+    <div class="panel">
+      <h2>Tools &amp; the scope each needs</h2>
+      <div id="tools"></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="panel">
+      <h2>Run the digital employee</h2>
+      <div class="actions">
+        <button class="primary" id="run">Run the MoM job</button>
+        <button id="escalate">Run &amp; ask for everything</button>
+      </div>
+      <div id="run-summary" class="sub">No run yet. Grant or revoke a scope, then run.</div>
+      <div id="chain" class="chain" style="margin-top:12px"></div>
+    </div>
+    <div class="panel">
+      <h2>What happened</h2>
+      <div id="steps"><div class="empty">Run the job to see per-tool decisions.</div></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="panel">
+      <h2>GL-IAM audit trail</h2>
+      <div class="audit" id="audit"></div>
+    </div>
+  </section>
+</main>
+
+<script>
+const api = (path, body) =>
+  fetch(path, body === undefined
+    ? {}
+    : { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body) })
+  .then(r => r.json());
+
+let agentActive = true;
+
+function renderPermissions(state) {
+  const el = document.getElementById('permissions');
+  el.innerHTML = '';
+  state.permissions.forEach(p => {
+    const row = document.createElement('div');
+    row.className = 'row';
+    row.innerHTML = `
+      <div>
+        <div class="label">${p.label}</div>
+        <div class="scope">${p.scope}</div>
+        ${p.pending && !p.granted ? '<span class="pill pending">agent asked for this</span>' : ''}
+      </div>`;
+    const btn = document.createElement('button');
+    btn.className = p.granted ? 'on' : 'off';
+    btn.textContent = p.granted ? 'Allowed' : 'Not allowed';
+    btn.onclick = async () => {
+      await api(p.granted ? '/api/permissions/revoke' : '/api/permissions/grant', { scope: p.scope });
+      refresh();
+    };
+    row.appendChild(btn);
+    el.appendChild(row);
+  });
+}
+
+function renderTools(state) {
+  const el = document.getElementById('tools');
+  el.innerHTML = state.tools.map(t => `
+    <div class="row">
+      <div>
+        <div class="label">${t.name}</div>
+        <div class="scope">needs ${t.required_scope}</div>
+      </div>
+      <span class="pill ${t.granted ? 'allow' : 'deny'}">${t.granted ? 'usable' : 'blocked'}</span>
+    </div>`).join('');
+}
+
+function renderRun(run) {
+  const summary = document.getElementById('run-summary');
+  const chain = document.getElementById('chain');
+  const steps = document.getElementById('steps');
+
+  if (!run || Object.keys(run).length === 0) return;
+
+  if (run.minted === false) {
+    summary.innerHTML = `<span class="pill deny">delegation refused</span>
+      <div style="margin-top:8px" class="warning">${run.error_code || ''}</div>
+      <div class="sub">${run.error}</div>
+      <div class="sub" style="margin-top:6px">GL-IAM refused to mint the token — no tool was ever reached.</div>`;
+    chain.innerHTML = '';
+    steps.innerHTML = '<div class="empty">The run never started: the agent could not obtain a delegation token.</div>';
+    return;
+  }
+
+  summary.innerHTML = `<span class="pill allow">delegation minted</span>
+    <span class="pill">task ${run.task_id}</span>
+    <span class="pill">expires ${new Date(run.expires_at).toLocaleTimeString()}</span>
+    <div class="sub" style="margin-top:8px">Effective scopes: <span class="scope">${run.effective_scopes.join(', ') || '(none)'}</span></div>`;
+
+  chain.innerHTML = 'chain: ' + run.chain
+    .map(l => `<span>${l.principal_id}</span> [${l.scopes.join(', ') || '—'}]`)
+    .join(' &rarr; ');
+
+  steps.innerHTML = run.steps.map(s => {
+    const decision = s.decision;
+    const ok = decision ? decision.allowed : true;
+    return `
+      <div class="step ${ok ? 'allow' : 'deny'}">
+        <div class="step-head">
+          <strong>${s.step}</strong>
+          <span class="pill ${ok ? 'allow' : 'deny'}">${ok ? 'ALLOWED' : 'DENIED'}</span>
+        </div>
+        <div class="scope">${s.tool} — needs ${decision ? decision.required_scope : '?'}</div>
+        ${decision && !ok ? `<div class="sub" style="margin-top:6px">${decision.reason}</div>` : ''}
+        <pre>${JSON.stringify(s.result, null, 2)}</pre>
+      </div>`;
+  }).join('');
+}
+
+function renderAudit(state) {
+  const el = document.getElementById('audit');
+  if (!state.audit.length) { el.innerHTML = '<div class="empty">No events yet.</div>'; return; }
+  el.innerHTML = state.audit.slice().reverse().map(e => `
+    <div>
+      <div class="t ${e.severity.includes('warning') ? 'warning' : ''}">${e.event_type}</div>
+      <div class="sub">${e.message}</div>
+    </div>`).join('');
+}
+
+async function refresh() {
+  const state = await api('/api/state');
+  document.getElementById('whoami').textContent =
+    `${state.user.email} → ${state.agent.name} (${state.agent.id})`;
+  const status = document.getElementById('agent-status');
+  agentActive = state.agent.status === 'active';
+  status.textContent = `agent ${state.agent.status}`;
+  status.className = 'pill ' + (agentActive ? 'allow' : 'deny');
+  document.getElementById('kill').textContent = agentActive ? 'Revoke agent' : 'Reactivate agent';
+  renderPermissions(state);
+  renderTools(state);
+  renderAudit(state);
+  renderRun(state.last_run);
+}
+
+document.getElementById('run').onclick = async () => {
+  renderRun(await api('/api/run', { escalate: false }));
+  refresh();
+};
+document.getElementById('escalate').onclick = async () => {
+  renderRun(await api('/api/run', { escalate: true }));
+  refresh();
+};
+document.getElementById('kill').onclick = async () => {
+  await fetch(`/api/agent/status?active=${!agentActive}`, { method: 'POST' });
+  refresh();
+};
+
+refresh();
+</script>
+</body>
+</html>

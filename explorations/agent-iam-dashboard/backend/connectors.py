@@ -31,7 +31,7 @@ from gl_iam.fastapi import (
     set_iam_gateway,
 )
 from gl_iam import ConsoleAuditHandler
-from gl_iam.providers.postgresql import PostgreSQLAgentProvider, PostgreSQLConfig, DatabaseAuditHandler
+from gl_iam.providers.native import NativeAgentProvider, NativeConfig, DatabaseAuditHandler
 
 from mock_data import (
     CALENDARS,
@@ -53,14 +53,14 @@ logging.basicConfig(level=logging.INFO, format="%(message)s")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    config = PostgreSQLConfig(
+    config = NativeConfig(
         database_url=os.getenv("DATABASE_URL"),
         secret_key=os.getenv("SECRET_KEY"),
         enable_third_party_provider=False,
         auto_create_tables=True,
         default_org_id=os.getenv("DEFAULT_ORGANIZATION_ID", "default"),
     )
-    agent_provider = PostgreSQLAgentProvider(config)
+    agent_provider = NativeAgentProvider(config)
     gateway = IAMGateway.for_agent_auth(
         agent_provider=agent_provider,
         secret_key=os.getenv("SECRET_KEY"),
@@ -132,7 +132,7 @@ async def calendar_list_events(
     token: DelegationToken = Depends(get_delegation_token),
 ):
     ref = get_delegation_ref(token)
-    target = request.input.get("target_calendar", "onlee@gdplabs.id")
+    target = request.input.get("target_calendar", "nadia@example.com")
 
     # GL Connector is a transport layer — it calls the 3P API and returns the result.
     # Policy enforcement (resource constraints) is handled at the agent/worker level.
@@ -460,7 +460,7 @@ async def gdoc_share(
                 )
 
     # Check external recipients (UC-DE-02.4)
-    tenant_domain = "gdplabs.id"
+    tenant_domain = "example.com"
     internal_recipients = []
     blocked_recipients = []
     for r in recipients:

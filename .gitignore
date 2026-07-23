@@ -111,6 +111,10 @@ ENV/
 env.bak/
 venv.bak/
 
+# Local-only dependency overrides (e.g. path sources to a local gl-sdk checkout)
+pyproject_local.toml
+*.local.toml
+
 # Spyder project settings
 .spyderproject
 .spyproject

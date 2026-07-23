@@ -162,6 +162,6 @@ User (Bearer Token)              Agent (X-Delegation-Token)
 
 | Package | Purpose |
 |---------|---------|
-| `gl-iam[fastapi,postgresql]` | GL-IAM with FastAPI and PostgreSQL support |
+| `gl-iam[fastapi,native]` | GL-IAM with FastAPI and PostgreSQL support |
 | `fastapi` | Web framework |
 | `uvicorn` | ASGI server |

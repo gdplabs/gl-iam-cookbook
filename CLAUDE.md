@@ -91,7 +91,8 @@ gl-iam-cookbook/
 │   ├── agent-stackauth/               # Agent authentication with Stack Auth
 │   ├── aip-integration/               # AI Agent Platform basic setup
 │   ├── aip-integration-advanced/      # AI Agent Platform advanced patterns
-│   └── aip-server-integration/        # Add GL-IAM to existing AIP server
+│   ├── aip-server-integration/        # Add GL-IAM to existing AIP server
+│   └── de-vertical-permission-gate/   # Per-tool scope gate inside a Digital Employee vertical
 │
 └── explorations/                      # Experimental prototypes
     ├── agent-iam-dashboard/           # Agent IAM dashboard
@@ -108,8 +109,8 @@ gl-iam-cookbook/
 ```python
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    config = PostgreSQLConfig(database_url=settings.DATABASE_URL)
-    provider = PostgreSQLProvider(config)
+    config = NativeConfig(database_url=settings.DATABASE_URL)
+    provider = NativeProvider(config)
     gateway = IAMGateway.from_fullstack_provider(provider)
     set_iam_gateway(gateway)
     yield
@@ -124,7 +125,7 @@ class ApiConfig(AppConfig):
     def ready(self):
         if "runserver" not in sys.argv:
             return
-        provider = PostgreSQLProvider(config)
+        provider = NativeProvider(config)
         gateway = IAMGateway.from_fullstack_provider(provider)
         set_iam_gateway(gateway)
 ```
@@ -144,7 +145,7 @@ Authorization dependencies respect this hierarchy:
 The same endpoint code works with any provider - only configuration changes:
 
 ```python
-# SAME CODE - works with PostgreSQL, Keycloak, StackAuth
+# SAME CODE - works with Native, Keycloak, StackAuth
 @app.get("/protected")
 async def protected(user: User = Depends(get_current_user)):
     return {"user": user.email}
@@ -270,29 +271,19 @@ STACKAUTH_SECRET_SERVER_KEY=ssk_...
 
 ## GL-IAM SDK
 
-The GL-IAM SDK is sourced from the gl-sdk repository:
+The GL-IAM SDK is installed from PyPI:
 
 ```toml
 # pyproject.toml
-dependencies = ["gl-iam[fastapi,postgresql]>=0.3.7,<0.4.0"]
-
-[tool.uv.sources]
-gl-iam = { index = "gen-ai-internal" }
-
-[[tool.uv.index]]
-name = "gen-ai-internal"
-url = "https://asia-southeast2-python.pkg.dev/gdp-labs/gen-ai-internal/simple/"
-explicit = true
+dependencies = ["gl-iam[fastapi,native]>=0.3.10,<0.4.0"]
 ```
 
-Examples pin a published release, not a branch of `gl-sdk`. `explicit = true` keeps `gl-iam`
-sourced solely from the internal registry while every other dependency resolves from PyPI.
+Examples pin a published release from PyPI — no registry access or authentication needed.
 No `uv.lock` is committed, so `uv sync` always resolves the newest compatible release.
-Resolving requires a `gcloud` login — see Prerequisites in the root README.
 
 Features used per example:
-- `gl-iam[fastapi,postgresql]` - FastAPI + PostgreSQL provider
-- `gl-iam[django,postgresql]` - Django + PostgreSQL provider
+- `gl-iam[fastapi,native]` - FastAPI + Native provider
+- `gl-iam[django,native]` - Django + Native provider
 - `gl-iam[fastapi,keycloak]` - FastAPI + Keycloak provider
 - `gl-iam[fastapi,stackauth]` - FastAPI + Stack Auth provider
 

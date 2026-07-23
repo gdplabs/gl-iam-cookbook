@@ -10,13 +10,13 @@ Forever keys serve as the root of the key hierarchy for an organization:
 """
 
 from gl_iam.core.types.api_key import ApiKey, ApiKeyTier
-from gl_iam.providers.postgresql import PostgreSQLApiKeyProvider
+from gl_iam.providers.native import NativeApiKeyProvider
 
 from services import KeyCreationService, HierarchyService
 
 
 async def run_organization_demo(
-    provider: PostgreSQLApiKeyProvider,
+    provider: NativeApiKeyProvider,
     organization_id: str,
 ) -> tuple[ApiKey, str]:
     """Demonstrate creating a forever ORGANIZATION key.

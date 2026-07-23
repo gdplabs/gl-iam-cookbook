@@ -29,7 +29,7 @@ from gl_iam.core.types import UserCreateInput
 from gl_iam.core.types.auth import ExternalIdentity
 from gl_iam.core.types.sso import SSOMode, SSOPartnerCreate, SSOUserProvisioning
 from gl_iam.fastapi import add_exception_handlers, get_current_user, get_iam_gateway, set_iam_gateway
-from gl_iam.providers.postgresql import PostgreSQLConfig, PostgreSQLProvider
+from gl_iam.providers.native import NativeConfig, NativeProvider
 
 load_dotenv()
 
@@ -103,7 +103,7 @@ def _consume_token(token: str) -> dict | None:
 # ============================================================================
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Initialize GL-IAM gateway with PostgreSQL provider + partner registry."""
+    """Initialize GL-IAM gateway with Native provider + partner registry."""
     default_org_id = os.getenv("DEFAULT_ORGANIZATION_ID", "default")
 
     logger.info(
@@ -114,7 +114,7 @@ async def lifespan(app: FastAPI):
     )
 
     # --- GL-IAM ---
-    config = PostgreSQLConfig(
+    config = NativeConfig(
         database_url=os.getenv("DATABASE_URL"),
         secret_key=os.getenv("SECRET_KEY"),
         encryption_key=os.getenv("ENCRYPTION_KEY"),
@@ -123,7 +123,7 @@ async def lifespan(app: FastAPI):
         auto_create_tables=True,
         default_org_id=default_org_id,
     )
-    provider = PostgreSQLProvider(config)
+    provider = NativeProvider(config)
     gateway = IAMGateway(
         auth_provider=provider,
         user_store=provider,

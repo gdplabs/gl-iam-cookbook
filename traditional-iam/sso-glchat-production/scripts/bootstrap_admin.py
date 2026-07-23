@@ -23,8 +23,8 @@ async def run() -> None:
     from sqlalchemy.ext.asyncio import AsyncSession
 
     from gl_iam.core.roles.standard import StandardRole
-    from gl_iam.providers.postgresql import PostgreSQLConfig, PostgreSQLProvider
-    from gl_iam.providers.postgresql.models import (
+    from gl_iam.providers.native import NativeConfig, NativeProvider
+    from gl_iam.providers.native.models import (
         OrganizationModel,
         RoleModel,
         UserModel,
@@ -32,8 +32,8 @@ async def run() -> None:
     )
 
     settings = get_settings()
-    provider = PostgreSQLProvider(
-        PostgreSQLConfig(
+    provider = NativeProvider(
+        NativeConfig(
             database_url=settings.database_url,
             secret_key=settings.secret_key,
             encryption_key=settings.encryption_key,

@@ -24,7 +24,7 @@ from gl_iam.fastapi import (
     require_agent_scope,
     set_iam_gateway,
 )
-from gl_iam.providers.postgresql import PostgreSQLAgentProvider, PostgreSQLConfig
+from gl_iam.providers.native import NativeAgentProvider, NativeConfig
 
 load_dotenv()
 
@@ -37,11 +37,11 @@ async def lifespan(app: FastAPI):
     """
     Application lifespan context manager.
 
-    Service B uses a minimal setup with PostgreSQLAgentProvider and
+    Service B uses a minimal setup with NativeAgentProvider and
     IAMGateway.for_agent_auth(). It only needs the agent table and
     the shared secret key to validate delegation tokens.
     """
-    config = PostgreSQLConfig(
+    config = NativeConfig(
         database_url=os.getenv("DATABASE_URL"),
         secret_key=os.getenv("SECRET_KEY"),
         auto_create_tables=True,
@@ -49,7 +49,7 @@ async def lifespan(app: FastAPI):
     )
 
     # Minimal provider: only agent operations
-    agent_provider = PostgreSQLAgentProvider(config)
+    agent_provider = NativeAgentProvider(config)
 
     # Minimal gateway: only agent auth (no user auth)
     gateway = IAMGateway.for_agent_auth(

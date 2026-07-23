@@ -10,13 +10,13 @@ Child keys are ideal for:
 """
 
 from gl_iam.core.types.api_key import ApiKey
-from gl_iam.providers.postgresql import PostgreSQLApiKeyProvider
+from gl_iam.providers.native import NativeApiKeyProvider
 
 from services import KeyCreationService
 
 
 async def run_child_keys_demo(
-    provider: PostgreSQLApiKeyProvider,
+    provider: NativeApiKeyProvider,
     organization_id: str,
     parent_key_id: str,
 ) -> list[tuple[ApiKey, str]]:

@@ -2,7 +2,7 @@
 Django settings for GL-IAM Demo project.
 
 This demonstrates how to configure Django with GL-IAM for authentication
-and authorization using the PostgreSQL provider.
+and authorization using the Native provider.
 """
 
 import os

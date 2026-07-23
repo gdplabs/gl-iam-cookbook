@@ -31,7 +31,7 @@ from gl_iam.fastapi import (
     require_agent_scope,
     set_iam_gateway,
 )
-from gl_iam.providers.postgresql import PostgreSQLAgentProvider, PostgreSQLConfig
+from gl_iam.providers.native import NativeAgentProvider, NativeConfig
 
 load_dotenv()
 
@@ -58,14 +58,14 @@ def audit_log(event: str, delegation_ref: str, **kwargs):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Minimal agent-only gateway — validates delegation tokens via shared secret."""
-    config = PostgreSQLConfig(
+    config = NativeConfig(
         database_url=os.getenv("DATABASE_URL"),
         secret_key=os.getenv("SECRET_KEY"),
         enable_third_party_provider=False,
         auto_create_tables=True,
         default_org_id=os.getenv("DEFAULT_ORGANIZATION_ID", "default"),
     )
-    agent_provider = PostgreSQLAgentProvider(config)
+    agent_provider = NativeAgentProvider(config)
     gateway = IAMGateway.for_agent_auth(
         agent_provider=agent_provider,
         secret_key=os.getenv("SECRET_KEY"),
