@@ -152,7 +152,7 @@ run crashing:
   "status": "permission_denied",
   "tool": "google_docs_create_document_tool",
   "required_scope": "google_docs:write",
-  "reason": "Scope 'google_docs:write' was never delegated by user:sandy.",
+  "reason": "Scope 'google_docs:write' was never delegated by user:sam.",
   "remediation": "Ask the user to grant 'google_docs:write' to this agent, then retry."
 }
 ```
@@ -164,7 +164,7 @@ run crashing:
 TOOL_SCOPES = [get_required_scope(t) for t in DE_TOOLS]
 
 # 2. A cron-driven DE has no user session, so mint a short-lived principal JWT.
-principal = gateway.mint_principal_jwt(sub="user:sandy", ttl_seconds=300)
+principal = gateway.mint_principal_jwt(sub="user:sam", ttl_seconds=300)
 
 # 3. Exchange it for a delegation token capped by what the human granted.
 delegation = await gateway.delegate_to_agent(

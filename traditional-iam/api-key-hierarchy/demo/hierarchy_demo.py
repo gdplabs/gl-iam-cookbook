@@ -9,13 +9,13 @@ Understanding the hierarchy helps with:
 - Debugging authorization issues
 """
 
-from gl_iam.providers.postgresql import PostgreSQLApiKeyProvider
+from gl_iam.providers.native import NativeApiKeyProvider
 
 from services import HierarchyService
 
 
 async def run_hierarchy_demo(
-    provider: PostgreSQLApiKeyProvider,
+    provider: NativeApiKeyProvider,
     organization_id: str,
 ) -> None:
     """Demonstrate key hierarchy visualization.

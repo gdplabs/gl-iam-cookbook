@@ -18,11 +18,11 @@ from fastapi.security import APIKeyHeader, HTTPAuthorizationCredentials, HTTPBea
 
 from gl_iam import User, StandardRole
 from gl_iam.core.types.api_key import ApiKeyIdentity, ApiKeyTier
-from gl_iam.providers.postgresql import (
-    PostgreSQLApiKeyProvider,
-    PostgreSQLProvider,
-    PostgreSQLThirdPartyProvider,
-    PostgreSQLConfig,
+from gl_iam.providers.native import (
+    NativeApiKeyProvider,
+    NativeProvider,
+    NativeThirdPartyProvider,
+    NativeConfig,
 )
 
 from config import settings
@@ -32,7 +32,7 @@ from config import settings
 # =============================================================================
 
 # Configuration for all providers
-_config = PostgreSQLConfig(
+_config = NativeConfig(
     database_url=settings.database_url,
     secret_key=settings.secret_key,
     encryption_key=settings.encryption_key,
@@ -43,16 +43,16 @@ _config = PostgreSQLConfig(
 )
 
 # Main provider (users, sessions, RBAC)
-provider = PostgreSQLProvider(_config)
+provider = NativeProvider(_config)
 
 # API Key provider (3-tier model)
-api_key_provider = PostgreSQLApiKeyProvider(_config)
+api_key_provider = NativeApiKeyProvider(_config)
 
 # Third-party integration provider
 # Only initialize if encryption key is configured
-third_party_provider: PostgreSQLThirdPartyProvider | None = None
+third_party_provider: NativeThirdPartyProvider | None = None
 if settings.encryption_key:
-    third_party_provider = PostgreSQLThirdPartyProvider(_config)
+    third_party_provider = NativeThirdPartyProvider(_config)
 
 
 async def ensure_all_tables() -> None:
@@ -64,12 +64,12 @@ async def ensure_all_tables() -> None:
     ordering based on foreign key dependencies.
 
     It also seeds the default organization row, mirroring what
-    ``PostgreSQLProvider._ensure_tables()`` does internally. Without this,
+    ``NativeProvider._ensure_tables()`` does internally. Without this,
     org-scoped inserts (users, organization-tier API keys) hit
     ForeignKeyViolationError because ``organizations.id`` is never populated.
     """
     from sqlalchemy import select, text
-    from gl_iam.providers.postgresql.models import Base, OrganizationModel
+    from gl_iam.providers.native.models import Base, OrganizationModel
 
     async with provider._engine.begin() as conn:
         # Create schema if it doesn't exist
@@ -334,11 +334,11 @@ def require_platform_admin():
 # =============================================================================
 
 
-def get_third_party_provider() -> PostgreSQLThirdPartyProvider:
+def get_third_party_provider() -> NativeThirdPartyProvider:
     """Get the third-party provider or raise if not configured.
 
     Returns:
-        PostgreSQLThirdPartyProvider instance.
+        NativeThirdPartyProvider instance.
 
     Raises:
         HTTPException 503: If encryption key is not configured.

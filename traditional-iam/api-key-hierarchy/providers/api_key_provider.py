@@ -4,15 +4,15 @@ This module implements the Dependency Inversion Principle by providing
 a factory function that creates properly configured API key providers.
 
 High-level business logic (services, demos) depend on the abstract
-PostgreSQLApiKeyProvider interface, not on concrete configuration details.
+NativeApiKeyProvider interface, not on concrete configuration details.
 """
 
-from gl_iam.providers.postgresql import PostgreSQLApiKeyProvider, PostgreSQLConfig
+from gl_iam.providers.native import NativeApiKeyProvider, NativeConfig
 
 from config import settings
 
 
-def create_api_key_provider() -> PostgreSQLApiKeyProvider:
+def create_api_key_provider() -> NativeApiKeyProvider:
     """Create and return a configured API key provider.
 
     This factory function encapsulates the configuration complexity,
@@ -20,29 +20,29 @@ def create_api_key_provider() -> PostgreSQLApiKeyProvider:
     the underlying setup details.
 
     Returns:
-        PostgreSQLApiKeyProvider: Configured provider ready for use.
+        NativeApiKeyProvider: Configured provider ready for use.
 
     Example:
         >>> provider = create_api_key_provider()
         >>> key, secret = await provider.create_api_key(name="my-key", ...)
     """
-    config = PostgreSQLConfig(
+    config = NativeConfig(
         database_url=settings.database_url,
         db_schema=settings.db_schema,
         auto_create_tables=True,
         api_key_prefix=settings.api_key_prefix,
     )
-    return PostgreSQLApiKeyProvider(config=config)
+    return NativeApiKeyProvider(config=config)
 
 
-async def ensure_tables(provider: PostgreSQLApiKeyProvider) -> None:
+async def ensure_tables(provider: NativeApiKeyProvider) -> None:
     """Ensure all required database tables and organization exist.
 
     Args:
         provider: The API key provider instance.
     """
     from sqlalchemy import text
-    from gl_iam.providers.postgresql.models import Base
+    from gl_iam.providers.native.models import Base
 
     async with provider._engine.begin() as conn:
         if settings.db_schema:

@@ -152,6 +152,6 @@ MIDDLEWARE = [
 
 | Package | Purpose |
 |---------|---------|
-| `gl-iam[django,postgresql]` | GL-IAM with Django and PostgreSQL support |
+| `gl-iam[django,native]` | GL-IAM with Django and PostgreSQL support |
 | `django` | Web framework |
 | `djangorestframework` | REST API framework |

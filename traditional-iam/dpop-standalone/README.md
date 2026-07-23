@@ -14,7 +14,7 @@ DPoP binds an access token to a client's cryptographic key pair. Even if someone
 > **Issuance note (read this).** GL-IAM now issues DPoP-bound tokens **first-party, no Keycloak**:
 > ```python
 > token = await gateway.create_dpop_bound_session(user, org_id, dpop_thumbprint=client.jwk_thumbprint)
-> # PostgreSQLSessionMixin.create_session adds cnf.jkt and sets token_type="DPoP"
+> # NativeSessionMixin.create_session adds cnf.jkt and sets token_type="DPoP"
 > ```
 > This example ships a tiny **demo issuer** (`issue_token.py`) that mints the *same* bound token **without a database**, only so the example stays zero-infra. In a real deployment use the gateway call above (it needs a Postgres-backed provider + a real user). Both the issuance and validation halves shown here are real, shipped GL-IAM capabilities.
 
@@ -50,8 +50,7 @@ dpop-standalone/
 
 - Python 3.11+
 - [uv](https://docs.astral.sh/uv/): `curl -LsSf https://astral.sh/uv/install.sh | sh`
-- Access to the GDP Labs Gen AI SDK repo (request via ticket@gdplabs.id) + `gcloud auth login`
-- **No Keycloak. No PostgreSQL. No Docker.**
+- **No Keycloak. No PostgreSQL. No Docker.** GL-IAM installs from PyPI — no registry access needed.
 
 ## Quick Start
 

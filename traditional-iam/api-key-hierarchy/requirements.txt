@@ -10,7 +10,7 @@ pydantic-settings>=2.0.0
 # Environment variable loading
 python-dotenv>=1.0.0
 
-# PostgreSQL async driver (required for PostgreSQLApiKeyProvider)
+# PostgreSQL async driver (required for NativeApiKeyProvider)
 asyncpg>=0.29.0
 
 # SQLAlchemy async support

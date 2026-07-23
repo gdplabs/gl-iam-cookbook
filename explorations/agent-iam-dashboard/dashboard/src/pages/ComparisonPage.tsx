@@ -26,9 +26,9 @@ function outcomeBadgeClass(outcome: string | undefined): string {
 }
 
 const USER_LABELS: Record<string, string> = {
-  "onlee": "Pak On",
-  "maylina": "Maylina",
-  "petry": "Petry",
+  "nadia": "Nadia",
+  "maya": "Maya",
+  "priya": "Priya",
   "guest": "Guest",
 };
 

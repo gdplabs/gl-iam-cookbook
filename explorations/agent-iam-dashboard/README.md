@@ -95,10 +95,10 @@ Timeline of all events (SDK + app level), filterable by service tag.
 
 | Name | Role | Org | Access Level |
 |------|------|-----|-------------|
-| Pak On | Admin | Cross-Org | Wildcard access to any calendar, any org. Has invoice feature. |
-| Maylina | Member | GLC | GLC org + Pak On (whitelisted). Can write to Pak On only. |
-| Petry | Member | GLAIR | GLAIR org + Pak On (whitelisted). Can write to Pak On only. |
-| Guest | Viewer | No Org | Pak On calendar only (read). No User OAuth. |
+| Nadia | Admin | Cross-Org | Wildcard access to any calendar, any org. Has invoice feature. |
+| Maya | Member | Acme | Acme org + Nadia (whitelisted). Can write to Nadia only. |
+| Priya | Member | Globex | Globex org + Nadia (whitelisted). Can write to Nadia only. |
+| Guest | Viewer | No Org | Nadia calendar only (read). No User OAuth. |
 
 ## Four Access Control Dimensions
 
@@ -124,8 +124,8 @@ Embedded in the DelegationToken per-user:
 | Role | target_whitelist | write_whitelist |
 |------|-----------------|-----------------|
 | Admin | `"*"` (wildcard) | `"*"` (wildcard) |
-| Member | `["onlee@gdplabs.id", "org:{user.tenant}"]` | `["onlee@gdplabs.id"]` |
-| Guest | `["onlee@gdplabs.id"]` | `[]` |
+| Member | `["nadia@example.com", "org:{user.tenant}"]` | `["nadia@example.com"]` |
+| Guest | `["nadia@example.com"]` | `[]` |
 
 **Self-access**: `target == user_email` → always allowed, no constraint check.
 

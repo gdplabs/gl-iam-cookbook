@@ -10,13 +10,13 @@ Validation is critical for:
 """
 
 from gl_iam.core.types.api_key import ApiKey
-from gl_iam.providers.postgresql import PostgreSQLApiKeyProvider
+from gl_iam.providers.native import NativeApiKeyProvider
 
 from services import KeyValidationService
 
 
 async def run_validation_demo(
-    provider: PostgreSQLApiKeyProvider,
+    provider: NativeApiKeyProvider,
     org_plain_key: str,
     child_keys: list[tuple[ApiKey, str]],
 ) -> None:

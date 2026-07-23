@@ -10,7 +10,7 @@ Demo Authorization Server - mint a DPoP-bound (cnf.jkt) access token.
   |                                                               |
   |      token = await gateway.create_dpop_bound_session(         |
   |          user, org_id, dpop_thumbprint=client.jwk_thumbprint) |
-  |      # -> PostgreSQLSessionMixin.create_session adds cnf.jkt  |
+  |      # -> NativeSessionMixin.create_session adds cnf.jkt  |
   |      #    and sets token_type="DPoP"                          |
   |                                                               |
   |  Use the gateway call above in a real (DB-backed) deployment; |

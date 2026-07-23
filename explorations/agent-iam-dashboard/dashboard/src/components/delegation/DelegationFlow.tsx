@@ -29,10 +29,10 @@ const ROLE_COLORS: Record<string, string> = {
 };
 
 const USER_LABELS: Record<string, string> = {
-  "onlee": "Pak On",
-  "maylina": "Maylina",
-  "sandy": "Sandy",
-  "petry": "Petry",
+  "nadia": "Nadia",
+  "maya": "Maya",
+  "sam": "Sam",
+  "priya": "Priya",
   "guest": "Guest",
 };
 

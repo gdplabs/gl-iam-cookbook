@@ -1,6 +1,8 @@
-# FastAPI with PostgreSQL Provider
+# FastAPI with Native Provider (PostgreSQL-backed)
 
 Add authentication and authorization to your FastAPI application using GL-IAM with a self-managed PostgreSQL user store.
+
+> **Naming note:** the provider class is `NativeProvider` (from `gl_iam.providers.native`); it was previously `PostgreSQLProvider`. It is still backed by a PostgreSQL database — only the class name changed. The old `PostgreSQL*` names and the `gl_iam.providers.postgresql` import path still work as deprecated aliases.
 
 ## Prerequisites
 

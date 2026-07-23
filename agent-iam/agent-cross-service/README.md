@@ -107,7 +107,7 @@ Service A (port 8000)                    Service B (port 8001)
 │ - Agent registration│   Delegation    │ - Token validation  │
 │ - Token creation    │ ──── Token ───> │ - Scope enforcement │
 │                     │                 │                     │
-│ PostgreSQLProvider  │                 │ PostgreSQLAgent     │
+│ NativeProvider      │                 │ NativeAgent         │
 │ (full stack)        │                 │ Provider (minimal)  │
 └─────────────────────┘                 └─────────────────────┘
          │                                       │
@@ -128,6 +128,6 @@ Service A (port 8000)                    Service B (port 8001)
 
 | Package | Purpose |
 |---------|---------|
-| `gl-iam[fastapi,postgresql]` | GL-IAM with FastAPI and PostgreSQL support |
+| `gl-iam[fastapi,native]` | GL-IAM with FastAPI and PostgreSQL support |
 | `fastapi` | Web framework |
 | `uvicorn` | ASGI server |

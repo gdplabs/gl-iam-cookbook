@@ -236,7 +236,7 @@ gateway = IAMGateway(
 
 ### Encryption
 
-GL-IAM encrypts OAuth tokens at rest using Fernet symmetric encryption. The `encryption_key` in `PostgreSQLConfig` is used to encrypt/decrypt the `auth_string` field. The `ThirdPartyIntegration` model exposes `auth_string_preview` (a masked version) for display purposes, never the actual token.
+GL-IAM encrypts OAuth tokens at rest using Fernet symmetric encryption. The `encryption_key` in `NativeConfig` is used to encrypt/decrypt the `auth_string` field. The `ThirdPartyIntegration` model exposes `auth_string_preview` (a masked version) for display purposes, never the actual token.
 
 ## Extending: Adding a New Connector
 

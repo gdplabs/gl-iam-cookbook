@@ -55,43 +55,43 @@ function buildSnippet(result: ScenarioRunResult): EnforcementSnippet | null {
         return Deny("No User OAuth — not logged in")`,
       description: "Self-access check: target is the user's own email → always allowed with User OAuth.",
       rows: [
-        { user: "Pak On", role: "admin", value: "target == self", match: true, result: "Allow", credential: "User OAuth", isCurrent: userRole === "admin" },
-        { user: "Maylina", role: "member", value: "target == self", match: true, result: "Allow", credential: "User OAuth", isCurrent: userEmail.startsWith("maylina") },
-        { user: "Petry", role: "member", value: "target == self", match: true, result: "Allow", credential: "User OAuth", isCurrent: userEmail.startsWith("petry") },
+        { user: "Nadia", role: "admin", value: "target == self", match: true, result: "Allow", credential: "User OAuth", isCurrent: userRole === "admin" },
+        { user: "Maya", role: "member", value: "target == self", match: true, result: "Allow", credential: "User OAuth", isCurrent: userEmail.startsWith("maya") },
+        { user: "Priya", role: "member", value: "target == self", match: true, result: "Allow", credential: "User OAuth", isCurrent: userEmail.startsWith("priya") },
         { user: "Guest", role: "viewer", value: "target == self, no OAuth", match: false, result: "Deny", credential: "—", isCurrent: userRole === "viewer" },
       ],
     };
   }
 
-  if (title.toLowerCase().includes("pak on") && title.toLowerCase().includes("calendar")) {
+  if (title.toLowerCase().includes("nadia") && title.toLowerCase().includes("calendar")) {
     return {
-      title: "Check Pak On (CEO) Calendar",
+      title: "Check Nadia (CEO) Calendar",
       code: `def before_tool_call(target, delegation):
-    # target = "onlee@gdplabs.id" (resolved by directory_lookup)
+    # target = "nadia@example.com" (resolved by directory_lookup)
     assert target != delegation.user_email  # Not self
     # Check: is target in target_whitelist?
     return Allow() if is_in_whitelist(
-        "onlee@gdplabs.id", delegation.target_whitelist
+        "nadia@example.com", delegation.target_whitelist
     ) else Deny()`,
-      description: "Pak On is whitelisted by exact email for all roles. All logged-in users can access via Agent OAuth.",
+      description: "Nadia is whitelisted by exact email for all roles. All logged-in users can access via Agent OAuth.",
       rows: [
-        { user: "Pak On", role: "admin", value: 'whitelist: "*"', match: true, result: "Allow", credential: "Agent OAuth", isCurrent: userRole === "admin" },
-        { user: "Maylina", role: "member", value: '["onlee@...", "org:GLC"]', match: true, result: "Allow", credential: "Agent OAuth", isCurrent: userEmail.startsWith("maylina") },
-        { user: "Petry", role: "member", value: '["onlee@...", "org:GLAIR"]', match: true, result: "Allow", credential: "Agent OAuth", isCurrent: userEmail.startsWith("petry") },
-        { user: "Guest", role: "viewer", value: '["onlee@gdplabs.id"]', match: true, result: "Allow", credential: "Agent OAuth", isCurrent: userRole === "viewer" },
+        { user: "Nadia", role: "admin", value: 'whitelist: "*"', match: true, result: "Allow", credential: "Agent OAuth", isCurrent: userRole === "admin" },
+        { user: "Maya", role: "member", value: '["nadia@...", "org:Acme"]', match: true, result: "Allow", credential: "Agent OAuth", isCurrent: userEmail.startsWith("maya") },
+        { user: "Priya", role: "member", value: '["nadia@...", "org:Globex"]', match: true, result: "Allow", credential: "Agent OAuth", isCurrent: userEmail.startsWith("priya") },
+        { user: "Guest", role: "viewer", value: '["nadia@example.com"]', match: true, result: "Allow", credential: "Agent OAuth", isCurrent: userRole === "viewer" },
       ],
     };
   }
 
-  if (title.toLowerCase().includes("sandy") && title.toLowerCase().includes("calendar") && !title.toLowerCase().includes("write")) {
+  if (title.toLowerCase().includes("sam") && title.toLowerCase().includes("calendar") && !title.toLowerCase().includes("write")) {
     return {
-      title: "Check Sandy's Calendar (GLC)",
+      title: "Check Sam's Calendar (Acme)",
       code: `def before_tool_call(target, delegation):
-    # target = "sandy@gdplabs.id" (org: GLC)
-    # resolved by directory_lookup("Sandy")
+    # target = "sam@example.com" (org: Acme)
+    # resolved by directory_lookup("Sam")
     assert target != delegation.user_email
     return Allow() if is_in_whitelist(
-        "sandy@gdplabs.id", delegation.target_whitelist
+        "sam@example.com", delegation.target_whitelist
     ) else Deny()
 
 def is_in_whitelist(target, whitelist):
@@ -99,34 +99,34 @@ def is_in_whitelist(target, whitelist):
         if pattern == target: return True
         if pattern.startswith("org:"):
             if lookup_org(target) == pattern[4:]:
-                return True  # sandy is org:GLC
+                return True  # sam is org:Acme
     return False`,
-      description: "Sandy is in GLC org. Members in GLC can access (org:GLC matches). Members in GLAIR cannot (org:GLAIR ≠ GLC).",
+      description: "Sam is in Acme org. Members in Acme can access (org:Acme matches). Members in Globex cannot (org:Globex ≠ Acme).",
       rows: [
-        { user: "Pak On", role: "admin", value: '"*" (wildcard)', match: true, result: "Allow", credential: "Agent OAuth", isCurrent: userRole === "admin" },
-        { user: "Maylina (GLC)", role: "member", value: '"org:GLC" → GLC==GLC', match: true, result: "Allow", credential: "Agent OAuth", isCurrent: userEmail.startsWith("maylina") },
-        { user: "Petry (GLAIR)", role: "member", value: '"org:GLAIR" → GLC≠GLAIR', match: false, result: "Deny", credential: "—", isCurrent: userEmail.startsWith("petry") },
-        { user: "Guest", role: "viewer", value: "not in [onlee@]", match: false, result: "Deny", credential: "—", isCurrent: userRole === "viewer" },
+        { user: "Nadia", role: "admin", value: '"*" (wildcard)', match: true, result: "Allow", credential: "Agent OAuth", isCurrent: userRole === "admin" },
+        { user: "Maya (Acme)", role: "member", value: '"org:Acme" → Acme==Acme', match: true, result: "Allow", credential: "Agent OAuth", isCurrent: userEmail.startsWith("maya") },
+        { user: "Priya (Globex)", role: "member", value: '"org:Globex" → Acme≠Globex', match: false, result: "Deny", credential: "—", isCurrent: userEmail.startsWith("priya") },
+        { user: "Guest", role: "viewer", value: "not in [nadia@]", match: false, result: "Deny", credential: "—", isCurrent: userRole === "viewer" },
       ],
     };
   }
 
-  if (title.toLowerCase().includes("petry") && title.toLowerCase().includes("calendar")) {
+  if (title.toLowerCase().includes("priya") && title.toLowerCase().includes("calendar")) {
     return {
-      title: "Check Petry's Calendar (GLAIR)",
+      title: "Check Priya's Calendar (Globex)",
       code: `def before_tool_call(target, delegation):
-    # target = "petry@gdplabs.id" (org: GLAIR)
+    # target = "priya@example.com" (org: Globex)
     if target == delegation.user_email:
         return Allow(credential="user")  # Self!
     return Allow() if is_in_whitelist(
-        "petry@gdplabs.id", delegation.target_whitelist
+        "priya@example.com", delegation.target_whitelist
     ) else Deny()`,
-      description: "Petry is in GLAIR org. GLC members can't access (org:GLC ≠ GLAIR). Petry accessing own = self-access.",
+      description: "Priya is in Globex org. Acme members can't access (org:Acme ≠ Globex). Priya accessing own = self-access.",
       rows: [
-        { user: "Pak On", role: "admin", value: '"*" (wildcard)', match: true, result: "Allow", credential: "Agent OAuth", isCurrent: userRole === "admin" },
-        { user: "Maylina (GLC)", role: "member", value: '"org:GLC" → GLAIR≠GLC', match: false, result: "Deny", credential: "—", isCurrent: userEmail.startsWith("maylina") },
-        { user: "Petry (GLAIR)", role: "member", value: "target == self", match: true, result: "Allow", credential: "User OAuth", isCurrent: userEmail.startsWith("petry") },
-        { user: "Guest", role: "viewer", value: "not in [onlee@]", match: false, result: "Deny", credential: "—", isCurrent: userRole === "viewer" },
+        { user: "Nadia", role: "admin", value: '"*" (wildcard)', match: true, result: "Allow", credential: "Agent OAuth", isCurrent: userRole === "admin" },
+        { user: "Maya (Acme)", role: "member", value: '"org:Acme" → Globex≠Acme', match: false, result: "Deny", credential: "—", isCurrent: userEmail.startsWith("maya") },
+        { user: "Priya (Globex)", role: "member", value: "target == self", match: true, result: "Allow", credential: "User OAuth", isCurrent: userEmail.startsWith("priya") },
+        { user: "Guest", role: "viewer", value: "not in [nadia@]", match: false, result: "Deny", credential: "—", isCurrent: userRole === "viewer" },
       ],
     };
   }
@@ -135,18 +135,18 @@ def is_in_whitelist(target, whitelist):
     return {
       title: "Write to Colleague's Calendar",
       code: `def before_tool_call(target, delegation):
-    # target = "sandy@gdplabs.id" (resolved by LLM)
+    # target = "sam@example.com" (resolved by LLM)
     if target == delegation.user_email:
         return Allow(credential="user")  # Self write
     # Others: check WRITE whitelist (stricter)
     return Allow() if is_in_whitelist(
         target, delegation.write_whitelist
     ) else Deny()`,
-      description: "Write whitelist is stricter than read. Members can only write to Pak On's calendar.",
+      description: "Write whitelist is stricter than read. Members can only write to Nadia's calendar.",
       rows: [
-        { user: "Pak On", role: "admin", value: 'write: "*"', match: true, result: "Allow", credential: "Agent OAuth", isCurrent: userRole === "admin" },
-        { user: "Maylina", role: "member", value: 'write: ["onlee@"]', match: false, result: "Deny", credential: "—", isCurrent: userEmail.startsWith("maylina") },
-        { user: "Petry", role: "member", value: 'write: ["onlee@"]', match: false, result: "Deny", credential: "—", isCurrent: userEmail.startsWith("petry") },
+        { user: "Nadia", role: "admin", value: 'write: "*"', match: true, result: "Allow", credential: "Agent OAuth", isCurrent: userRole === "admin" },
+        { user: "Maya", role: "member", value: 'write: ["nadia@"]', match: false, result: "Deny", credential: "—", isCurrent: userEmail.startsWith("maya") },
+        { user: "Priya", role: "member", value: 'write: ["nadia@"]', match: false, result: "Deny", credential: "—", isCurrent: userEmail.startsWith("priya") },
         { user: "Guest", role: "viewer", value: "write: []", match: false, result: "Deny", credential: "—", isCurrent: userRole === "viewer" },
       ],
     };
@@ -164,9 +164,9 @@ def is_in_whitelist(target, whitelist):
     return scopes  # invoice_send stripped if no entitlement`,
       description: "Feature-level access. Checked at ABAC before delegation — invoice_send scope stripped if user doesn't have the feature.",
       rows: [
-        { user: "Pak On", role: "admin", value: 'features: ["invoice_send"]', match: true, result: "Allow", credential: "Agent OAuth", isCurrent: userRole === "admin" },
-        { user: "Maylina", role: "member", value: "features: []", match: false, result: "Deny (scope stripped)", credential: "—", isCurrent: userEmail.startsWith("maylina") },
-        { user: "Petry", role: "member", value: "features: []", match: false, result: "Deny (scope stripped)", credential: "—", isCurrent: userEmail.startsWith("petry") },
+        { user: "Nadia", role: "admin", value: 'features: ["invoice_send"]', match: true, result: "Allow", credential: "Agent OAuth", isCurrent: userRole === "admin" },
+        { user: "Maya", role: "member", value: "features: []", match: false, result: "Deny (scope stripped)", credential: "—", isCurrent: userEmail.startsWith("maya") },
+        { user: "Priya", role: "member", value: "features: []", match: false, result: "Deny (scope stripped)", credential: "—", isCurrent: userEmail.startsWith("priya") },
         { user: "Guest", role: "viewer", value: "features: []", match: false, result: "Deny (scope stripped)", credential: "—", isCurrent: userRole === "viewer" },
       ],
     };

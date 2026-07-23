@@ -36,7 +36,7 @@ from gl_iam.fastapi import (
     require_org_member,
     set_iam_gateway,
 )
-from gl_iam.providers.postgresql import PostgreSQLProvider, PostgreSQLConfig
+from gl_iam.providers.native import NativeProvider, NativeConfig
 
 load_dotenv()
 
@@ -49,7 +49,7 @@ async def lifespan(app: FastAPI):
     """Initialize GL-IAM gateway with all 6 providers including third-party."""
     default_org_id = os.getenv("DEFAULT_ORGANIZATION_ID", "default")
 
-    config = PostgreSQLConfig(
+    config = NativeConfig(
         database_url=os.getenv("DATABASE_URL"),
         secret_key=os.getenv("SECRET_KEY"),
         encryption_key=os.getenv("ENCRYPTION_KEY"),
@@ -57,7 +57,7 @@ async def lifespan(app: FastAPI):
         auto_create_tables=True,
         default_org_id=default_org_id,
     )
-    provider = PostgreSQLProvider(config)
+    provider = NativeProvider(config)
 
     gateway = IAMGateway(
         auth_provider=provider,

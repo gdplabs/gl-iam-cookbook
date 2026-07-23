@@ -358,7 +358,7 @@ Only the provider configuration changes:
 
 | Example | Provider | Configuration |
 |---------|----------|---------------|
-| django-postgresql | PostgreSQLProvider | `PostgreSQLConfig` |
+| django-postgresql | NativeProvider | `NativeConfig` |
 | django-keycloak | KeycloakProvider | `KeycloakConfig` |
 | **django-stackauth** | StackAuthProvider | `StackAuthConfig` |
 

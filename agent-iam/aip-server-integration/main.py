@@ -22,7 +22,7 @@ from gl_iam.fastapi import (
     get_iam_gateway,
     set_iam_gateway,
 )
-from gl_iam.providers.postgresql import PostgreSQLProvider, PostgreSQLConfig
+from gl_iam.providers.native import NativeProvider, NativeConfig
 
 load_dotenv()
 
@@ -55,7 +55,7 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         # Ignore .env keys this Settings class doesn't declare (e.g. ENV=,
-        # consumed separately by PostgreSQLConfig's own os.environ-based
+        # consumed separately by NativeConfig's own os.environ-based
         # security validator) instead of raising ValidationError on them.
         extra = "ignore"
 
@@ -212,17 +212,17 @@ async def lifespan(app: FastAPI):
     provider = None
 
     if settings.gliam_enabled:
-        config = PostgreSQLConfig(
+        config = NativeConfig(
             database_url=settings.aip_db_url,
             secret_key=settings.gliam_secret_key,
             enable_auth_hosting=settings.gliam_enable_auth_hosting,
             auto_create_tables=settings.gliam_auto_create_tables,
             default_org_id=settings.gliam_organization_id,
         )
-        provider = PostgreSQLProvider(config)
+        provider = NativeProvider(config)
         # Wired manually (rather than IAMGateway.from_fullstack_provider) so that
         # gateway.api_key_provider is populated. from_fullstack_provider() only
-        # picks up a provider's `.api_key_provider` *attribute*; PostgreSQLProvider
+        # picks up a provider's `.api_key_provider` *attribute*; NativeProvider
         # implements the ApiKeyProvider protocol directly via mixin composition,
         # not as a separate sub-attribute, so it would otherwise be left as None.
         gateway = IAMGateway(

@@ -189,11 +189,11 @@ All 3 services emit structured JSON logs with a shared `delegation_ref`:
 
 ```python
 # GLChat BE — full provider
-gateway = IAMGateway.from_fullstack_provider(PostgreSQLProvider(config))
+gateway = IAMGateway.from_fullstack_provider(NativeProvider(config))
 result = await gateway.delegate_to_agent(principal_token, agent_id, task, scope)
 
 # AIP Backend / Connectors — minimal agent-only provider
-gateway = IAMGateway.for_agent_auth(PostgreSQLAgentProvider(config), secret_key=...)
+gateway = IAMGateway.for_agent_auth(NativeAgentProvider(config), secret_key=...)
 
 # FastAPI dependencies (AIP + Connectors)
 agent: AgentIdentity = Depends(get_current_agent)          # X-Delegation-Token

@@ -1,6 +1,6 @@
 # BOSA Migration Example
 
-Migrate from BOSA Core Auth to GL-IAM. This comprehensive example demonstrates all legacy BOSA Core Auth features implemented in GL-IAM's PostgreSQLProvider.
+Migrate from BOSA Core Auth to GL-IAM. This comprehensive example demonstrates all legacy BOSA Core Auth features implemented in GL-IAM's NativeProvider.
 
 ## Prerequisites
 
@@ -306,15 +306,15 @@ bosa-migration/
 ### Provider Initialization (deps.py)
 
 ```python
-from gl_iam.providers.postgresql import (
-    PostgreSQLProvider,
-    PostgreSQLApiKeyProvider,
-    PostgreSQLThirdPartyProvider,
-    PostgreSQLConfig,
+from gl_iam.providers.native import (
+    NativeProvider,
+    NativeApiKeyProvider,
+    NativeThirdPartyProvider,
+    NativeConfig,
 )
 
 # Configuration
-config = PostgreSQLConfig(
+config = NativeConfig(
     database_url=settings.database_url,
     secret_key=settings.secret_key,
     encryption_key=settings.encryption_key,
@@ -323,9 +323,9 @@ config = PostgreSQLConfig(
 )
 
 # Initialize providers
-provider = PostgreSQLProvider(config)
-api_key_provider = PostgreSQLApiKeyProvider(config)
-third_party_provider = PostgreSQLThirdPartyProvider(config)
+provider = NativeProvider(config)
+api_key_provider = NativeApiKeyProvider(config)
+third_party_provider = NativeThirdPartyProvider(config)
 ```
 
 ### Authentication Flow

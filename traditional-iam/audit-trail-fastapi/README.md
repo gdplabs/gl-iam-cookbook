@@ -172,7 +172,7 @@ async def audit_context_middleware(request, call_next):
 The SDK persists events via `DatabaseAuditHandler` but does not provide a query API. The `/audit-log` endpoint shows how to query `AuditEventModel` directly with SQLAlchemy filters:
 
 ```python
-from gl_iam.providers.postgresql import AuditEventModel
+from gl_iam.providers.native import AuditEventModel
 
 query = select(AuditEventModel).order_by(AuditEventModel.timestamp.desc())
 if event_type:
@@ -181,10 +181,10 @@ if event_type:
 
 ### Database Configuration
 
-Enable audit logging in `PostgreSQLConfig`:
+Enable audit logging in `NativeConfig`:
 
 ```python
-config = PostgreSQLConfig(
+config = NativeConfig(
     database_url=DATABASE_URL,
     enable_audit_log=True,       # Required (default: False)
     # audit_batch_size=50,       # Events buffered before flush (default: 50)

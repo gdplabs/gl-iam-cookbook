@@ -288,9 +288,9 @@ class SSOService:
         from sqlalchemy import func, select
         from sqlalchemy.ext.asyncio import AsyncSession
 
-        from gl_iam.providers.postgresql import AuditEventModel
+        from gl_iam.providers.native import AuditEventModel
 
-        provider = self._gateway.user_store  # PostgreSQLProvider is multi-proto
+        provider = self._gateway.user_store  # NativeProvider is multi-proto
         async with AsyncSession(provider.engine) as session:
             stmt = select(func.count()).select_from(AuditEventModel).where(
                 AuditEventModel.resource_id == partner_id,

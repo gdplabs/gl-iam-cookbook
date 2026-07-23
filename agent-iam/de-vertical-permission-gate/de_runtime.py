@@ -48,9 +48,9 @@ from tools import (
     send_email_tool,
 )
 
-USER_ID = "user:sandy"
-USER_EMAIL = "sandy.dewangga@gdplabs.id"
-ORG_ID = "org:gdplabs"
+USER_ID = "user:sam"
+USER_EMAIL = "sam@example.com"
+ORG_ID = "org:acme"
 AGENT_ID = "agent:pamela-lite"
 
 # Scopes the DE can ever hold, derived from the tools attached to it. This
@@ -285,7 +285,7 @@ async def _execute_plan(context: DelegationContext) -> list[dict[str, Any]]:
     summary = await step(
         "Read meeting summary",
         meemo_get_meeting_summary_tool,
-        {"meeting_id": "meemo-2026-07-21-glc-iam"},
+        {"meeting_id": "meemo-2026-07-21-acme-iam"},
     )
 
     doc = await step(
@@ -301,7 +301,7 @@ async def _execute_plan(context: DelegationContext) -> list[dict[str, Any]]:
         "Email the minutes",
         send_email_tool,
         {
-            "recipients": ["on.lee@gdplabs.id", "afif@gdplabs.id"],
+            "recipients": ["nadia@example.com", "alex@example.com"],
             "subject": "[MoM] GL IAM Weekly Sync",
             "body": doc.get("url", "") if doc.get("status") == "ok" else "",
         },

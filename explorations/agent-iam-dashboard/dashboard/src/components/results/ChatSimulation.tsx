@@ -14,9 +14,9 @@ export function ChatSimulation({ result }: ChatSimulationProps) {
     ?? result.scenario?.message
     ?? result.scenario?.title ?? "";
   const userDisplayName = result.user?.email
-    ? (result.user.email.startsWith("onlee") ? "Pak On"
-      : result.user.email.startsWith("maylina") ? "Maylina"
-      : result.user.email.startsWith("petry") ? "Petry"
+    ? (result.user.email.startsWith("nadia") ? "Nadia"
+      : result.user.email.startsWith("maya") ? "Maya"
+      : result.user.email.startsWith("priya") ? "Priya"
       : result.user.email.startsWith("guest") ? "Guest"
       : result.user.email.split("@")[0])
     : "System";

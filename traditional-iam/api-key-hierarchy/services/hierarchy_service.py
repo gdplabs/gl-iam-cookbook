@@ -8,7 +8,7 @@ changing existing code.
 """
 
 from gl_iam.core.types.api_key import ApiKey, ApiKeyTier
-from gl_iam.providers.postgresql import PostgreSQLApiKeyProvider
+from gl_iam.providers.native import NativeApiKeyProvider
 
 
 class HierarchyService:
@@ -21,7 +21,7 @@ class HierarchyService:
         _provider: The underlying API key provider.
     """
 
-    def __init__(self, provider: PostgreSQLApiKeyProvider):
+    def __init__(self, provider: NativeApiKeyProvider):
         """Initialize the hierarchy service.
 
         Args:

@@ -1,7 +1,7 @@
 """
 App configuration for GL-IAM Agent Delegation demo.
 
-Initializes the GL-IAM gateway with PostgreSQL provider and agent support
+Initializes the GL-IAM gateway with Native provider and agent support
 when the Django development server starts.
 """
 
@@ -27,11 +27,11 @@ class ApiConfig(AppConfig):
 
         from gl_iam import IAMGateway
         from gl_iam.django import set_iam_gateway
-        from gl_iam.providers.postgresql import PostgreSQLConfig, PostgreSQLProvider
+        from gl_iam.providers.native import NativeConfig, NativeProvider
 
         default_org_id = os.getenv("DEFAULT_ORGANIZATION_ID", "default")
 
-        config = PostgreSQLConfig(
+        config = NativeConfig(
             database_url=os.getenv("DATABASE_URL"),
             secret_key=os.getenv("SECRET_KEY"),
             enable_auth_hosting=True,
@@ -40,10 +40,10 @@ class ApiConfig(AppConfig):
             default_org_id=default_org_id,
             use_null_pool=True,
         )
-        provider = PostgreSQLProvider(config)
+        provider = NativeProvider(config)
 
         # from_fullstack_provider auto-detects agent_provider
         gateway = IAMGateway.from_fullstack_provider(provider)
         set_iam_gateway(gateway)
 
-        print("GL-IAM gateway initialized with PostgreSQL provider (agent support enabled)")
+        print("GL-IAM gateway initialized with Native provider (agent support enabled)")

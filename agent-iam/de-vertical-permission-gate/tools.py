@@ -55,7 +55,7 @@ class MeemoGetMeetingSummaryTool(BaseTool):
             "status": "ok",
             "meeting_id": meeting_id,
             "title": "GL IAM Weekly Sync",
-            "attendees": ["Pak On", "Afif", "Ridwan", "Maylina", "Sandy"],
+            "attendees": ["Nadia", "Alex", "Ridwan", "Maya", "Sam"],
             "summary": (
                 "Discussed agent scope enforcement. Action item: demonstrate "
                 "delegation + scope attenuation from the DE vertical layer."

@@ -11,13 +11,5 @@ dependencies = [
   "httpx>=0.28.0",
   "pyjwt>=2.8.0,<3.0.0",
   "cryptography>=43.0.0,<47.0.0",
-  "gl-iam[fastapi,keycloak]>=0.3.7,<0.4.0",
+  "gl-iam[fastapi,keycloak]>=0.3.10,<0.4.0",
 ]
-
-[tool.uv.sources]
-gl-iam = { index = "gen-ai-internal" }
-
-[[tool.uv.index]]
-name = "gen-ai-internal"
-url = "https://asia-southeast2-python.pkg.dev/gdp-labs/gen-ai-internal/simple/"
-explicit = true
