@@ -106,8 +106,8 @@ curl http://localhost:8000/health
 TOKEN=$(curl -s -X POST "http://localhost:8080/realms/gl-iam-ldap-demo/protocol/openid-connect/token" \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "grant_type=password" \
-  -d "client_id=glchat-backend" \
-  -d "client_secret=glchat-backend-secret" \
+  -d "client_id=my-app" \
+  -d "client_secret=my-app-secret" \
   -d "username=jdoe" \
   -d "password=jdoe123" | jq -r '.access_token')
 
@@ -137,8 +137,8 @@ curl http://localhost:8000/admin-area -H "Authorization: Bearer $TOKEN"
 ADMIN_TOKEN=$(curl -s -X POST "http://localhost:8080/realms/gl-iam-ldap-demo/protocol/openid-connect/token" \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "grant_type=password" \
-  -d "client_id=glchat-backend" \
-  -d "client_secret=glchat-backend-secret" \
+  -d "client_id=my-app" \
+  -d "client_secret=my-app-secret" \
   -d "username=asmith" \
   -d "password=asmith123" | jq -r '.access_token')
 

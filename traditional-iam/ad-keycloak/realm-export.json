@@ -21,12 +21,12 @@
   },
   "clients": [
     {
-      "clientId": "glchat-backend",
-      "name": "GLChat Backend",
+      "clientId": "my-app",
+      "name": "My App",
       "enabled": true,
       "publicClient": false,
       "clientAuthenticatorType": "client-secret",
-      "secret": "glchat-backend-secret",
+      "secret": "my-app-secret",
       "directAccessGrantsEnabled": true,
       "serviceAccountsEnabled": true,
       "protocol": "openid-connect",

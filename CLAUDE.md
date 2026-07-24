@@ -259,8 +259,8 @@ PROVIDER_TYPE=keycloak|stackauth
 # Keycloak
 KEYCLOAK_SERVER_URL=http://localhost:8080
 KEYCLOAK_REALM=gl-iam-demo
-KEYCLOAK_CLIENT_ID=glchat-backend
-KEYCLOAK_CLIENT_SECRET=glchat-backend-secret
+KEYCLOAK_CLIENT_ID=my-app
+KEYCLOAK_CLIENT_SECRET=my-app-secret
 
 # Stack Auth
 STACKAUTH_BASE_URL=http://localhost:8102
