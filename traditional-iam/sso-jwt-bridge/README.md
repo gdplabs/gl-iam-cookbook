@@ -4,23 +4,21 @@ JWT-signed token SSO using a shared secret between the partner and your applicat
 
 ## Real-World Context
 
-This example is based on a real product requirement: **Lokadata x GLChat SSO integration**.
+This example is based on a common integration scenario: **Acme x GLChat SSO integration**, where "Acme" stands in for any partner site that embeds your app.
 
-- **Lokadata** has its own website with its own login system
-- **GLChat** is embedded as an AI chat widget (iframe) inside Lokadata's website
-- **Problem**: Users had to log in to Lokadata first, then separately log in to GLChat — a poor user experience
-- **Solution**: When a user logs in to Lokadata, they should be automatically authenticated in the GLChat widget
+- **Acme** has its own website with its own login system
+- **GLChat** is embedded as an AI chat widget (iframe) inside Acme's website
+- **Problem**: Users had to log in to Acme first, then separately log in to GLChat — a poor user experience
+- **Solution**: When a user logs in to Acme, they should be automatically authenticated in the GLChat widget
 
-Option B (JWT Bridge) is the **simpler alternative** to [Option A (Token Exchange)](../sso-token-exchange/). In this approach, Lokadata signs a short-lived JWT with a shared secret — no server-to-server token request is needed.
-
-> See the full architecture document: [Lokadata x GLChat SSO Architecture](https://docs.google.com/document/d/1MxumgZeVdmEp1c3XJ0y9ECCC-dxC6goYKxwDxsSlECI/edit?tab=t.0#heading=h.viqp1y1q0fm9)
+Option B (JWT Bridge) is the **simpler alternative** to [Option A (Token Exchange)](../sso-token-exchange/). In this approach, Acme signs a short-lived JWT with a shared secret — no server-to-server token request is needed.
 
 ### When to use Option B?
 
 > **Warning**: Option B has **fewer security controls** than Option A. Use it only for development, prototyping, or single-partner setups where you fully trust the partner and accept the tradeoffs below.
 
 Option B is suitable when:
-- You have a **single trusted partner** (e.g., only Lokadata embeds GLChat)
+- You have a **single trusted partner** (e.g., only Acme embeds GLChat)
 - You want the **simplest possible integration** with minimal moving parts
 - You don't need per-partner key rotation or partner lifecycle management
 
@@ -159,8 +157,8 @@ import jwt, time
 claims = {
     'iss': 'partner-portal',
     'sub': 'lok-user-002',
-    'email': 'bob@lokadata.example.com',
-    'display_name': 'Bob from Lokadata',
+    'email': 'bob@acme.example.com',
+    'display_name': 'Bob from Acme',
     'iat': int(time.time()),
     'exp': int(time.time()) + 60,
 }
@@ -212,7 +210,7 @@ The partner signs a JWT with these required claims:
 In production, there are **three separate systems** involved. The `partner_client.py` script simulates both the partner backend and the GLChat widget since there's no real iframe in this demo.
 
 ```
-                          Lokadata Backend              GLChat Widget (iframe)        GLChat Backend
+                          Acme Backend                  GLChat Widget (iframe)        GLChat Backend
                           (partner server)              (JS in browser)              (sso_receiver.py)
                           ─────────────────             ─────────────────            ─────────────────
 Step 1:                   Sign JWT with shared secret

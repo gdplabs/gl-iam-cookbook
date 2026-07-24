@@ -131,7 +131,7 @@ Each Django example demonstrates three view patterns:
 
 ### SSO Partner Registry
 
-Based on a real product requirement: **Lokadata x GLChat SSO** — enabling automatic user authentication when GLChat is embedded as a widget inside a partner website.
+Based on a common integration scenario: **Acme x GLChat SSO** — enabling automatic user authentication when GLChat is embedded as a widget inside a partner website ("Acme" stands in for any such partner site).
 
 | Example | Description | Features |
 |---------|-------------|----------|

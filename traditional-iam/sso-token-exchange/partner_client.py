@@ -2,12 +2,12 @@
 
 This script plays THREE roles (since there's no real browser/iframe):
   - [GLCHAT ADMIN]     GLChat platform admin: registers the partner (step 1)
-  - [PARTNER BACKEND]  Lokadata's server: computes HMAC, requests token (steps 2-3)
+  - [PARTNER BACKEND]  Acme's server: computes HMAC, requests token (steps 2-3)
   - [GLCHAT WIDGET]    GLChat's iframe JS: exchanges token for session (steps 4-5)
 
 In production, these are separate systems:
   GLChat admin      → admin API        → GLChat backend (step 1, one-time setup)
-  Lokadata backend  → server-to-server → GLChat backend (steps 2-3)
+  Acme backend  → server-to-server → GLChat backend (steps 2-3)
   GLChat widget JS  → same-origin call → GLChat backend (steps 4-5)
 
 Usage:
@@ -107,7 +107,7 @@ def main():
     print()
     print("  This script simulates THREE roles:")
     print("    [GLCHAT ADMIN]     GLChat platform admin (step 1)")
-    print("    [PARTNER BACKEND]  Lokadata server (steps 2-3)")
+    print("    [PARTNER BACKEND]  Acme server (steps 2-3)")
     print("    [GLCHAT WIDGET]    GLChat iframe JavaScript (steps 4-5)")
     print()
     print("  In production, the admin registers partners (step 1),")
@@ -127,24 +127,24 @@ def main():
     pause()
 
     # Step 1: Register partner (GLChat admin does this, not the partner)
-    print_step_title(1, "GLCHAT ADMIN", "Register Lokadata as SSO partner")
+    print_step_title(1, "GLCHAT ADMIN", "Register Acme as SSO partner")
     if args.consumer_key and args.consumer_secret:
         consumer_key = args.consumer_key
         consumer_secret = args.consumer_secret
         print("  (Skipping — using pre-configured credentials.)")
         print(f"  Consumer Key: {consumer_key}")
     else:
-        print("  This is done by the GLChat platform admin, NOT by Lokadata.")
-        print("  The admin registers Lokadata and sends them the credentials.")
+        print("  This is done by the GLChat platform admin, NOT by Acme.")
+        print("  The admin registers Acme and sends them the credentials.")
 
         register_body = {
-            "partner_name": "Lokadata Portal",
-            "allowed_origins": ["https://lokadata.example.com"],
+            "partner_name": "Acme Portal",
+            "allowed_origins": ["https://acme.example.com"],
             "sso_mode": "idp_initiated",
             "user_provisioning": "jit",
-            "metadata": {"contact": "admin@lokadata.example.com"},
-            # Security restrictions: only @lokadata.example.com emails allowed
-            "allowed_email_domains": ["lokadata.example.com"],
+            "metadata": {"contact": "admin@acme.example.com"},
+            # Security restrictions: only @acme.example.com emails allowed
+            "allowed_email_domains": ["acme.example.com"],
             "max_users": 1000,
         }
         print_request("POST", f"{base_url}/admin/partners", body=register_body)
@@ -155,14 +155,14 @@ def main():
             consumer_key = partner["consumer_key"]
             consumer_secret = partner["consumer_secret"]
             print_response(resp.status_code, partner)
-            print("  Admin sends consumer_key + consumer_secret to Lokadata securely.")
+            print("  Admin sends consumer_key + consumer_secret to Acme securely.")
             print("  (In production, this endpoint requires platform admin auth.)")
         elif resp.status_code == 400 and "already exists" in resp.json().get("detail", ""):
             print(f"  <<< 400 (Partner already registered — rotating secret instead)")
             # Partner exists from a previous run. List partners to get ID, then rotate.
             list_resp = client.get("/admin/partners")
             partners = list_resp.json()
-            existing = next((p for p in partners if p["partner_name"] == "Lokadata Portal"), None)
+            existing = next((p for p in partners if p["partner_name"] == "Acme Portal"), None)
             if not existing:
                 print("  ERROR: Partner exists but not found in list.")
                 sys.exit(1)
@@ -188,12 +188,12 @@ def main():
 
     # Step 2: Compute HMAC signature
     print_step_title(2, "PARTNER BACKEND", "Compute HMAC signature")
-    print("  User 'Alice' just logged into Lokadata.")
+    print("  User 'Alice' just logged into Acme.")
     print("  Signing her identity with our consumer_secret.")
 
     user_payload = {
-        "email": "alice@lokadata.example.com",
-        "display_name": "Alice from Lokadata",
+        "email": "alice@acme.example.com",
+        "display_name": "Alice from Acme",
         "external_id": "lok-user-001",
         "first_name": "Alice",
         "last_name": "Smith",
@@ -284,7 +284,7 @@ def main():
     print("  Replay rejected — token was already consumed.")
 
     print("\n" + "=" * 70)
-    print("  Done. Alice logged in once (Lokadata) and got GLChat access.")
+    print("  Done. Alice logged in once (Acme) and got GLChat access.")
     print("=" * 70 + "\n")
 
 

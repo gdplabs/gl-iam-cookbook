@@ -1,11 +1,11 @@
 """SSO JWT Bridge partner client — simulates the full SSO flow.
 
 This script plays TWO roles (since there's no real browser/iframe):
-  - [PARTNER BACKEND] Lokadata's server: signs a JWT with the shared secret
+  - [PARTNER BACKEND] Acme's server: signs a JWT with the shared secret
   - [GLCHAT WIDGET]   GLChat's iframe JS: sends JWT to backend, uses session
 
 In production, these are separate systems:
-  Lokadata backend  → embeds JWT in iframe URL → GLChat widget page
+  Acme backend  → embeds JWT in iframe URL → GLChat widget page
   GLChat widget JS  → same-origin POST        → GLChat backend (exchange)
 
 Usage:
@@ -87,7 +87,7 @@ def main():
     print("  SSO JWT Bridge — Full Flow Demo (Option B)")
     print()
     print("  This script simulates TWO roles:")
-    print("    [PARTNER BACKEND]  Lokadata server (step 1)")
+    print("    [PARTNER BACKEND]  Acme server (step 1)")
     print("    [GLCHAT WIDGET]    GLChat iframe JavaScript (steps 2-3)")
     print()
     print("  In production, the partner backend embeds the signed JWT in")
@@ -108,15 +108,15 @@ def main():
 
     # Step 1: Partner signs JWT
     print_step_title(1, "PARTNER BACKEND", "Sign JWT with shared secret")
-    print("  User 'Bob' just logged into Lokadata.")
+    print("  User 'Bob' just logged into Acme.")
     print("  Signing a short-lived JWT containing his identity.")
 
     now = int(time.time())
     claims = {
         "iss": args.issuer,
         "sub": "lok-user-002",
-        "email": "bob@lokadata.example.com",
-        "display_name": "Bob from Lokadata",
+        "email": "bob@acme.example.com",
+        "display_name": "Bob from Acme",
         "first_name": "Bob",
         "last_name": "Johnson",
         "iat": now,
@@ -168,7 +168,7 @@ def main():
         sys.exit(1)
 
     print("\n" + "=" * 70)
-    print("  Done. Bob logged in once (Lokadata) and got GLChat access.")
+    print("  Done. Bob logged in once (Acme) and got GLChat access.")
     print("=" * 70 + "\n")
 
 
