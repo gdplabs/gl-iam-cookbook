@@ -1,4 +1,4 @@
-"""Trusted Partner backend — simulates an external IdP (e.g., Lokadata).
+"""Trusted Partner backend — simulates an external IdP (e.g., Acme).
 
 Responsibilities:
 - Hosts a local username/password login (toy — real partners have their own).

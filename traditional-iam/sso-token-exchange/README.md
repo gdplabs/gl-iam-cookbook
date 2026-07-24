@@ -4,20 +4,18 @@ Server-side token exchange SSO using GL-IAM's PartnerRegistryProvider with HMAC-
 
 ## Real-World Context
 
-This example is based on a real product requirement: **Lokadata x GLChat SSO integration**.
+This example is based on a common integration scenario: **Acme x GLChat SSO integration**, where "Acme" stands in for any partner site that embeds your app.
 
-- **Lokadata** has its own website with its own login system
-- **GLChat** is embedded as an AI chat widget (iframe) inside Lokadata's website
-- **Problem**: Users had to log in to Lokadata first, then separately log in to GLChat — a poor user experience
-- **Solution**: When a user logs in to Lokadata, they should be automatically authenticated in the GLChat widget
+- **Acme** has its own website with its own login system
+- **GLChat** is embedded as an AI chat widget (iframe) inside Acme's website
+- **Problem**: Users had to log in to Acme first, then separately log in to GLChat — a poor user experience
+- **Solution**: When a user logs in to Acme, they should be automatically authenticated in the GLChat widget
 
-In this architecture, Lokadata acts as the **Identity Provider (IdP)** that pushes user identity to GLChat. The cookbook example simulates this flow: `partner_client.py` represents the Lokadata backend, and `sso_receiver.py` represents the GLChat backend using GL-IAM.
-
-> See the full architecture document: [Lokadata x GLChat SSO Architecture](https://github.com/gdplabs/gl-iam-cookbook/blob/main/docs/Lokadata-GLChat-SSO-Architecture.md)
+In this architecture, Acme acts as the **Identity Provider (IdP)** that pushes user identity to GLChat. The cookbook example simulates this flow: `partner_client.py` represents the Acme backend, and `sso_receiver.py` represents the GLChat backend using GL-IAM.
 
 ### Why Option A for this case?
 
-Option A (Token Exchange) is recommended for Lokadata x GLChat because:
+Option A (Token Exchange) is recommended for Acme x GLChat because:
 - **Multiple partners**: GLChat may be embedded by other partner websites in the future, each needing their own consumer key
 - **Key rotation**: Partners can rotate their consumer secrets with optional grace period for zero-downtime deployments
 - **Partner lifecycle**: Partners can be deactivated without code changes
@@ -173,11 +171,11 @@ curl http://localhost:8000/health
 curl -s -X POST http://localhost:8000/admin/partners \
   -H "Content-Type: application/json" \
   -d '{
-    "partner_name": "Lokadata Portal",
-    "allowed_origins": ["https://lokadata.example.com"],
+    "partner_name": "Acme Portal",
+    "allowed_origins": ["https://acme.example.com"],
     "sso_mode": "idp_initiated",
     "user_provisioning": "jit",
-    "allowed_email_domains": ["lokadata.example.com"],
+    "allowed_email_domains": ["acme.example.com"],
     "max_users": 1000
   }' | jq .
 
@@ -191,7 +189,7 @@ curl -s http://localhost:8000/admin/partners | jq .
 # 4. Generate HMAC signature and request one-time token
 # (In practice, the partner system computes this server-side)
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%S+00:00")
-PAYLOAD='{"email":"alice@lokadata.example.com","display_name":"Alice","external_id":"lok-001"}'
+PAYLOAD='{"email":"alice@acme.example.com","display_name":"Alice","external_id":"lok-001"}'
 MESSAGE="${TIMESTAMP}|${CONSUMER_KEY}|${PAYLOAD}"
 SIGNATURE=$(echo -n "$MESSAGE" | openssl dgst -sha256 -hmac "$CONSUMER_SECRET" | awk '{print $2}')
 
@@ -264,7 +262,7 @@ The partner computes this with their consumer secret (received during registrati
 In production, there are **three separate systems** involved. The `partner_client.py` script simulates both the partner backend and the GLChat widget since there's no real iframe in this demo.
 
 ```
-                          Lokadata Backend              GLChat Widget (iframe)        GLChat Backend
+                          Acme Backend                  GLChat Widget (iframe)        GLChat Backend
                           (partner server)              (JS in browser)              (sso_receiver.py)
                           ─────────────────             ─────────────────            ─────────────────
 Step 1 (one-time):        POST /admin/partners  ──────────────────────────────────>  Register partner
@@ -309,4 +307,4 @@ Step 5:                              GET /api/v1/me (Bearer JWT) ─────
 
 - [GL-IAM GitBook](https://gdplabs.gitbook.io/sdk/gl-iam)
 - [GL-IAM PartnerRegistryProvider Protocol](https://gdplabs.gitbook.io/sdk/gl-iam/protocols/partner-registry)
-- [SSO Architecture Document](../../docs/Lokadata-GLChat-SSO-Architecture.md)
+- [SSO Architecture Document](../../docs/Acme-GLChat-SSO-Architecture.md)

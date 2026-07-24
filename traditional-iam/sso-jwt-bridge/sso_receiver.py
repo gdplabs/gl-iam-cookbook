@@ -114,7 +114,7 @@ async def lifespan(app: FastAPI):
         "│   Partner issuer: %s\n"
         "│\n"
         "│   Ready to receive SSO JWT authentication requests.\n"
-        "│   The partner (e.g., Lokadata) signs a JWT with the shared\n"
+        "│   The partner (e.g., Acme) signs a JWT with the shared\n"
         "│   secret and sends it here for verification.\n"
         "└─────────────────────────────────────────────────────────────────",
         default_org_id,
