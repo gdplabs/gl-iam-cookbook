@@ -41,8 +41,8 @@ This example demonstrates GL-IAM agent delegation using Keycloak for user authen
 KC_TOKEN=$(curl -s -X POST \
   http://localhost:8080/realms/gl-iam-demo/protocol/openid-connect/token \
   -d "grant_type=password" \
-  -d "client_id=glchat-backend" \
-  -d "client_secret=glchat-backend-secret" \
+  -d "client_id=my-app" \
+  -d "client_secret=my-app-secret" \
   -d "username=user@example.com" \
   -d "password=user123" | jq -r '.access_token')
 

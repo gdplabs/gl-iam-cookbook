@@ -152,8 +152,8 @@ Or get token directly from Keycloak:
 ```bash
 TOKEN=$(curl -s -X POST "http://localhost:8080/realms/gl-iam-demo/protocol/openid-connect/token" \
   -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "client_id=glchat-backend" \
-  -d "client_secret=glchat-backend-secret" \
+  -d "client_id=my-app" \
+  -d "client_secret=my-app-secret" \
   -d "grant_type=password" \
   -d "username=member@example.com" \
   -d "password=member123" | jq -r '.access_token')

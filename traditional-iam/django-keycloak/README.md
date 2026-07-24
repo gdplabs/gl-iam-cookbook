@@ -98,8 +98,8 @@ The pre-configured realm includes these test users:
 # Get token using Resource Owner Password Grant (for testing)
 TOKEN=$(curl -s -X POST "http://localhost:8080/realms/gl-iam-demo/protocol/openid-connect/token" \
   -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "client_id=glchat-backend" \
-  -d "client_secret=glchat-backend-secret" \
+  -d "client_id=my-app" \
+  -d "client_secret=my-app-secret" \
   -d "grant_type=password" \
   -d "username=user@example.com" \
   -d "password=user123" | jq -r '.access_token')
@@ -127,8 +127,8 @@ curl http://localhost:8000/api/admin-area/ -H "Authorization: Bearer $TOKEN"
 # Get admin token
 ADMIN_TOKEN=$(curl -s -X POST "http://localhost:8080/realms/gl-iam-demo/protocol/openid-connect/token" \
   -H "Content-Type: application/x-www-form-urlencoded" \
-  -d "client_id=glchat-backend" \
-  -d "client_secret=glchat-backend-secret" \
+  -d "client_id=my-app" \
+  -d "client_secret=my-app-secret" \
   -d "grant_type=password" \
   -d "username=admin@example.com" \
   -d "password=admin123" | jq -r '.access_token')

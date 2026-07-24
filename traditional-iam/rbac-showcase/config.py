@@ -37,11 +37,11 @@ class Settings(BaseSettings):
         description="Keycloak realm name",
     )
     keycloak_client_id: str = Field(
-        default="glchat-backend",
+        default="my-app",
         description="Keycloak client ID",
     )
     keycloak_client_secret: str = Field(
-        default="glchat-backend-secret",
+        default="my-app-secret",
         description="Keycloak client secret",
     )
 
