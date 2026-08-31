@@ -87,6 +87,7 @@ gl-iam-cookbook/
 │   ├── agent-scope-constraints/       # Agent scope constraint patterns
 │   ├── agent-lifecycle/               # Agent lifecycle management
 │   ├── agent-cross-service/           # Agent cross-service authentication
+│   ├── agent-asymmetric-signing/      # ES256 issuer + public-key-only verifier (no DB)
 │   ├── agent-keycloak/                # Agent authentication with Keycloak
 │   ├── agent-stackauth/               # Agent authentication with Stack Auth
 │   ├── aip-integration/               # AI Agent Platform basic setup
@@ -286,6 +287,7 @@ Features used per example:
 - `gl-iam[django,native]` - Django + Native provider
 - `gl-iam[fastapi,keycloak]` - FastAPI + Keycloak provider
 - `gl-iam[fastapi,stackauth]` - FastAPI + Stack Auth provider
+- `gl-iam[fastapi,native,asymmetric]` - adds `cryptography` for RS256/ES256 delegation token signing
 
 ## Code Organization
 
