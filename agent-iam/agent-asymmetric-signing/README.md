@@ -10,7 +10,7 @@ GL-IAM signs delegation tokens with the value you pass as `secret_key`. Historic
 
 That is fine while issuing and validating happen inside one trust boundary. It stops being fine the moment a second service has to validate independently — a connector gateway holding third-party credentials, say, or anything at a boundary where a compromise should not become the ability to forge authority for every agent in the fleet.
 
-Since 0.3.15, `secret_key` also accepts a `SigningConfig`. Configure it with a private key and the service signs; configure it from the issuer's published JWKS and the service verifies and nothing more.
+From 0.3.16, `secret_key` also accepts a `SigningConfig`. Configure it with a private key and the service signs; configure it from the issuer's published JWKS and the service verifies and nothing more.
 
 This example demonstrates:
 
@@ -28,6 +28,7 @@ This example demonstrates:
 
 - Python 3.11–3.13
 - [uv](https://docs.astral.sh/uv/)
+- **gl-iam 0.3.16 or newer.** `SigningConfig` merged after the 0.3.15 tag was cut, so 0.3.15 has no `gl_iam.core.signing` and the services fail at import.
 - No PostgreSQL, no Keycloak, no Stack Auth
 
 ## Quick Start
@@ -273,7 +274,7 @@ ES256 is the default here: for the same security level the keys and signatures a
 Asymmetric algorithms need `cryptography`, which arrives with the `asymmetric` extra:
 
 ```toml
-dependencies = ["gl-iam[fastapi,native,asymmetric]>=0.3.15,<0.4.0"]
+dependencies = ["gl-iam[fastapi,native,asymmetric]>=0.3.16,<0.4.0"]
 ```
 
 Configure one without it and GL-IAM raises a `ConfigurationError` at construction, with the install hint — rather than an opaque PyJWT error at the first mint.
