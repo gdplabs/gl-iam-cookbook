@@ -1,0 +1,20 @@
+[project]
+name = "rbac-dynamic-roles"
+version = "0.0.0"
+description = "GL-IAM multi-tenant dynamic role management with FastAPI and the Native provider"
+requires-python = ">=3.11,<3.14"
+readme = "README.md"
+dependencies = [
+  # Dynamic role management (create_role, grant_permission_to_role,
+  # deactivate_role, ...) landed in 0.3.15. Earlier releases have
+  # assign_role/remove_role but no role-definition API.
+  "gl-iam[fastapi,native]>=0.3.15,<0.4.0",
+  "fastapi>=0.115.0,<0.116.0",
+  "uvicorn>=0.34.0,<0.35.0",
+  "httpx>=0.27.0,<0.29.0",
+  # deps.py reads the token's org_id claim to pick the validation scope.
+  # Already a gl-iam dependency; pinned here because this app imports it.
+  "pyjwt>=2.8.0,<3.0.0",
+  "python-dotenv>=1.0.0,<2.0.0",
+  "pydantic-settings>=2.0.0,<3.0.0",
+]
