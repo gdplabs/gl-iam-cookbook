@@ -70,6 +70,7 @@ gl-iam-cookbook/
 │   ├── django-keycloak/               # Django + Keycloak enterprise SSO
 │   ├── django-stackauth/              # Django + Stack Auth
 │   ├── rbac-showcase/                 # RBAC demo with multi-provider support
+│   ├── rbac-dynamic-roles/            # Multi-tenant dynamic role management (Native)
 │   ├── api-key-hierarchy/             # API key management with SOLID patterns
 │   ├── dpop-keycloak/                 # DPoP token binding with Keycloak
 │   ├── ldap-keycloak/                 # LDAP/AD authentication via Keycloak

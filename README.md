@@ -61,6 +61,7 @@ gl-iam-cookbook/
 │   ├── django-keycloak/           # Django + Keycloak enterprise SSO
 │   ├── django-stackauth/          # Django + Stack Auth
 │   ├── rbac-showcase/             # RBAC with multi-provider support
+│   ├── rbac-dynamic-roles/       # Multi-tenant custom roles managed at runtime
 │   ├── api-key-hierarchy/         # API key management with SOLID patterns
 │   ├── dpop-keycloak/             # DPoP token binding with Keycloak
 │   ├── dpop-standalone/           # DPoP without Keycloak (standalone, no DB)
@@ -121,6 +122,7 @@ Each Django example demonstrates three view patterns:
 | Example | Description | Features |
 |---------|-------------|----------|
 | [rbac-showcase](traditional-iam/rbac-showcase/) | RBAC with multi-provider support | Role mapping, hierarchy, SIMI pattern |
+| [rbac-dynamic-roles](traditional-iam/rbac-dynamic-roles/) | Multi-tenant dynamic role management | Custom role & permission CRUD, per-org scoping, assign/remove, deactivate vs delete |
 | [api-key-hierarchy](traditional-iam/api-key-hierarchy/) | API key management with SOLID patterns | 3-tier API keys, scope-based authorization |
 | [dpop-keycloak](traditional-iam/dpop-keycloak/) | DPoP token binding with Keycloak | Proof-of-possession, replay protection |
 | [dpop-standalone](traditional-iam/dpop-standalone/) | DPoP **without Keycloak** (standalone validation, no DB) | `StandaloneDPoPProvider`, `cnf.jkt` binding, replay protection |
