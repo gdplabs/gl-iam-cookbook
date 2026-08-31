@@ -81,6 +81,7 @@ gl-iam-cookbook/
 │   ├── agent-scope-constraints/   # Resource constraint validators
 │   ├── agent-lifecycle/           # Agent suspend, revoke & audit
 │   ├── agent-cross-service/       # Cross-service delegation
+│   ├── agent-asymmetric-signing/  # ES256 issuer + public-key-only verifier
 │   ├── agent-keycloak/            # Agent delegation with Keycloak
 │   ├── agent-stackauth/           # Agent delegation with Stack Auth
 │   ├── aip-integration/           # Secure agent APIs (basic)
@@ -161,6 +162,7 @@ For securing **AI agents** with delegation-based authentication.
 | [agent-scope-constraints](agent-iam/agent-scope-constraints/) | Resource constraint validators | String equality, set subset, numeric LTE, composite |
 | [agent-lifecycle](agent-iam/agent-lifecycle/) | Agent suspend, revoke & audit | Lifecycle management, audit event callback |
 | [agent-cross-service](agent-iam/agent-cross-service/) | Cross-service delegation | Two-service setup, minimal agent-only gateway |
+| [agent-asymmetric-signing](agent-iam/agent-asymmetric-signing/) | Asymmetric (ES256) delegation signing | JWKS publishing, algorithm pinning, `kid` rotation, a verifier that cannot mint |
 
 ### Provider-Specific
 
