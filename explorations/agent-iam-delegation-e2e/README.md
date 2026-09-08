@@ -55,6 +55,11 @@ uv run connectors.py     # Terminal 3 — port 8002
 ./demo.sh
 ```
 
+On Windows Command Prompt, run `setup.bat` instead. It performs the same
+dependency and `.env` bootstrap without overwriting existing configuration.
+The automated `demo.sh` requires Git Bash or WSL; the three Python services
+and the manual HTTP flow work from PowerShell or Command Prompt.
+
 ## The 4 Demo Scenarios
 
 ### Scenario 1: Alice (admin) → Full Delegation
@@ -184,6 +189,7 @@ All 3 services emit structured JSON logs with a shared `delegation_ref`:
 | `connectors.py` | Per-tool scope enforcement + mock APIs | 8002 |
 | `demo.sh` | End-to-end curl demo (4 scenarios) | — |
 | `setup.sh` | Dependency installation | — |
+| `setup.bat` | Windows dependency and `.env` setup | — |
 
 ## Key GL-IAM APIs Used
 

@@ -28,7 +28,8 @@ dpop-standalone/
 ├── create_proof.py    # signs a fresh DPoP proof per request
 ├── pyproject.toml     # deps: gl-iam[fastapi] (no keycloak/postgresql extras)
 ├── .env.example       # SECRET_KEY, shared by the issuer and resource server
-└── setup.sh           # uv sync + .env bootstrap
+├── setup.sh           # Unix: uv sync + .env bootstrap
+└── setup.bat          # Windows: uv sync + .env bootstrap
 ```
 
 ## Architecture
@@ -62,6 +63,10 @@ uv run generate_key.py           # 1. client key pair -> keys/
 TOKEN=$(uv run issue_token.py | grep -E '^eyJ')      # 2. mint a bound token
 uv run main.py                   # 3. start the resource server (port 8000)
 ```
+
+On Windows Command Prompt, run `setup.bat` instead of `./setup.sh`. The
+remaining `uv run` commands work unchanged. Use PowerShell variables when
+following the request examples interactively.
 
 In a second terminal:
 

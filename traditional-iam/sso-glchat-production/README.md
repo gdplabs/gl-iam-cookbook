@@ -72,6 +72,11 @@ make demo                 # scripted end-to-end test (exits non-zero on any fail
 make stop && make down    # tear everything down
 ```
 
+On Windows Command Prompt, run `setup.bat` for the equivalent dependency and
+environment bootstrap. The Make targets below require a Unix shell; on native
+Windows use the commands printed by `setup.bat`, `docker compose` directly,
+and set `PYTHONPATH=.` before running the bootstrap scripts.
+
 > Postgres and Redis are published on non-default host ports (55432 / 56379) so this cookbook doesn't collide with other local containers that commonly bind the defaults. If either host port is already taken, edit `docker-compose.yml` + `.env`.
 
 Browser flow after `make run-all`:
