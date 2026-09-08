@@ -8,6 +8,7 @@ It demonstrates the complete API key hierarchy workflow:
 3. Child Keys: Create limited-lifetime keys under the org key
 4. Validation: Validate keys and check scopes
 5. Hierarchy: Visualize the key tree structure
+6. Hash algorithm: What validation costs, and switching without reissuing keys
 
 Usage:
     python main.py
@@ -26,6 +27,7 @@ from demo import (
     run_child_keys_demo,
     run_validation_demo,
     run_hierarchy_demo,
+    run_hash_algorithm_demo,
 )
 from config import settings
 
@@ -74,6 +76,8 @@ async def main() -> int:
             provider,
             settings.default_organization_id,
         )
+
+        await run_hash_algorithm_demo(settings.default_organization_id)
 
         print("\n" + "=" * 60)
         print("Demo Complete!")
