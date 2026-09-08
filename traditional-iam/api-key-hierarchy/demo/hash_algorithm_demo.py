@@ -116,6 +116,7 @@ async def run_hash_algorithm_demo(organization_id: str) -> None:
         api_key, plain_key = await KeyCreationService(bcrypt_provider).create_forever_org_key(
             name="hash-algorithm-demo",
             organization_id=organization_id,
+            scopes=["agents:execute"],
         )
         stored = await _stored_hash(bcrypt_provider, api_key.id)
         print(f"   Stored as: {stored[:20]}...")

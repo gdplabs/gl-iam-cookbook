@@ -125,7 +125,7 @@ config = NativeConfig(
 )
 ```
 
-Existing keys keep working and rewrite their own stored hash the first time each is used, so there is nothing to reissue and no migration step. `hash_algorithm_demo.py` shows exactly that: one key, created under bcrypt, validating through both.
+Existing keys keep working and rewrite their own stored hash the first time each is used, so there is nothing to reissue and no migration step. `hash_algorithm_demo.py` shows exactly that: one key, created under bcrypt, validating through both. The switch only goes one way though. Once a key has rewritten itself into a digest, setting bcrypt back leaves that key unverifiable, so a rollback means reissuing.
 
 bcrypt stays the default. Note that lowering `bcrypt_rounds` does **not** speed up keys you already have, because bcrypt stores its work factor inside each hash.
 
