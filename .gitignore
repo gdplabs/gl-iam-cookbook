@@ -16,6 +16,8 @@ eggs/
 .eggs/
 lib/
 lib64/
+!explorations/agent-iam-dashboard/dashboard/src/lib/
+!explorations/agent-iam-dashboard/dashboard/src/lib/**
 parts/
 sdist/
 var/

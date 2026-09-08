@@ -42,9 +42,10 @@ export function useDemoState() {
   }, []);
 
   useEffect(() => {
-    pollHealth();
+    const initialPoll = window.setTimeout(pollHealth, 0);
     healthInterval.current = setInterval(pollHealth, 5000);
     return () => {
+      window.clearTimeout(initialPoll);
       if (healthInterval.current) clearInterval(healthInterval.current);
     };
   }, [pollHealth]);
