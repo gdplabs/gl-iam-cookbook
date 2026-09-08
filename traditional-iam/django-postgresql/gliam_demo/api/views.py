@@ -22,6 +22,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from gl_iam import UserAlreadyExistsError
 from gl_iam.core.types import PasswordCredentials, UserCreateInput
 from gl_iam.django import (
     get_iam_gateway,
@@ -86,16 +87,19 @@ def register(request):
     gateway = get_iam_gateway()
     org_id = os.getenv("DEFAULT_ORGANIZATION_ID", "default")
 
-    user = run_sync(
-        gateway.user_store.create_user(
-            UserCreateInput(
-                email=serializer.validated_data["email"],
-                display_name=serializer.validated_data.get("display_name")
-                or serializer.validated_data["email"].split("@")[0],
-            ),
-            organization_id=org_id,
+    try:
+        user = run_sync(
+            gateway.user_store.create_user(
+                UserCreateInput(
+                    email=serializer.validated_data["email"],
+                    display_name=serializer.validated_data.get("display_name")
+                    or serializer.validated_data["email"].split("@")[0],
+                ),
+                organization_id=org_id,
+            )
         )
-    )
+    except UserAlreadyExistsError as exc:
+        return JsonResponse({"error": str(exc)}, status=409)
 
     run_sync(
         gateway.user_store.set_user_password(
@@ -443,16 +447,19 @@ class RegisterAPIView(APIView):
         gateway = get_iam_gateway()
         org_id = os.getenv("DEFAULT_ORGANIZATION_ID", "default")
 
-        user = run_sync(
-            gateway.user_store.create_user(
-                UserCreateInput(
-                    email=serializer.validated_data["email"],
-                    display_name=serializer.validated_data.get("display_name")
-                    or serializer.validated_data["email"].split("@")[0],
-                ),
-                organization_id=org_id,
+        try:
+            user = run_sync(
+                gateway.user_store.create_user(
+                    UserCreateInput(
+                        email=serializer.validated_data["email"],
+                        display_name=serializer.validated_data.get("display_name")
+                        or serializer.validated_data["email"].split("@")[0],
+                    ),
+                    organization_id=org_id,
+                )
             )
-        )
+        except UserAlreadyExistsError as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_409_CONFLICT)
 
         run_sync(
             gateway.user_store.set_user_password(
