@@ -12,6 +12,7 @@ dependencies = [
   # The `asymmetric` extra pulls in `cryptography`. PyJWT implements only the
   # HMAC family on its own, so without it GL-IAM refuses an RS256/ES256
   # SigningConfig at construction rather than failing at the first mint.
-  # SigningConfig itself landed in 0.3.15.
-  "gl-iam[fastapi,native,asymmetric]>=0.3.15,<0.4.0",
+  # SigningConfig landed after the 0.3.15 tag was cut, so 0.3.16 is the floor --
+  # 0.3.15 itself has no gl_iam.core.signing and fails at import.
+  "gl-iam[fastapi,native,asymmetric]>=0.3.16,<0.4.0",
 ]
