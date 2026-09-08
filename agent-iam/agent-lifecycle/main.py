@@ -4,7 +4,7 @@ Agent Lifecycle Management with GL-IAM.
 This example demonstrates the full agent lifecycle:
 - Register agents
 - Suspend agents (temporarily disable)
-- Reactivate agents (provider-level operation)
+- Reactivate agents through IAMGateway
 - Revoke agents (permanently disable)
 - Audit event capture for all lifecycle operations
 - List agents with filtering
@@ -289,21 +289,11 @@ async def reactivate_agent(
     agent_id: str,
     user: User = Depends(get_current_user),
 ):
-    """
-    Reactivate a suspended agent.
-
-    Note: reactivate_agent is a provider-level operation, not available
-    on the gateway directly. This is intentional — reactivation requires
-    direct provider access for security.
-    """
+    """Reactivate a suspended agent through the audit-aware gateway flow."""
     gateway = get_iam_gateway()
     org_id = os.getenv("DEFAULT_ORGANIZATION_ID", "default")
 
-    agent_provider = gateway.agent_provider
-    if agent_provider is None:
-        raise HTTPException(status_code=500, detail="Agent provider not configured")
-
-    result = await agent_provider.reactivate_agent(agent_id, organization_id=org_id)
+    result = await gateway.reactivate_agent(agent_id, organization_id=org_id)
 
     if result.is_ok:
         return {"agent_id": agent_id, "status": "active", "message": "Agent reactivated successfully"}
