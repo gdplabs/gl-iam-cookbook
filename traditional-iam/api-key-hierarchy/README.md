@@ -118,6 +118,7 @@ The work factor exists to make guessing a *human-chosen* secret expensive. GL-IA
 
 ```python
 from gl_iam.core.crypto_config import ApiKeyHashAlgorithm, CryptoConfig
+from gl_iam.providers.native import NativeConfig
 
 config = NativeConfig(
     database_url=settings.database_url,
