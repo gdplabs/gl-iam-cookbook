@@ -13,6 +13,7 @@ from .organization_demo import run_organization_demo
 from .child_keys_demo import run_child_keys_demo
 from .validation_demo import run_validation_demo
 from .hierarchy_demo import run_hierarchy_demo
+from .hash_algorithm_demo import run_hash_algorithm_demo
 
 __all__ = [
     "run_bootstrap_demo",
@@ -20,4 +21,5 @@ __all__ = [
     "run_child_keys_demo",
     "run_validation_demo",
     "run_hierarchy_demo",
+    "run_hash_algorithm_demo",
 ]

@@ -106,8 +106,29 @@ main.py (Orchestrator)
 | `child_keys_demo.py` | Limited-lifetime child key creation |
 | `validation_demo.py` | Key validation and scope checking |
 | `hierarchy_demo.py` | Key tree visualization |
+| `hash_algorithm_demo.py` | What validation costs, and switching algorithms without reissuing keys<br/>_Needs an HMAC-SHA256 capable `gl-iam`; skips itself otherwise_ |
 
 ## Key Concepts
+
+### Hash Algorithm
+
+Validation hashes the key that was presented, and by default that hash is bcrypt, which is slow on purpose. Budget around **200 ms per validation**. On a service that authenticates every request, that is the dominant cost of the request.
+
+The work factor exists to make guessing a *human-chosen* secret expensive. GL-IAM generates every key itself from 256 bits of randomness, and no method accepts a key you supply, so there is no weak secret for that slowness to protect. `HMAC_SHA256` is the opt-in alternative for services that need the latency back:
+
+```python
+from gl_iam.core.crypto_config import ApiKeyHashAlgorithm, CryptoConfig
+from gl_iam.providers.native import NativeConfig
+
+config = NativeConfig(
+    database_url=settings.database_url,
+    crypto_config=CryptoConfig(api_key_hash_algorithm=ApiKeyHashAlgorithm.HMAC_SHA256),
+)
+```
+
+Existing keys keep working and rewrite their own stored hash the first time each is used, so there is nothing to reissue and no migration step. `hash_algorithm_demo.py` shows exactly that: one key, created under bcrypt, validating through both. The switch only goes one way though. Once a key has rewritten itself into a digest, setting bcrypt back leaves that key unverifiable, so a rollback means reissuing.
+
+bcrypt stays the default. Note that lowering `bcrypt_rounds` does **not** speed up keys you already have, because bcrypt stores its work factor inside each hash.
 
 ### API Key Tiers (3-Tier Model)
 
