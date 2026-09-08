@@ -22,7 +22,7 @@ Additionally, you need:
 
    ```bash
    git clone https://github.com/gdplabs/gl-iam-cookbook.git
-   cd gl-iam-cookbook/gl-iam/examples/fastapi-stackauth/
+   cd gl-iam-cookbook/traditional-iam/fastapi-stackauth/
    ```
 
 2. **Install dependencies**

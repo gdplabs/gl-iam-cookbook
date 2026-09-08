@@ -47,7 +47,7 @@ docker run -d --name postgres \
 ### 2. Install dependencies and configure
 
 ```bash
-cd gl-iam/examples/third-party-integration
+cd gl-iam-cookbook/traditional-iam/third-party-integration
 ./setup.sh
 ```
 

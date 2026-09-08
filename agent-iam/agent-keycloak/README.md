@@ -11,7 +11,7 @@ This example demonstrates GL-IAM agent delegation using Keycloak for user authen
 
 1. **Clone and navigate**:
    ```bash
-   cd gl-iam-cookbook/gl-iam/examples/agent-keycloak
+   cd gl-iam-cookbook/agent-iam/agent-keycloak
    ```
 
 2. **Run setup**:
