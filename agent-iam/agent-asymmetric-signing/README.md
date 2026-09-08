@@ -99,7 +99,7 @@ The header carries both the algorithm and the key id:
 ```bash
 TOKEN=$(curl -s -X POST http://localhost:8000/delegate \
   -H 'Content-Type: application/json' \
-  -d '{"scopes":["reports:read","email:send"]}' | jq -r .token)
+  -d '{"scopes":["reports:read","email:send"],"task_purpose":"Draft and send the Q3 summary"}' | jq -r .token)
 
 curl -s -X POST http://localhost:8001/tools/send-email \
   -H 'Content-Type: application/json' \
