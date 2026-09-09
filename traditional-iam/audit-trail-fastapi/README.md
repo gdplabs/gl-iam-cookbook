@@ -136,7 +136,7 @@ curl -s "http://localhost:8000/audit-log?limit=10&offset=0" \
   -H "Authorization: Bearer $TOKEN" | python3 -m json.tool
 ```
 
-### 8. Logout
+### 9. Logout
 
 ```bash
 curl -s -X POST http://localhost:8000/logout \
