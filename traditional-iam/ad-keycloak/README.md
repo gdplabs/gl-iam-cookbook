@@ -42,9 +42,21 @@ Samba AD DC ←→ Keycloak (User Federation, vendor=ad) ←→ FastAPI + GL-IAM
 
 ### 1. Setup
 
+**Windows:**
+
+```powershell
+.\setup.bat
+```
+
+**Linux, macOS, or WSL:**
+
 ```bash
 ./setup.sh
-# or manually:
+```
+
+Or install manually:
+
+```bash
 uv sync
 cp .env.example .env
 ```

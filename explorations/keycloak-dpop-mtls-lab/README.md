@@ -61,7 +61,8 @@ keycloak/
 │   ├── keygen.py               # Key pair generation
 │   └── cli.py                  # Command-line interface
 ├── scripts/
-│   └── gen-certs.sh            # PKI certificate generation
+│   ├── gen-certs.sh            # PKI certificate generation (Unix/WSL)
+│   └── gen-certs.ps1           # PKI certificate generation (Windows)
 ├── nginx/
 │   └── nginx.conf              # mTLS reverse proxy config
 ├── realm/
@@ -86,11 +87,25 @@ keycloak/
 ```bash
 # Install dependencies
 uv sync --dev
+```
 
-# Generate certificates for mTLS
+Generate the mTLS certificates.
+
+**Linux, macOS, or WSL:**
+
+```bash
 ./scripts/gen-certs.sh
+```
 
-# Start Keycloak + Nginx
+**Windows PowerShell:**
+
+```powershell
+.\scripts\gen-certs.ps1
+```
+
+Then start the services:
+
+```bash
 docker compose up -d
 
 # Wait ~15 seconds for Keycloak to start, then verify
