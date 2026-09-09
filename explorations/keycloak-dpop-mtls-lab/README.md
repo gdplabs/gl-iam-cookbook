@@ -1,9 +1,9 @@
 # Keycloak DPoP + mTLS Lab (uv)
 
-This folder contains a small Python lab to help you learn DPoP and mTLS concepts,
-check StackAuth compatibility options, and try a hands-on flow with Keycloak.
-The code is intentionally minimal and focuses on generating DPoP proofs and
-making mTLS requests with httpx.
+This folder contains a small Python lab to learn DPoP and mTLS concepts, check
+StackAuth compatibility options, and issue sender-constrained tokens with
+Keycloak. The code is intentionally minimal and focuses on generating DPoP
+proofs and making mTLS requests with httpx.
 
 ## 1) Concepts: DPoP vs mTLS
 
@@ -30,8 +30,9 @@ making mTLS requests with httpx.
 | Requires PKI      | ❌ No                        | ✅ Yes                           |
 | Token binding     | `cnf.jkt` (key thumbprint)   | `cnf.x5t#S256` (cert thumbprint) |
 
-You can combine both for defense-in-depth, but you must verify that your AS and
-RS support the necessary token binding behaviors.
+You can use mTLS client authentication together with DPoP token binding for
+defense-in-depth. Do not assume that enabling both token-binding modes produces
+both confirmation members; verify the issued `cnf` claim for your AS version.
 
 > 📊 **See also:** [docs/dpop_mtls_diagrams.md](docs/dpop_mtls_diagrams.md) for visual flow diagrams.
 
@@ -62,14 +63,12 @@ keycloak/
 │   └── cli.py                  # Command-line interface
 ├── scripts/
 │   └── gen-certs.sh            # PKI certificate generation
-├── nginx/
-│   └── nginx.conf              # mTLS reverse proxy config
 ├── realm/
-│   └── realm-export.json       # Keycloak realm with pre-configured client
+│   └── realm-export.json       # Keycloak realm with pre-configured clients
 ├── certs/                      # Generated certificates (gitignored)
 ├── docs/                       # Additional documentation
 ├── tests/                      # Unit tests for DPoP
-├── docker-compose.yml          # Keycloak + Nginx setup
+├── docker-compose.yml          # Keycloak with HTTPS/mTLS setup
 └── pyproject.toml              # Python dependencies (uv)
 ```
 
@@ -90,17 +89,21 @@ uv sync --dev
 # Generate certificates for mTLS
 ./scripts/gen-certs.sh
 
-# Start Keycloak + Nginx
+# Start Keycloak
 docker compose up -d
 
-# Wait ~15 seconds for Keycloak to start, then verify
-curl http://localhost:8080/health/ready
+# Wait for the realm import, then verify HTTPS using the generated CA
+curl --cacert ./certs/ca.crt \
+  https://localhost:8443/realms/dpop-lab/.well-known/openid-configuration
 ```
 
 ### Run Tests
 
 ```bash
 uv run pytest -v
+
+## With the Docker stack running, verify token claims and rejection cases
+uv run python scripts/verify-bindings.py
 ```
 
 ## 5) Hands-on Flows
@@ -109,9 +112,10 @@ uv run pytest -v
 
 ```bash
 uv run keycloak-lab token \
-  --token-url http://localhost:8080/realms/dpop-lab/protocol/openid-connect/token \
+  --token-url https://localhost:8443/realms/dpop-lab/protocol/openid-connect/token \
   --client-id lab-client \
-  --client-secret lab-secret
+  --client-secret lab-secret \
+  --ca ./certs/ca.crt
 ```
 
 ### DPoP-only Flow
@@ -122,44 +126,77 @@ uv run keycloak-lab gen-key --private-key dpop_private.pem --public-jwk dpop_pub
 
 # 2. Request token with DPoP proof
 uv run keycloak-lab token \
-  --token-url http://localhost:8080/realms/dpop-lab/protocol/openid-connect/token \
-  --client-id lab-client \
-  --client-secret lab-secret \
+  --token-url https://localhost:8443/realms/dpop-lab/protocol/openid-connect/token \
+  --client-id dpop-client \
+  --client-secret dpop-secret \
+  --scope "openid profile" \
+  --ca ./certs/ca.crt \
   --dpop-private-key dpop_private.pem
 
-# 3. Call a resource with DPoP (replace with your API)
+# 3. Call Keycloak UserInfo as a DPoP-protected resource
 uv run keycloak-lab call \
-  --url https://API_HOST/protected \
+  --url https://localhost:8443/realms/dpop-lab/protocol/openid-connect/userinfo \
   --access-token ACCESS_TOKEN \
-  --dpop-private-key dpop_private.pem
+  --dpop-private-key dpop_private.pem \
+  --ca ./certs/ca.crt
 ```
 
 ### mTLS-only Flow
 
-Uses the Nginx proxy on `https://localhost:8443` (requires cert generation first):
+Keycloak terminates TLS directly so it can validate the certificate and place
+its SHA-256 thumbprint in the token:
 
 ```bash
 uv run keycloak-lab token \
   --token-url https://localhost:8443/realms/dpop-lab/protocol/openid-connect/token \
-  --client-id lab-client \
-  --client-secret lab-secret \
+  --client-id mtls-client \
+  --client-secret mtls-secret \
+  --scope "openid profile" \
   --cert ./certs/client.crt \
   --key ./certs/client.key \
   --ca ./certs/ca.crt
 ```
 
-### Combined DPoP + mTLS
+Use the same certificate when presenting the token to UserInfo:
+
+```bash
+curl --cacert ./certs/ca.crt \
+  --cert ./certs/client.crt \
+  --key ./certs/client.key \
+  --header "Authorization: Bearer ACCESS_TOKEN" \
+  https://localhost:8443/realms/dpop-lab/protocol/openid-connect/userinfo
+```
+
+### mTLS Client Authentication + DPoP Token Binding
+
+This client uses the certificate instead of a client secret for OAuth client
+authentication. The access token is sender-constrained to the DPoP key through
+`cnf.jkt`; the certificate authenticates the client at the token endpoint.
 
 ```bash
 uv run keycloak-lab token \
   --token-url https://localhost:8443/realms/dpop-lab/protocol/openid-connect/token \
-  --client-id lab-client \
-  --client-secret lab-secret \
+  --client-id combined-client \
+  --scope "openid profile" \
   --cert ./certs/client.crt \
   --key ./certs/client.key \
   --ca ./certs/ca.crt \
   --dpop-private-key dpop_private.pem
 ```
+
+Expected results:
+
+| Client            | Token type | Expected `cnf`              |
+| ----------------- | ---------- | --------------------------- |
+| `lab-client`      | Bearer     | absent                      |
+| `dpop-client`     | DPoP       | `jkt`                       |
+| `mtls-client`     | Bearer     | `x5t#S256`                  |
+| `combined-client` | DPoP       | `jkt` (mTLS authenticates)  |
+
+Keycloak rejects `dpop-client` without a DPoP proof, `mtls-client` without a
+certificate, and `combined-client` unless both its certificate and DPoP proof
+are present. The Keycloak UserInfo endpoint is the included protected-resource
+target; the `call` command can also be used with another DPoP-aware API.
 
 ## 6) Keycloak Admin
 
@@ -168,9 +205,12 @@ Open the admin console at `http://localhost:8080/admin`:
 - Username: `admin`
 - Password: `admin`
 
-The realm `dpop-lab` is imported automatically with:
+The realm `dpop-lab` is imported automatically with four clients:
 
-- Client: `lab-client` / Secret: `lab-secret`
+- Baseline: `lab-client` / Secret: `lab-secret`
+- DPoP-bound: `dpop-client` / Secret: `dpop-secret`
+- Certificate-bound: `mtls-client` / Secret: `mtls-secret`
+- mTLS-authenticated DPoP: `combined-client` / no client secret
 - User: `lab-user` / Password: `lab-pass`
 
 ### Endpoints
@@ -178,7 +218,7 @@ The realm `dpop-lab` is imported automatically with:
 | Endpoint       | URL                                              |
 | -------------- | ------------------------------------------------ |
 | Keycloak HTTP  | `http://localhost:8080`                          |
-| Nginx mTLS     | `https://localhost:8443`                         |
+| Keycloak HTTPS | `https://localhost:8443`                         |
 | Token Endpoint | `/realms/dpop-lab/protocol/openid-connect/token` |
 
 ## 7) Cleanup
@@ -193,10 +233,13 @@ rm -rf certs/ dpop_private.pem dpop_public.jwk
 
 ## 8) Notes
 
-- `start-dev` runs Keycloak on HTTP. The included Nginx proxy terminates TLS and
-  requires a client certificate on the token endpoint only.
-- If your Keycloak version supports DPoP (v21+), enable the feature and ensure
-  the AS issues DPoP-bound tokens (`cnf.jkt`).
+- `start-dev` is for this local lab only. Keycloak terminates HTTPS directly and
+  requests client certificates so certificate-bound tokens can be issued.
+- The pinned Keycloak 26.4 release has supported DPoP enabled. The realm makes
+  DPoP mandatory only for clients that are intended to receive DPoP tokens.
+- `combined-client` deliberately uses mTLS for client authentication and DPoP
+  for token binding. It does not claim simultaneous `jkt` and `x5t#S256`
+  binding.
 - The scripts use the standard OAuth token endpoint shape used by Keycloak.
 - If you need a token exchange flow or a brokered setup for StackAuth,
   keep the DPoP binding at the token-issuing AS and verify `cnf.jkt` at the RS.

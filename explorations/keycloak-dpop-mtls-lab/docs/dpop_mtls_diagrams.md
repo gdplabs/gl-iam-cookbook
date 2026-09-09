@@ -76,28 +76,24 @@ graph TD
 ```mermaid
 sequenceDiagram
     participant Client
-    participant Nginx as Nginx (mTLS Proxy)
-    participant KC as Keycloak
+    participant KC as Keycloak (mTLS)
 
-    Note over Client,Nginx: TLS Handshake with mutual authentication
+    Note over Client,KC: TLS Handshake with mutual authentication
 
-    Client->>Nginx: ClientHello
-    Nginx-->>Client: ServerHello + Server Certificate
-    Nginx-->>Client: CertificateRequest
-    Client->>Nginx: Client Certificate + CertificateVerify
+    Client->>KC: ClientHello
+    KC-->>Client: ServerHello + Server Certificate
+    KC-->>Client: CertificateRequest
+    Client->>KC: Client Certificate + CertificateVerify
 
-    Note over Nginx: Verify client cert against CA
-    Nginx->>Nginx: Validate cert chain
-    Nginx->>Nginx: Check ssl_client_verify = SUCCESS
+    Note over KC: Verify client cert against CA
+    KC->>KC: Validate cert chain and thumbprint
 
     alt Certificate Valid
-        Nginx-->>Client: Finished (TLS established)
-        Client->>Nginx: POST /token (encrypted)
-        Nginx->>KC: Forward to Keycloak
-        KC-->>Nginx: Token Response
-        Nginx-->>Client: Token Response (encrypted)
+        KC-->>Client: Finished (TLS established)
+        Client->>KC: POST /token (encrypted)
+        KC-->>Client: Token with cnf.x5t#S256
     else Certificate Invalid/Missing
-        Nginx-->>Client: 403 Forbidden
+        KC-->>Client: Token request rejected
     end
 ```
 
@@ -123,46 +119,43 @@ graph TB
     CA -->|signs| CC
 
     SC -.->|"presented to"| Client2["Client"]
-    CC -.->|"presented to"| Server["Server (Nginx)"]
+    CC -.->|"presented to"| Server["Server (Keycloak)"]
 ```
 
 ---
 
-## Combined DPoP + mTLS Flow
+## mTLS Client Authentication + DPoP Token Binding
 
 ```mermaid
 sequenceDiagram
     participant Client
-    participant Nginx as Nginx (mTLS)
     participant KC as Keycloak
 
-    Note over Client,Nginx: 1. mTLS Handshake
-    Client->>Nginx: TLS + Client Cert
-    Nginx->>Nginx: Verify cert against CA
+    Note over Client,KC: 1. mTLS Handshake
+    Client->>KC: TLS + Client Cert
+    KC->>KC: Verify cert, subject DN, and CA DN
 
     Note over Client: 2. DPoP proof generation
     Client->>Client: build_dpop_proof()
 
-    Client->>Nginx: POST /token<br/>DPoP: [proof JWT]<br/>+ mTLS cert
-    Nginx->>KC: Forward (with X-Client-Cert header)
+    Client->>KC: POST /token<br/>DPoP: [proof JWT]<br/>client_id
 
-    Note over KC: 3. Dual validation
+    Note over KC: 3. Authenticate and bind
+    KC->>KC: Authenticate client with certificate
     KC->>KC: Validate DPoP proof
-    KC->>KC: Optionally bind to cert
 
-    KC-->>Nginx: Token (cnf.jkt + optional cnf.x5t#S256)
-    Nginx-->>Client: Token Response
+    KC-->>Client: DPoP token with cnf.jkt
 ```
 
 ---
 
 ## Security Comparison
 
-| Feature                | Bearer Token | DPoP | mTLS | DPoP + mTLS |
-| ---------------------- | ------------ | ---- | ---- | ----------- |
-| Token theft protection | ❌           | ✅   | ✅   | ✅✅        |
-| Per-request proof      | ❌           | ✅   | ❌   | ✅          |
-| Channel binding        | ❌           | ❌   | ✅   | ✅          |
-| Public client support  | ✅           | ✅   | ⚠️   | ⚠️          |
-| No cert infrastructure | ✅           | ✅   | ❌   | ❌          |
-| Replay protection      | ❌           | ✅   | ✅   | ✅✅        |
+| Feature                | Bearer Token | DPoP | mTLS-bound | mTLS auth + DPoP |
+| ---------------------- | ------------ | ---- | ---------- | ---------------- |
+| Token theft protection | ❌           | ✅   | ✅         | ✅               |
+| Per-request proof      | ❌           | ✅   | ❌         | ✅               |
+| Channel authentication | ❌           | ❌   | ✅         | ✅               |
+| Public client support  | ✅           | ✅   | ⚠️         | ⚠️               |
+| No cert infrastructure | ✅           | ✅   | ❌         | ❌               |
+| Replay protection      | ❌           | ✅   | ✅         | ✅               |

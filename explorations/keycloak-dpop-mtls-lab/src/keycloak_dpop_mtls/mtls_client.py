@@ -23,7 +23,7 @@ When to use mTLS:
 Comparison with DPoP:
 - mTLS: Transport-level binding, requires certificate infrastructure
 - DPoP: Application-level binding, works with any client type
-- Both can be combined for defense-in-depth
+- mTLS client authentication can be combined with DPoP token binding
 """
 
 from __future__ import annotations
@@ -113,9 +113,10 @@ def request_token_mtls(
        - Sends DPoP header with proof JWT
        - Token is bound via cnf.jkt claim
     
-    4. mTLS + DPoP (Combined):
-       - Both mechanisms active for defense-in-depth
-       - Token bound to both certificate and DPoP key
+    4. mTLS Client Authentication + DPoP (Combined):
+       - The certificate authenticates the OAuth client
+       - The access token is bound to the DPoP key through cnf.jkt
+       - This avoids claiming two simultaneous token bindings
     
     RFC 8705 Section 2 requires:
     - The TLS connection MUST use mutual TLS with client cert
