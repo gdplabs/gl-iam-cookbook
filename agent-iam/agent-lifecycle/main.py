@@ -29,6 +29,7 @@ from gl_iam import (
 )
 from gl_iam.core import AuditConfig
 from gl_iam.core.exceptions import InvalidCredentialsError, UserAlreadyExistsError
+from gl_iam.core.roles import StandardRole
 from gl_iam.core.types import PasswordCredentials, UserCreateInput
 from gl_iam.fastapi import (
     add_exception_handlers,
@@ -292,6 +293,18 @@ async def reactivate_agent(
     """Reactivate a suspended agent through the audit-aware gateway flow."""
     gateway = get_iam_gateway()
     org_id = os.getenv("DEFAULT_ORGANIZATION_ID", "default")
+
+    if not user.has_standard_role(StandardRole.ORG_ADMIN):
+        owned_agents = await gateway.list_agents(
+            organization_id=org_id,
+            owner_user_id=user.id,
+            include_revoked=True,
+        )
+        if not any(agent.id == agent_id for agent in owned_agents):
+            raise HTTPException(
+                status_code=403,
+                detail="Only the agent owner or an organization admin can reactivate it",
+            )
 
     result = await gateway.reactivate_agent(agent_id, organization_id=org_id)
 

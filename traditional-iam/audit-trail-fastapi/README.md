@@ -220,8 +220,8 @@ The `DatabaseAuditHandler` writes events asynchronously in batches for zero late
 ### Persisted Event Coverage
 
 The following table describes the audit behavior for this example's supported
-`gl-iam` 0.3.x range. Verify behavior against the installed runtime when
-changing that dependency range:
+`gl-iam>=0.3.15,<0.4.0` range. Verify behavior against the installed runtime
+when changing that dependency range:
 
 | Operation | Persisted audit behavior |
 | --- | --- |
