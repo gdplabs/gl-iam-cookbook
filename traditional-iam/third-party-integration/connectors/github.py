@@ -157,7 +157,10 @@ class GitHubConnector(BaseConnector):
         """
         async with httpx.AsyncClient() as client:
             try:
-                response = await client.delete(
+                # httpx's .delete() takes no request body, so a DELETE that
+                # carries JSON has to go through .request().
+                response = await client.request(
+                    "DELETE",
                     f"{self.GITHUB_API_URL}/applications/{self._client_id}/grant",
                     auth=(self._client_id, self._client_secret),
                     json={"access_token": auth_string},
