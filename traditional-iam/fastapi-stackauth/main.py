@@ -18,6 +18,7 @@ from pydantic import BaseModel
 
 from gl_iam import IAMGateway, User
 from gl_iam.fastapi import (
+    add_exception_handlers,
     get_current_user,
     require_org_admin,
     require_org_member,
@@ -61,6 +62,10 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="GL-IAM Stack Auth Demo", lifespan=lifespan)
+
+# Map GL-IAM errors (AuthenticationError, PermissionDeniedError) to 401/403
+# instead of letting them surface as 500s.
+add_exception_handlers(app)
 
 
 class UserResponse(BaseModel):
