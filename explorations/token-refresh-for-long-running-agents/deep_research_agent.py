@@ -328,7 +328,7 @@ async def main() -> None:
     print("=" * 70)
     print()
     print("This demo simulates a production deep research AI agent:")
-    print("  - Multiple research phases (gathering → analyzing → synthesizing → reporting)")
+    print("  - Multiple research phases (gathering -> analyzing -> synthesizing -> reporting)")
     print("  - Automatic token refresh in background")
     print("  - Audit logging for observability")
     print("  - Error handling with force_refresh()")
