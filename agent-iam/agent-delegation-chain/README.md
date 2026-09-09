@@ -59,6 +59,12 @@ ORCHESTRATOR_ID=$(echo $SETUP | jq -r '.orchestrator_id')
 WORKER_ID=$(echo $SETUP | jq -r '.worker_id')
 ```
 
+`/setup` is safe to run again for the same user and organization. It reuses
+the compatible active `orchestrator-agent` and `worker-agent` identities
+instead of creating duplicates. If existing demo data has different scopes,
+depth limits, or a non-active lifecycle state, use a clean organization or
+resolve that data before continuing.
+
 ### 3. Delegate User -> Orchestrator (Hop 1)
 
 ```bash
@@ -81,10 +87,10 @@ WORKER_TOKEN=$(echo $HOP2 | jq -r '.token')
 ### 5. Inspect the Chain
 
 ```bash
-# Inspect orchestrator's chain (depth 1)
+# Inspect orchestrator's chain (depth 2: user principal + orchestrator hop)
 curl -s "http://localhost:8000/chain/inspect?token=$ORCH_TOKEN" | jq
 
-# Inspect worker's chain (depth 2, narrower scopes)
+# Inspect worker's chain (depth 3: user principal + two delegation hops)
 curl -s "http://localhost:8000/chain/inspect?token=$WORKER_TOKEN" | jq
 ```
 
@@ -104,7 +110,7 @@ Effective scopes at each hop:
 
 | Concept | Description |
 |---------|-------------|
-| **Chain Depth** | Number of delegation hops (User→Orchestrator = 1, User→Orch→Worker = 2) |
+| **Chain Depth** | Number of principals in the emitted chain: User→Orchestrator = 2, User→Orch→Worker = 3 |
 | **Scope Narrowing** | Each hop can only grant a subset of the parent's scopes |
 | **Root Principal** | The original authority (the user who started the chain) |
 | **Leaf Principal** | The final agent in the chain (the one performing work) |

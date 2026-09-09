@@ -115,6 +115,45 @@ class DelegateResponse(BaseModel):
     effective_scopes: list[str]
 
 
+async def get_or_register_demo_agent(gateway: IAMGateway, registration: AgentRegistration):
+    """Return this user's compatible demo agent, creating it on the first setup."""
+    existing_agents = await gateway.list_agents(
+        organization_id=registration.operator_org_id,
+        owner_user_id=registration.owner_user_id,
+        include_revoked=True,
+    )
+    existing = next((agent for agent in existing_agents if agent.name == registration.name), None)
+
+    if existing is not None:
+        if (
+            existing.agent_type != registration.agent_type
+            or existing.allowed_scopes != registration.allowed_scopes
+            or existing.max_delegation_depth != registration.max_delegation_depth
+        ):
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    f"Existing demo agent '{registration.name}' does not match the "
+                    "configuration required by this example. Use a clean organization "
+                    "or remove the conflicting demo data."
+                ),
+            )
+        if not existing.is_active:
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    f"Existing demo agent '{registration.name}' is not active. "
+                    "Use a clean organization or reactivate it before running the demo."
+                ),
+            )
+        return existing
+
+    result = await gateway.register_agent(registration)
+    if not result.is_ok:
+        raise HTTPException(status_code=400, detail=result.error.message)
+    return result.value
+
+
 # ============================================================================
 # Public Endpoints
 # ============================================================================
@@ -181,8 +220,10 @@ async def setup_chain(user: User = Depends(get_current_user)):
     gateway = get_iam_gateway()
     org_id = os.getenv("DEFAULT_ORGANIZATION_ID", "default")
 
-    # Register orchestrator with broad scopes
-    orchestrator_result = await gateway.register_agent(
+    # Create the fixed demo identities once, then safely reuse the same user's
+    # compatible active identities on later setup calls.
+    orchestrator = await get_or_register_demo_agent(
+        gateway,
         AgentRegistration(
             name="orchestrator-agent",
             agent_type=AgentType.ORCHESTRATOR,
@@ -193,11 +234,8 @@ async def setup_chain(user: User = Depends(get_current_user)):
         )
     )
 
-    if not orchestrator_result.is_ok:
-        raise HTTPException(status_code=400, detail=orchestrator_result.error.message)
-
-    # Register worker with narrow scopes
-    worker_result = await gateway.register_agent(
+    worker = await get_or_register_demo_agent(
+        gateway,
         AgentRegistration(
             name="worker-agent",
             agent_type=AgentType.WORKER,
@@ -208,13 +246,10 @@ async def setup_chain(user: User = Depends(get_current_user)):
         )
     )
 
-    if not worker_result.is_ok:
-        raise HTTPException(status_code=400, detail=worker_result.error.message)
-
     return SetupResponse(
-        orchestrator_id=orchestrator_result.value.id,
-        worker_id=worker_result.value.id,
-        message="Orchestrator and worker agents registered successfully",
+        orchestrator_id=orchestrator.id,
+        worker_id=worker.id,
+        message="Orchestrator and worker agents are ready",
     )
 
 
