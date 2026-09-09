@@ -162,7 +162,7 @@ export function DemoPage({
                           .map((e, i) => (
                             <TokenInspector
                               key={i}
-                              token={e.token}
+                              token={e.token!}
                               label={`d${e.depth} - ${e.label}`}
                             />
                           ))}
