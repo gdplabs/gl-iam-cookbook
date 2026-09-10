@@ -192,10 +192,10 @@ DEMO: Key Hierarchy Visualization
 
 --- ASCII Tree Summary ---
 
-Primary API Key (aip_abc1...) [ORGANIZATION] scopes: [agents:execute, agents:read, ...]
-+-- CI/CD Pipeline Key (aip_def2...) [ORGANIZATION] scopes: [agents:execute] expires: 2024-03-01
-+-- Partner Integration Key (aip_ghi3...) [ORGANIZATION] scopes: [agents:read] expires: 2024-02-15
-`-- Temporary Debug Key (aip_jkl4...) [ORGANIZATION] scopes: [agents:execute, agents:read] expires: 2024-02-05
+Primary API Key (aip_abc1...) [ORGANIZATION] scopes: [agents:execute, agents:read, agents:write, +2 more]
++-- CI/CD Pipeline Key (aip_def2...) [ORGANIZATION] scopes: [agents:execute] expires: <run date + 30d>
++-- Partner Integration Key (aip_ghi3...) [ORGANIZATION] scopes: [agents:read] expires: <run date + 7d>
+`-- Temporary Debug Key (aip_jkl4...) [ORGANIZATION] scopes: [agents:execute, agents:read] expires: <run date + 1d>
 
 ============================================================
 Demo Complete!

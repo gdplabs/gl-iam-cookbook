@@ -126,8 +126,8 @@ class HierarchyService:
         Example:
             >>> print(service.format_tree_ascii(keys))
             Primary API Key (aip_abc1...) [ORGANIZATION]
-            +-- CI/CD Key (aip_def2...) [ORGANIZATION] expires: 2024-03-01
-            +-- Partner Key (aip_ghi3...) [ORGANIZATION] expires: 2024-02-15
+            +-- CI/CD Key (aip_def2...) [ORGANIZATION] expires: <run date + 30d>
+            +-- Partner Key (aip_ghi3...) [ORGANIZATION] expires: <run date + 7d>
         """
         tree = self.build_tree(keys)
         lines = []
