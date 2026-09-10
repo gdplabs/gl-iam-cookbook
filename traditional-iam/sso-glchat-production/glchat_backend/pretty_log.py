@@ -28,19 +28,29 @@ class C:
 _WIDTH = 90
 
 
+def _safe_print(message: str = "") -> None:
+    """Print demo output without letting a legacy console encoding break a request."""
+    try:
+        print(message)
+    except UnicodeEncodeError:
+        encoding = sys.stdout.encoding or "ascii"
+        printable = message.encode(encoding, errors="replace").decode(encoding)
+        print(printable)
+
+
 def banner(title: str, color: str = C.CYAN, subtitle: str | None = None) -> None:
     """Print a boxed step banner."""
     bar = "─" * (_WIDTH - 2)
-    print(f"\n{color}┌{bar}┐{C.RESET}")
-    print(f"{color}│{C.RESET} {C.BOLD}{title}{C.RESET}".ljust(_WIDTH + len(C.BOLD) + len(C.RESET) + len(color) + len(C.RESET) - 1) + f"{color}│{C.RESET}")
+    _safe_print(f"\n{color}┌{bar}┐{C.RESET}")
+    _safe_print(f"{color}│{C.RESET} {C.BOLD}{title}{C.RESET}".ljust(_WIDTH + len(C.BOLD) + len(C.RESET) + len(color) + len(C.RESET) - 1) + f"{color}│{C.RESET}")
     if subtitle:
-        print(f"{color}│{C.RESET} {C.DIM}{subtitle}{C.RESET}".ljust(_WIDTH + len(C.DIM) + len(C.RESET) + len(color) + len(C.RESET) - 1) + f"{color}│{C.RESET}")
-    print(f"{color}└{bar}┘{C.RESET}")
+        _safe_print(f"{color}│{C.RESET} {C.DIM}{subtitle}{C.RESET}".ljust(_WIDTH + len(C.DIM) + len(C.RESET) + len(color) + len(C.RESET) - 1) + f"{color}│{C.RESET}")
+    _safe_print(f"{color}└{bar}┘{C.RESET}")
 
 
 def kv(label: str, value: Any, color: str = C.BLUE) -> None:
     v = value if isinstance(value, str) else repr(value)
-    print(f"  {color}{label:<22}{C.RESET} {v}")
+    _safe_print(f"  {color}{label:<22}{C.RESET} {v}")
 
 
 def sdk(action: str, detail: str = "", ok: bool = True) -> None:
@@ -49,7 +59,7 @@ def sdk(action: str, detail: str = "", ok: bool = True) -> None:
     msg = f"  {tag} {status} {C.BOLD}{action}{C.RESET}"
     if detail:
         msg += f"  {C.DIM}→ {detail}{C.RESET}"
-    print(msg)
+    _safe_print(msg)
 
 
 def app(action: str, detail: str = "", ok: bool = True) -> None:
@@ -58,20 +68,20 @@ def app(action: str, detail: str = "", ok: bool = True) -> None:
     msg = f"  {tag} {status} {C.BOLD}{action}{C.RESET}"
     if detail:
         msg += f"  {C.DIM}→ {detail}{C.RESET}"
-    print(msg)
+    _safe_print(msg)
 
 
 def warn(msg: str) -> None:
-    print(f"  {C.YELLOW}⚠  {msg}{C.RESET}")
+    _safe_print(f"  {C.YELLOW}⚠  {msg}{C.RESET}")
 
 
 def err(msg: str) -> None:
-    print(f"  {C.RED}✗  {msg}{C.RESET}")
+    _safe_print(f"  {C.RED}✗  {msg}{C.RESET}")
 
 
 def done(msg: str) -> None:
-    print(f"  {C.GREEN}✓  {msg}{C.RESET}")
+    _safe_print(f"  {C.GREEN}✓  {msg}{C.RESET}")
 
 
 def divider() -> None:
-    print(f"{C.DIM}{'·' * _WIDTH}{C.RESET}")
+    _safe_print(f"{C.DIM}{'·' * _WIDTH}{C.RESET}")
