@@ -47,7 +47,10 @@ try {
     Write-Host "Generating CA certificate..."
     Invoke-OpenSsl @(
         "req", "-x509", "-newkey", "rsa:4096", "-sha256", "-days", "3650", "-nodes",
-        "-keyout", "ca.key", "-out", "ca.crt", "-subj", "/CN=lab-ca"
+        "-keyout", "ca.key", "-out", "ca.crt", "-subj", "/CN=lab-ca",
+        "-addext", "basicConstraints=critical,CA:TRUE",
+        "-addext", "keyUsage=critical,keyCertSign,cRLSign",
+        "-addext", "subjectKeyIdentifier=hash"
     )
 
     Write-Host "Generating server certificate..."
