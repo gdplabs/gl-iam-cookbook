@@ -11,6 +11,7 @@ services:
       KC_HTTPS_CERTIFICATE_KEY_FILE: /opt/keycloak/conf/certs/server.key
       KC_HTTPS_CLIENT_AUTH: request
       KC_HTTPS_TRUST_STORE_FILE: /opt/keycloak/conf/certs/ca.crt
+      KC_TRUSTSTORE_PATHS: /opt/keycloak/conf/certs/ca.crt
     ports:
       - "8080:8080"
       - "8443:8443"
