@@ -4,7 +4,7 @@ A production-ready audit trail example demonstrating:
 
 - **Multi-handler composition**: `ConsoleAuditHandler` + `DatabaseAuditHandler` via `CompositeAuditHandler`
 - **Request context propagation**: Automatic `ip_address` and `user_agent` on every audit event
-- **Diverse audit events**: Register, login, logout, password change, permission denied
+- **Persisted audit events**: Register, login, password change, logout, and permission denial
 - **Queryable audit log**: Filter by event_type, user_id, severity, and date range
 
 ## Prerequisites
@@ -73,7 +73,9 @@ curl -s http://localhost:8000/admin \
   -H "Authorization: Bearer $TOKEN"
 ```
 
-If user is not an admin, triggers `permission_denied` audit event.
+If the user is not an admin, `require_org_admin()` records a
+`permission_denied` audit row through the configured `IAMGateway` before
+raising. The FastAPI exception handler only returns the 403 response.
 
 ### 5. Change Password
 
@@ -84,14 +86,28 @@ curl -s -X POST http://localhost:8000/change-password \
   -d '{"current_password": "SecurePass123!", "new_password": "NewSecure456!"}'
 ```
 
-### 6. Query Audit Log (All Events)
+This Native-provider example uses `IAMGateway.change_password()`, which
+verifies the current password, emits `credential_password_updated` on success,
+and revokes the user's active sessions. Sign in again with the new password
+before querying the audit log. Failed current-password checks emit
+`credential_auth_failed`.
+
+### 6. Login Again
+
+```bash
+TOKEN=$(curl -s -X POST http://localhost:8000/login \
+  -H "Content-Type: application/json" \
+  -d '{"email": "alice@example.com", "password": "NewSecure456!"}' | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
+```
+
+### 7. Query Audit Log (All Events)
 
 ```bash
 curl -s "http://localhost:8000/audit-log" \
   -H "Authorization: Bearer $TOKEN" | python3 -m json.tool
 ```
 
-### 7. Query with Filters
+### 8. Query with Filters
 
 ```bash
 # Only login failures
@@ -106,8 +122,13 @@ curl -s "http://localhost:8000/audit-log?severity=warning" \
 curl -s "http://localhost:8000/audit-log?user_id=USER_ID_HERE" \
   -H "Authorization: Bearer $TOKEN" | python3 -m json.tool
 
-# Events in a date range
-curl -s "http://localhost:8000/audit-log?from_date=2026-04-06T00:00:00&to_date=2026-04-07T00:00:00" \
+# Events from the previous 24 hours (UTC). Generate the window at query time
+# so the example does not depend on a historical date.
+FROM_DATE=$(python3 -c "from datetime import datetime, timedelta, timezone; print((datetime.now(timezone.utc) - timedelta(hours=24)).isoformat())")
+TO_DATE=$(python3 -c "from datetime import datetime, timezone; print(datetime.now(timezone.utc).isoformat())")
+curl -sG "http://localhost:8000/audit-log" \
+  --data-urlencode "from_date=$FROM_DATE" \
+  --data-urlencode "to_date=$TO_DATE" \
   -H "Authorization: Bearer $TOKEN" | python3 -m json.tool
 
 # Pagination
@@ -115,7 +136,7 @@ curl -s "http://localhost:8000/audit-log?limit=10&offset=0" \
   -H "Authorization: Bearer $TOKEN" | python3 -m json.tool
 ```
 
-### 8. Logout
+### 9. Logout
 
 ```bash
 curl -s -X POST http://localhost:8000/logout \
@@ -146,9 +167,11 @@ gateway = IAMGateway(
     user_store=provider,
     session_provider=provider,
     organization_provider=provider,
-    audit_handlers=[composite],
+    audit_config=AuditConfig(handlers=[composite]),
 )
 ```
+
+Import `AuditConfig` from `gl_iam.core` before constructing the gateway.
 
 ### Request Context Middleware
 
@@ -193,6 +216,21 @@ config = NativeConfig(
 ```
 
 The `DatabaseAuditHandler` writes events asynchronously in batches for zero latency impact on auth operations.
+
+### Persisted Event Coverage
+
+The following table describes the audit behavior for this example's supported
+`gl-iam>=0.3.15,<0.4.0` range. Verify behavior against the installed runtime
+when changing that dependency range:
+
+| Operation | Persisted audit behavior |
+| --- | --- |
+| Register | `user_created` |
+| Successful login | `login_success` |
+| Failed login | `login_error` with warning severity |
+| Logout | `logout` after successful session revocation |
+| Admin access denied | `require_org_admin()` emits `permission_denied` through the configured gateway before the exception handler returns 403 |
+| Password change | `credential_password_updated` on success; `credential_auth_failed` for a rejected current password |
 
 ## Advanced
 

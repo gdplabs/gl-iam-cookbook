@@ -14,7 +14,7 @@ You must use the explicit IAMGateway() constructor to wire audit handlers.
 import logging
 import os
 from contextlib import asynccontextmanager
-from datetime import datetime
+from datetime import datetime, timezone
 
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, Header, HTTPException, Query
@@ -248,10 +248,9 @@ async def admin_only(
 ):
     """Admin-only endpoint.
 
-    NOTE: require_org_admin() raises PermissionDeniedError directly and does
-    not go through IAMGateway._emit_audit_event, so denials here are NOT
-    currently persisted as permission_denied audit rows (SDK gap, not
-    something this example can wire up from route code).
+    ``require_org_admin()`` records ``permission_denied`` through the
+    configured IAMGateway before raising. The exception handler only shapes
+    the resulting 403 response.
     """
     return {"message": f"Welcome admin {user.email}"}
 
@@ -280,26 +279,20 @@ async def change_password(
     request: ChangePasswordRequest,
     user: User = Depends(get_current_user),
 ):
-    """Change password.
-
-    NOTE: IAMGateway has no set_user_password() wrapper, so this goes
-    through gateway.user_store.set_user_password() directly and does not
-    emit a credential_password_updated audit event (SDK gap: no gateway-level
-    audit hook exists for this operation).
-    """
+    """Change password through the audit-aware self-service gateway flow."""
     gateway = get_iam_gateway()
     org_id = os.getenv("DEFAULT_ORGANIZATION_ID", "default")
 
-    # Verify current password first
-    verify_result = await gateway.authenticate(
-        credentials=PasswordCredentials(email=user.email, password=request.current_password),
+    result = await gateway.change_password(
+        user.id,
+        request.current_password,
+        request.new_password,
         organization_id=org_id,
     )
-    if not verify_result.is_ok:
-        raise HTTPException(status_code=400, detail="Current password is incorrect")
+    if result.is_err:
+        raise HTTPException(status_code=400, detail=result.error.message)
 
-    await gateway.user_store.set_user_password(user.id, request.new_password, org_id)
-    return {"message": "Password changed successfully"}
+    return {"message": "Password changed successfully. Please sign in again."}
 
 
 # ============================================================================
@@ -326,6 +319,14 @@ async def get_audit_log(
 
     prov: NativeProvider = app.state.provider
     async with AsyncSession(prov.engine) as session:
+        # AuditEventModel.timestamp is stored as UTC without timezone metadata.
+        # FastAPI accepts ISO-8601 offsets, so normalize aware inputs to the
+        # database representation before comparing them.
+        if from_date and from_date.tzinfo is not None:
+            from_date = from_date.astimezone(timezone.utc).replace(tzinfo=None)
+        if to_date and to_date.tzinfo is not None:
+            to_date = to_date.astimezone(timezone.utc).replace(tzinfo=None)
+
         # Build query with optional filters
         query = select(AuditEventModel).order_by(AuditEventModel.timestamp.desc())
         count_query = select(func.count()).select_from(AuditEventModel)
