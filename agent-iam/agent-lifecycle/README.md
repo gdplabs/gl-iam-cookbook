@@ -86,6 +86,9 @@ curl -s -X POST http://localhost:8000/delegate \
 
 ### 6. Reactivate Agent
 
+Only the agent's owner or an `ORG_ADMIN` may reactivate it. Other organization
+members receive `403`.
+
 ```bash
 curl -s -X POST "http://localhost:8000/agents/$AGENT_ID/reactivate" \
   -H "Authorization: Bearer $TOKEN" | jq
@@ -144,7 +147,7 @@ ACTIVE ──suspend──> SUSPENDED ──reactivate──> ACTIVE
 | Concept | Description |
 |---------|-------------|
 | **Suspend** | Temporarily disables an agent; can be reactivated |
-| **Reactivate** | Re-enables a suspended agent through `IAMGateway` |
+| **Reactivate** | Re-enables a suspended agent through `IAMGateway`; restricted to the agent's owner or an `ORG_ADMIN` |
 | **Revoke** | Permanently disables an agent; cannot be undone |
 | **Audit Callback** | Captures all lifecycle events for compliance |
 
