@@ -34,7 +34,7 @@ TokenManager provides automatic token lifecycle management:
 
 ```bash
 # Clone or navigate to this directory
-cd gl-iam-cookbook/gl-iam/explorations/token-refresh-for-long-running-agents
+cd gl-iam-cookbook/explorations/token-refresh-for-long-running-agents
 
 # Run setup script
 chmod +x setup.sh
@@ -44,7 +44,7 @@ chmod +x setup.sh
 ### Windows
 
 ```batch
-cd gl-iam-cookbook\gl-iam\explorations\token-refresh-for-long-running-agents
+cd gl-iam-cookbook\explorations\token-refresh-for-long-running-agents
 setup.bat
 ```
 
