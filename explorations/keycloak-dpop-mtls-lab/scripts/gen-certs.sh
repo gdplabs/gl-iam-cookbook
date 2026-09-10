@@ -13,7 +13,7 @@
 #    - Used by clients to verify server, and by server to verify clients
 #
 # 2. Server Certificate:
-#    - Presented by Nginx during TLS handshake
+#    - Presented by Keycloak during TLS handshake
 #    - Allows clients to verify they're connecting to the right server
 #    - Includes SAN (Subject Alternative Name) for localhost
 #
@@ -38,6 +38,12 @@
 
 set -euo pipefail
 
+# Git Bash rewrites values such as /CN=lab-ca into Windows paths before OpenSSL
+# receives them. Those values are X.509 distinguished names, not file paths.
+if [[ -n "${MSYSTEM:-}" || "${OSTYPE:-}" == msys* ]]; then
+  export MSYS_NO_PATHCONV=1
+fi
+
 # Get the project root directory (parent of scripts/)
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUT_DIR="$ROOT_DIR/certs"
@@ -55,10 +61,13 @@ cd "$OUT_DIR"
 # - No password protection (-nodes) for lab convenience
 echo "Generating CA certificate..."
 openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes \
-  -keyout ca.key -out ca.crt -subj "/CN=lab-ca"
+  -keyout ca.key -out ca.crt -subj "/CN=lab-ca" \
+  -addext "basicConstraints=critical,CA:TRUE" \
+  -addext "keyUsage=critical,keyCertSign,cRLSign" \
+  -addext "subjectKeyIdentifier=hash"
 
 # ==============================================================================
-# 2. Server Certificate (for Nginx)
+# 2. Server Certificate (for Keycloak)
 # ==============================================================================
 # Generate a CSR (Certificate Signing Request) for the server
 echo "Generating server certificate..."
@@ -105,5 +114,5 @@ echo "Wrote CA, server, and client certs to $OUT_DIR"
 echo ""
 echo "Files created:"
 echo "  - ca.crt, ca.key        : Certificate Authority"
-echo "  - server.crt, server.key: Server certificate for Nginx"
+echo "  - server.crt, server.key: Server certificate for Keycloak"
 echo "  - client.crt, client.key: Client certificate for mTLS"

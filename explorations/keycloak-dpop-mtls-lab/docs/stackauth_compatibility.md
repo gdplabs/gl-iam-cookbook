@@ -149,7 +149,7 @@ Client → StackAuth → Bearer Token → Client adds DPoP → Resource Server
 
 | Feature            | StackAuth | Auth0 | Keycloak  |
 | ------------------ | --------- | ----- | --------- |
-| DPoP Support       | ❌        | ✅    | ✅ (v21+) |
+| DPoP Support       | ❌        | ✅    | ✅ (26.4+) |
 | mTLS Token Binding | ❌        | ✅    | ✅        |
 | Token Exchange     | ❌        | ✅    | ✅        |
 | Self-hosted        | ✅        | ❌    | ✅        |
