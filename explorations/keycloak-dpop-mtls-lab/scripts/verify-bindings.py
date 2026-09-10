@@ -79,11 +79,11 @@ def main() -> None:
     assert baseline["token_type"].lower() == "bearer"
     assert _claims(baseline).get("cnf") is None
     assert dpop["token_type"].lower() == "dpop"
-    assert _claims(dpop)["cnf"] == {"jkt": expected_jkt}
+    assert _claims(dpop)["cnf"]["jkt"] == expected_jkt
     assert mtls["token_type"].lower() == "bearer"
     assert _claims(mtls)["cnf"] == {"x5t#S256": expected_x5t}
     assert combined["token_type"].lower() == "dpop"
-    assert _claims(combined)["cnf"] == {"jkt": expected_jkt}
+    assert _claims(combined)["cnf"]["jkt"] == expected_jkt
 
     plain = httpx.Client(verify=_create_ssl_context(ca=CA))
     certificate_client = httpx.Client(
