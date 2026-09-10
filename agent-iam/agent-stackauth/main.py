@@ -28,6 +28,7 @@ from gl_iam import (
 from gl_iam.core.types.agent import AgentIdentity
 from gl_iam.core.types.delegation import DelegationChain
 from gl_iam.fastapi import (
+    add_exception_handlers,
     get_current_agent,
     get_current_user,
     get_delegation_chain,
@@ -86,6 +87,10 @@ app = FastAPI(
     description="GL-IAM Agent Delegation using Stack Auth authentication",
     lifespan=lifespan,
 )
+
+# Map GL-IAM errors (AuthenticationError, etc.) to proper HTTP status codes
+# instead of letting them surface as 500s.
+add_exception_handlers(app)
 
 
 # ============================================================================
