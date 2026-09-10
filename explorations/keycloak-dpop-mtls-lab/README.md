@@ -235,7 +235,7 @@ rm -rf certs/ dpop_private.pem dpop_public.jwk
 
 - `start-dev` is for this local lab only. Keycloak terminates HTTPS directly and
   requests client certificates so certificate-bound tokens can be issued.
-- The pinned Keycloak 26.4 release has supported DPoP enabled. The realm makes
+- The pinned Keycloak 26.7.3 release has supported DPoP enabled. The realm makes
   DPoP mandatory only for clients that are intended to receive DPoP tokens.
 - `combined-client` deliberately uses mTLS for client authentication and DPoP
   for token binding. It does not claim simultaneous `jkt` and `x5t#S256`
