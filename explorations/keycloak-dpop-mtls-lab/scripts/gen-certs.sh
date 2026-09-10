@@ -38,6 +38,12 @@
 
 set -euo pipefail
 
+# Git Bash rewrites values such as /CN=lab-ca into Windows paths before OpenSSL
+# receives them. Those values are X.509 distinguished names, not file paths.
+if [[ -n "${MSYSTEM:-}" || "${OSTYPE:-}" == msys* ]]; then
+  export MSYS_NO_PATHCONV=1
+fi
+
 # Get the project root directory (parent of scripts/)
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUT_DIR="$ROOT_DIR/certs"
@@ -55,7 +61,10 @@ cd "$OUT_DIR"
 # - No password protection (-nodes) for lab convenience
 echo "Generating CA certificate..."
 openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes \
-  -keyout ca.key -out ca.crt -subj "/CN=lab-ca"
+  -keyout ca.key -out ca.crt -subj "/CN=lab-ca" \
+  -addext "basicConstraints=critical,CA:TRUE" \
+  -addext "keyUsage=critical,keyCertSign,cRLSign" \
+  -addext "subjectKeyIdentifier=hash"
 
 # ==============================================================================
 # 2. Server Certificate (for Keycloak)
