@@ -36,6 +36,7 @@ from gl_iam import (
 )
 from gl_iam.core.types import PasswordCredentials, UserCreateInput
 from gl_iam.fastapi import (
+    add_exception_handlers,
     get_current_user,
     get_iam_gateway,
     set_iam_gateway,
@@ -110,6 +111,7 @@ app = FastAPI(
     description="User auth, ABAC, delegation token creation",
     lifespan=lifespan,
 )
+add_exception_handlers(app)
 
 
 # ============================================================================
