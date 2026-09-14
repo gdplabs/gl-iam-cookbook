@@ -59,9 +59,9 @@ ORCHESTRATOR_ID=$(echo $SETUP | jq -r '.orchestrator_id')
 WORKER_ID=$(echo $SETUP | jq -r '.worker_id')
 ```
 
-`/setup` is safe to run again for the same user and organization. It reuses
-the compatible active `orchestrator-agent` and `worker-agent` identities
-instead of creating duplicates. If existing demo data has different scopes,
+`/setup` is safe to run again within the same organization. It reuses the
+compatible active `orchestrator-agent` and `worker-agent` identities instead
+of creating duplicates. If existing demo data has different scopes,
 depth limits, or a non-active lifecycle state, use a clean organization or
 resolve that data before continuing.
 

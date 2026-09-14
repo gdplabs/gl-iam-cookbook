@@ -116,10 +116,9 @@ class DelegateResponse(BaseModel):
 
 
 async def get_or_register_demo_agent(gateway: IAMGateway, registration: AgentRegistration):
-    """Return this user's compatible demo agent, creating it on the first setup."""
+    """Return the organization's compatible demo agent, creating it on first setup."""
     existing_agents = await gateway.list_agents(
         organization_id=registration.operator_org_id,
-        owner_user_id=registration.owner_user_id,
         include_revoked=True,
     )
     existing = next((agent for agent in existing_agents if agent.name == registration.name), None)
@@ -220,7 +219,7 @@ async def setup_chain(user: User = Depends(get_current_user)):
     gateway = get_iam_gateway()
     org_id = os.getenv("DEFAULT_ORGANIZATION_ID", "default")
 
-    # Create the fixed demo identities once, then safely reuse the same user's
+    # Create the fixed demo identities once per organization, then safely reuse
     # compatible active identities on later setup calls.
     orchestrator = await get_or_register_demo_agent(
         gateway,
