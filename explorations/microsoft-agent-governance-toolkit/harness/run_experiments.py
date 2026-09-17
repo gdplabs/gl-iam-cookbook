@@ -79,11 +79,13 @@ def show_snapshot(payload: dict[str, Any]) -> None:
     if point == InterventionPoint.PRE_TOOL_CALL.value:
         call = snapshot.get("tool_call", {})
         args = call.get("args", {})
+        print("\n--- PRE-TOOL CALL: ACS snapshot and policy evaluation ---")
         print("[ACS] PRE_TOOL_CALL snapshot created")
         print(f"      Tool: {call.get('name', 'unknown')}")
         print(f"      Recipient: {args.get('to', 'n/a')}")
         print(f"      Body: {args.get('body', 'n/a')}")
     elif point == InterventionPoint.POST_TOOL_CALL.value:
+        print("\n--- POST-TOOL CALL: ACS result check ---")
         print("[ACS] POST_TOOL_CALL snapshot created")
         print(f"      Tool result: {snapshot.get('tool_result')}")
     else:
@@ -201,6 +203,7 @@ class FakeEmailTool:
 
     async def __call__(self, args: dict[str, str]) -> dict[str, Any]:
         self.calls.append(dict(args))
+        print("\n--- TOOL CALL: governed side effect ---")
         print("[ENFORCEMENT] Fake email tool executed.")
         print(f"              Sent to: {args['to']}")
         print(f"              Body: {args['body']}")
