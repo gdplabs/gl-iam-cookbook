@@ -123,7 +123,10 @@ limits. `run_official_demo.ps1` runs the selected native SDK validation and the
 local curated email example. `run_curated_examples.ps1` runs the local email
 and support-agent examples (`-Example email` or `-Example support` selects one).
 `run_boundary_demo.ps1` runs the exploration-owned custom harness, which now
-loads the local curated email policy. See
+loads the local curated email policy. Its console output presents the ACS
+snapshot, policy decision, enforcement outcome, and result for each case; raw
+JSON evidence is written to the ignored
+`evidence/runtime-output/boundary-demo.jsonl` file. See
 [`evidence/expected-output.md`](evidence/expected-output.md) for the expected
 result shape and the correct evidence interpretation.
 

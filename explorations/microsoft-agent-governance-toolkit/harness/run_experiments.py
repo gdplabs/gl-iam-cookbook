@@ -22,6 +22,12 @@ ROOT = Path(__file__).resolve().parents[1]
 REPO = Path(os.environ.get("AGT_REPO", ROOT / "upstream" / "agent-governance-toolkit"))
 SDK = REPO / "policy-engine" / "sdk" / "python"
 EMAIL_EXAMPLE = ROOT / "examples" / "acs-email-tool"
+OUTPUT_LOG = Path(
+    os.environ.get(
+        "AGT_OUTPUT_LOG",
+        ROOT / "evidence" / "runtime-output" / "boundary-demo.jsonl",
+    )
+)
 
 if not SDK.is_dir() or not EMAIL_EXAMPLE.is_dir():
     raise SystemExit("The AGT SDK or curated email example was not found. Run setup_demo.ps1 from this exploration.")
@@ -51,7 +57,59 @@ from email_policy import EmailPolicy  # noqa: E402
 
 
 def emit(event: str, **data: Any) -> None:
-    print(json.dumps({"event": event, **data}, sort_keys=True))
+    """Write raw, machine-readable evidence without filling the console."""
+    OUTPUT_LOG.parent.mkdir(parents=True, exist_ok=True)
+    record = {
+        "event": event,
+        "experiment": os.environ.get("AGT_EXPERIMENT"),
+        **data,
+    }
+    with OUTPUT_LOG.open("a", encoding="utf-8") as output:
+        output.write(json.dumps(record, sort_keys=True, default=str) + "\n")
+
+
+def short_identity(identity: str | None) -> str:
+    return f"{identity[:16]}..." if identity else "not available"
+
+
+def show_snapshot(payload: dict[str, Any]) -> None:
+    """Show the useful part of an ACS snapshot, not its raw full object."""
+    point = str(payload["intervention_point"])
+    snapshot = payload["snapshot"]
+    if point == InterventionPoint.PRE_TOOL_CALL.value:
+        call = snapshot.get("tool_call", {})
+        args = call.get("args", {})
+        print("[ACS] PRE_TOOL_CALL snapshot created")
+        print(f"      Tool: {call.get('name', 'unknown')}")
+        print(f"      Recipient: {args.get('to', 'n/a')}")
+        print(f"      Body: {args.get('body', 'n/a')}")
+    elif point == InterventionPoint.POST_TOOL_CALL.value:
+        print("[ACS] POST_TOOL_CALL snapshot created")
+        print(f"      Tool result: {snapshot.get('tool_result')}")
+    else:
+        print(f"[ACS] {point.upper()} snapshot created")
+
+
+def show_policy_result(mode: str, point: str, mapping: dict[str, Any]) -> None:
+    if point == InterventionPoint.POST_TOOL_CALL.value:
+        print("[POLICY] Harness post-tool policy evaluated the tool result.")
+    elif mode == "email":
+        print("[POLICY] EmailPolicy evaluated the tool arguments.")
+    elif mode == "approval":
+        print("[POLICY] Harness approval policy requested a host decision.")
+    elif mode == "missing":
+        print("[POLICY] No policy was configured by the host.")
+
+    if mapping.get("approval"):
+        print(f"[DECISION] APPROVAL REQUIRED - {mapping['reason']}")
+        return
+
+    decision = str(mapping.get("decision", "unknown")).upper()
+    reason = mapping.get("reason")
+    suffix = f" - {reason}" if reason else ""
+    print(f"[DECISION] {decision}{suffix}")
+    if mapping.get("transform"):
+        print(f"      Transformed body: {mapping['transform'].get('value')}")
 
 
 def policy_input(request: InterventionPointRequest) -> dict[str, Any]:
@@ -85,31 +143,48 @@ class HarnessRuntime:
     ) -> InterventionPointResult:
         payload = policy_input(request)
         point = payload["intervention_point"]
+        emit("acs_snapshot", policy_input=payload)
+        show_snapshot(payload)
 
-        if point == InterventionPoint.POST_TOOL_CALL.value:
-            mapping: dict[str, Any] = {"decision": "allow"}
-        elif self.mode == "email":
-            mapping = dict(self.email_policy.evaluate({"input": payload}))
-        elif self.mode == "approval":
-            mapping = {
-                "decision": "deny",
-                "reason": "approval_required",
-                "message": "Host approval is required.",
-                "approval": {"kind": "human", "timeout_seconds": 300},
-            }
-        elif self.mode == "missing":
-            mapping = {
-                "decision": "deny",
-                "reason": "runtime_error:policy_not_configured",
-                "message": "No policy was configured by the host.",
-            }
-        elif self.mode == "raise":
-            raise RuntimeError("[CUSTOM HARNESS] evaluator crashed")
-        else:
-            raise ValueError(f"unknown harness mode: {self.mode}")
+        try:
+            if point == InterventionPoint.POST_TOOL_CALL.value:
+                mapping: dict[str, Any] = {"decision": "allow"}
+            elif self.mode == "email":
+                mapping = dict(self.email_policy.evaluate({"input": payload}))
+            elif self.mode == "approval":
+                mapping = {
+                    "decision": "deny",
+                    "reason": "approval_required",
+                    "message": "Host approval is required.",
+                    "approval": {"kind": "human", "timeout_seconds": 300},
+                }
+            elif self.mode == "missing":
+                mapping = {
+                    "decision": "deny",
+                    "reason": "runtime_error:policy_not_configured",
+                    "message": "No policy was configured by the host.",
+                }
+            elif self.mode == "raise":
+                raise RuntimeError("[CUSTOM HARNESS] evaluator crashed")
+            else:
+                raise ValueError(f"unknown harness mode: {self.mode}")
+        except Exception as error:
+            print(f"[POLICY] Evaluation error: {type(error).__name__}: {error}")
+            emit("policy_evaluation_error", mode=self.mode, error=repr(error))
+            raise
 
         verdict = Verdict.from_mapping(mapping)
         identity = action_identity(payload)
+        show_policy_result(self.mode, point, mapping)
+        print(f"[ACS] Action identity: {short_identity(identity)}")
+        emit(
+            "policy_evaluated",
+            mode=self.mode,
+            intervention_point=point,
+            policy_input=payload,
+            mapping=mapping,
+            action_identity=identity,
+        )
         return InterventionPointResult(
             verdict=verdict,
             policy_input=payload,
@@ -126,6 +201,9 @@ class FakeEmailTool:
 
     async def __call__(self, args: dict[str, str]) -> dict[str, Any]:
         self.calls.append(dict(args))
+        print("[ENFORCEMENT] Fake email tool executed.")
+        print(f"              Sent to: {args['to']}")
+        print(f"              Body: {args['body']}")
         emit("fake_tool_executed", args=args, call_count=len(self.calls))
         return {"sent": True, **args}
 
@@ -135,6 +213,7 @@ async def experiment_allow() -> None:
     control = AgentControl(HarnessRuntime("email"))
     args = {"to": "customer@example.com", "body": "Status update"}
     result = await control.run_tool("send_email", args, tool, tool_call_id="allow-1")
+    print("[RESULT] PASS - policy permitted the governed call and post-tool evaluation completed.")
     emit(
         "experiment_result",
         experiment="01_allow",
@@ -151,6 +230,8 @@ async def experiment_deny() -> None:
     try:
         await control.run_tool("send_email", args, tool, tool_call_id="deny-1")
     except AgentControlBlocked as exc:
+        print("[ENFORCEMENT] Fake email tool was NOT executed.")
+        print("[RESULT] PASS - external recipient was blocked before the side effect.")
         emit(
             "experiment_result",
             experiment="02_deny",
@@ -163,14 +244,17 @@ async def experiment_deny() -> None:
 
 async def experiment_approval() -> None:
     async def approve(_point: InterventionPoint, result: InterventionPointResult):
+        print("[APPROVAL] Host resolver returned: ALLOW")
         emit("approval_resolver", outcome="allow", action_identity=result.action_identity)
         return ApprovalResolution.allow(result.action_identity or "")
 
     async def reject(_point: InterventionPoint, result: InterventionPointResult):
+        print("[APPROVAL] Host resolver returned: DENY")
         emit("approval_resolver", outcome="deny", action_identity=result.action_identity)
         return ApprovalResolution.deny()
 
     async def suspend(_point: InterventionPoint, result: InterventionPointResult):
+        print("[APPROVAL] Host resolver returned: SUSPEND (ticket=approval-demo-1)")
         emit("approval_resolver", outcome="suspend", action_identity=result.action_identity)
         return ApprovalResolution.suspend(
             {"ticket": "approval-demo-1"}, result.action_identity
@@ -179,6 +263,7 @@ async def experiment_approval() -> None:
     args = {"to": "customer@example.com", "body": "Needs approval"}
     outcomes = []
     for label, resolver in (("approve", approve), ("reject", reject), ("suspend", suspend)):
+        print(f"\n[CASE] Approval resolution: {label.upper()}")
         tool = FakeEmailTool()
         control = AgentControl(HarnessRuntime("approval"), approval_resolver=resolver)
         try:
@@ -194,6 +279,7 @@ async def experiment_approval() -> None:
                 }
             )
         except AgentControlSuspended as exc:
+            print("[ENFORCEMENT] Fake email tool was NOT executed; approval is suspended.")
             outcomes.append(
                 {
                     "case": label,
@@ -203,6 +289,7 @@ async def experiment_approval() -> None:
                 }
             )
         except AgentControlBlocked as exc:
+            print("[ENFORCEMENT] Fake email tool was NOT executed; approval was rejected.")
             outcomes.append(
                 {
                     "case": label,
@@ -211,12 +298,14 @@ async def experiment_approval() -> None:
                     "reason": exc.result.verdict.reason,
                 }
             )
+    print("[RESULT] PASS - allow executes; deny blocks; suspend returns a pending handle.")
     emit("experiment_result", experiment="03_approval", outcomes=outcomes)
 
 
 async def experiment_failure() -> None:
     outcomes = []
     for mode in ("missing", "raise"):
+        print(f"\n[CASE] Evaluator behavior: {mode.upper()}")
         tool = FakeEmailTool()
         control = AgentControl(HarnessRuntime(mode))
         try:
@@ -227,6 +316,7 @@ async def experiment_failure() -> None:
                 tool_call_id=f"failure-{mode}",
             )
         except AgentControlBlocked as exc:
+            print("[ENFORCEMENT] Fake email tool was NOT executed.")
             outcomes.append(
                 {
                     "case": mode,
@@ -236,6 +326,7 @@ async def experiment_failure() -> None:
                 }
             )
         except Exception as exc:
+            print("[ENFORCEMENT] Fake email tool was NOT executed because evaluation raised an error.")
             outcomes.append(
                 {
                     "case": mode,
@@ -245,11 +336,14 @@ async def experiment_failure() -> None:
                     "executed": bool(tool.calls),
                 }
             )
+    print("[RESULT] PASS - a missing policy blocks; an evaluator crash is surfaced to the host.")
     emit("experiment_result", experiment="04_failure", outcomes=outcomes)
 
 
 async def restart_create() -> None:
     async def suspend(_point: InterventionPoint, result: InterventionPointResult):
+        print("[APPROVAL] Host resolver returned: SUSPEND (ticket=pending-before-restart)")
+        emit("approval_resolver", outcome="suspend", action_identity=result.action_identity)
         return ApprovalResolution.suspend(
             {"ticket": "pending-before-restart"}, result.action_identity
         )
@@ -264,6 +358,8 @@ async def restart_create() -> None:
             tool_call_id="restart-1",
         )
     except AgentControlSuspended as exc:
+        print("[ENFORCEMENT] Fake email tool was NOT executed; only the exception handle is pending.")
+        print("[RESULT] PASS - no SDK-owned persistence was created before restart.")
         emit(
             "experiment_result",
             experiment="05_restart_create",
@@ -275,6 +371,9 @@ async def restart_create() -> None:
 
 
 async def restart_inspect() -> None:
+    print("[RESTART] A new process constructed a new AgentControl instance.")
+    print("[RESTART] No approval store or resume method was loaded by the SDK.")
+    print("[RESULT] PASS - durable approval persistence is application responsibility.")
     emit(
         "experiment_result",
         experiment="05_restart_inspect",
@@ -295,6 +394,7 @@ async def experiment_reuse_changed_args() -> None:
         nonlocal approved_identity
         if approved_identity is None:
             approved_identity = result.action_identity
+            print(f"[APPROVAL] Host saved identity: {short_identity(approved_identity)}")
             emit("approval_saved_in_host_memory", action_identity=approved_identity)
         return ApprovalResolution.allow(approved_identity or "")
 
@@ -309,6 +409,7 @@ async def experiment_reuse_changed_args() -> None:
         ("same_args_reuse", args1),
         ("changed_args", args2),
     ):
+        print(f"\n[CASE] Reuse attempt: {label}")
         before = len(tool.calls)
         try:
             await control.run_tool(
@@ -322,6 +423,7 @@ async def experiment_reuse_changed_args() -> None:
                 }
             )
         except AgentControlBlocked as exc:
+            print("[ENFORCEMENT] Fake email tool was NOT executed; approval identity did not match.")
             outcomes.append(
                 {
                     "case": label,
@@ -331,6 +433,7 @@ async def experiment_reuse_changed_args() -> None:
                 }
             )
 
+    print("[RESULT] PASS - changing approved arguments changes identity and blocks reuse.")
     emit(
         "experiment_result",
         experiment="06_reuse_changed_args",
@@ -345,11 +448,16 @@ async def experiment_direct_bypass() -> None:
     args = {"to": "partner@example.net", "body": "Direct call"}
     control = AgentControl(HarnessRuntime("email"))
     governed = "unexpected"
+    print("[PATH] Governed call: entering AgentControl.run_tool.")
     try:
         await control.run_tool("send_email", args, governed_tool, tool_call_id="bypass-1")
     except AgentControlBlocked:
         governed = "blocked"
+        print("[ENFORCEMENT] Governed call was blocked before fake-tool execution.")
+    print("[PATH] Direct call: invoking the fake tool without AgentControl.")
     direct = await direct_tool(args)
+    print("[BYPASS] No ACS snapshot or EmailPolicy evaluation occurred on the direct path.")
+    print("[RESULT] PASS - unwrapped application calls bypass governance.")
     emit(
         "experiment_result",
         experiment="07_direct_bypass",

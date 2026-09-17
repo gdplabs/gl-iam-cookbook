@@ -22,6 +22,12 @@ email.
 
 ## Custom boundary path
 
+The console presents a readable, ordered flow for each case: the relevant ACS
+snapshot, policy evaluation, decision, enforcement, and final result. Raw
+machine-readable events are not printed to the console. They are written as
+JSON Lines to the ignored `evidence/runtime-output/boundary-demo.jsonl` file,
+which is replaced on each complete boundary run.
+
 `run_boundary_demo.ps1` runs these experiments:
 
 | ID | Expected observation | Interpretation |
