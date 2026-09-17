@@ -128,4 +128,4 @@ if ($LASTEXITCODE -ne 0) {
     throw "The native ACS extension could not be imported."
 }
 
-Write-Host "Setup complete. Run .\run_official_demo.ps1 next." -ForegroundColor Green
+Write-Host "Setup complete. Run .\run_official_demo.ps1, .\run_curated_examples.ps1, or .\run_boundary_demo.ps1 next." -ForegroundColor Green

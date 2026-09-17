@@ -21,10 +21,10 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 REPO = Path(os.environ.get("AGT_REPO", ROOT / "upstream" / "agent-governance-toolkit"))
 SDK = REPO / "policy-engine" / "sdk" / "python"
-EMAIL_EXAMPLE = REPO / "examples" / "acs-email-tool"
+EMAIL_EXAMPLE = ROOT / "examples" / "acs-email-tool"
 
 if not SDK.is_dir() or not EMAIL_EXAMPLE.is_dir():
-    raise SystemExit("AGT source was not found. Run setup_demo.ps1 or set AGT_REPO.")
+    raise SystemExit("The AGT SDK or curated email example was not found. Run setup_demo.ps1 from this exploration.")
 
 sys.path.insert(0, str(SDK))
 sys.path.insert(0, str(EMAIL_EXAMPLE))

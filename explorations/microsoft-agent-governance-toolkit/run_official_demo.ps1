@@ -4,7 +4,7 @@ $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repo = Join-Path $root "upstream\agent-governance-toolkit"
 $sdkPython = Join-Path $repo "policy-engine\sdk\python"
-$example = Join-Path $repo "examples\acs-email-tool"
+$example = Join-Path $root "examples\acs-email-tool"
 $python = Join-Path $root ".venv\Scripts\python.exe"
 
 if (-not (Test-Path -LiteralPath $python) -or -not (Test-Path -LiteralPath $repo)) {
@@ -35,16 +35,16 @@ try {
     Pop-Location
 }
 
-Write-Host "Running the official ACS email example..." -ForegroundColor Cyan
+Write-Host "Running the curated, commit-pinned ACS email example..." -ForegroundColor Cyan
 Push-Location $example
 try {
     & $python -m pytest -q -p no:cacheprovider
     if ($LASTEXITCODE -ne 0) {
-        throw "The official email example tests failed."
+        throw "The curated email example tests failed."
     }
     & $python run.py
     if ($LASTEXITCODE -ne 0) {
-        throw "The official email example failed."
+        throw "The curated email example failed."
     }
 } finally {
     Pop-Location

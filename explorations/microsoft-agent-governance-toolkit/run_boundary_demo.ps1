@@ -19,4 +19,4 @@ foreach ($experiment in @("01", "02", "03", "04", "05-create", "05-inspect", "06
     }
 }
 
-Write-Host "Boundary path complete. This custom harness demonstrates host/application responsibilities, not native evaluator behavior." -ForegroundColor Green
+Write-Host "Boundary path complete. The harness used the curated email policy and demonstrates host/application responsibilities, not native evaluator behavior." -ForegroundColor Green

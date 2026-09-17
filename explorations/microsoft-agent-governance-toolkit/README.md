@@ -35,6 +35,7 @@ not run as one complete runtime stack.
 | Native ACS path | The Rust-backed ACS Python extension built and imported on Windows with Python 3.11, Rust 1.89 MSVC, and Maturin 1.8.7. | Runtime-tested locally. |
 | SDK validation | The selected Windows test command completed with 253 passed, 34 skipped, 1 deselected, and 52 subtests passed. | The deselected test expects the POSIX executable `/bin/true`; this is not a claim that every cross-platform test passed. |
 | Official email example | A governed fake email tool was allowed, transformed, or denied. Transform redacted a tracking token before the fake tool executed; deny prevented execution. | Runtime-tested locally; no real email was sent. |
+| Curated support-agent example | A local, deterministic ACS example covers input, pre-tool, post-tool, and output policies with Rego and OPA. | Retained as a commit-pinned upstream example; its run is separate from the original recorded email result. |
 | Approval and restart | Approval resolution, pending-state restart, changed-argument reuse, and direct bypass were explored through a custom harness. | The harness examines host/application responsibility; it is not an official AGT sample and does not prove native evaluator behavior. |
 | OPA / Rego | The SDK validation path exercised policy artifact validation with a local OPA executable. | The official email example itself uses a custom Python policy, not Rego for its allow/transform/deny decisions. |
 | Dashboard | The reference Streamlit dashboard uses generated demo data. | It is not a live feed from the email example or the boundary harness. |
@@ -45,16 +46,24 @@ not run as one complete runtime stack.
 microsoft-agent-governance-toolkit/
 ├── README.md
 ├── setup_demo.ps1             # clone/pin AGT and build the native Python extension
-├── run_official_demo.ps1      # selected SDK validation + official email example
+├── run_official_demo.ps1      # selected SDK validation + curated upstream email example
+├── run_curated_examples.ps1   # run the local email and support-agent examples
 ├── run_boundary_demo.ps1      # run the seven custom host-boundary experiments
+├── examples/
+│   ├── UPSTREAM_NOTICE.md      # upstream source locations and MIT notice
+│   ├── acs-email-tool/         # local copy of AGT's ACS email example
+│   └── support_agent/          # local copy of AGT's Rego/OPA support example
 ├── harness/
 │   └── run_experiments.py     # exploration-owned custom runtime and fake tool
 └── evidence/
     └── expected-output.md      # recorded output shape and interpretation
 ```
 
-The scripts download the upstream source into the ignored `upstream/` folder
-and create an ignored `.venv/`. Neither generated directory is committed.
+The scripts download the policy-engine source into the ignored `upstream/`
+folder and create an ignored `.venv/`. The selected example source is retained
+locally under `examples/` so it can be run and later instrumented without
+copying the entire AGT repository. The curated copies retain the upstream MIT
+notice and their source locations in `examples/UPSTREAM_NOTICE.md`.
 
 ## Upstream source map
 
@@ -86,9 +95,9 @@ so allowed executions also pass through `post_tool_call`, but its custom
 post-tool policy is an unconditional `allow`. It therefore verifies the
 orchestration path, not content-based post-tool redaction or denial. Those
 controls are useful when a result must be checked, changed, or withheld before
-reaching an agent or user. For example, the upstream
-`policy-engine/examples/support_agent` source configures post-tool policy for
-PII in a tool result.
+reaching an agent or user. The local curated `examples/support_agent` example
+provides a deterministic Rego/OPA path with post-tool policy for PII in a tool
+result.
 
 ## Reproduction baseline
 
@@ -102,6 +111,7 @@ From this folder, run:
 ```powershell
 .\setup_demo.ps1
 .\run_official_demo.ps1
+.\run_curated_examples.ps1
 .\run_boundary_demo.ps1
 ```
 
@@ -110,8 +120,10 @@ creates `.venv`, selects Rust 1.89 MSVC, and builds the ACS extension with
 Maturin 1.8.7. On Windows, Cargo build artifacts are placed in the shorter
 `%LOCALAPPDATA%\agt-acs-cargo-target` directory to avoid MSVC linker path
 limits. `run_official_demo.ps1` runs the selected native SDK validation and the
-upstream email example. `run_boundary_demo.ps1` runs the
-exploration-owned custom harness. See
+local curated email example. `run_curated_examples.ps1` runs the local email
+and support-agent examples (`-Example email` or `-Example support` selects one).
+`run_boundary_demo.ps1` runs the exploration-owned custom harness, which now
+loads the local curated email policy. See
 [`evidence/expected-output.md`](evidence/expected-output.md) for the expected
 result shape and the correct evidence interpretation.
 
