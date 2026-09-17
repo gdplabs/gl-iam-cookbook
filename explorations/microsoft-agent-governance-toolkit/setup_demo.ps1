@@ -12,6 +12,7 @@ $repo = Join-Path $upstreamRoot "agent-governance-toolkit"
 $policyEngine = Join-Path $repo "policy-engine"
 $sdkPython = Join-Path $policyEngine "sdk\python"
 $venv = Join-Path $root ".venv"
+$cargoTarget = Join-Path $env:LOCALAPPDATA "agt-acs-cargo-target"
 
 foreach ($command in @("git", "py", "rustup")) {
     if (-not (Get-Command $command -ErrorAction SilentlyContinue)) {
@@ -101,6 +102,12 @@ try {
 }
 
 Write-Host "[5/6] Building and installing the native ACS Python extension..." -ForegroundColor Cyan
+# link.exe can fail to create build-script executables when Cargo writes its
+# target directory beneath a deeply nested Windows checkout. Keep only build
+# artifacts in a short local path; the checked-out AGT source remains in this
+# exploration folder.
+New-Item -ItemType Directory -Path $cargoTarget -Force | Out-Null
+$env:CARGO_TARGET_DIR = $cargoTarget
 Push-Location $sdkPython
 try {
     & $python -m maturin develop --release

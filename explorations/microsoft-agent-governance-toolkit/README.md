@@ -107,8 +107,10 @@ From this folder, run:
 
 `setup_demo.ps1` clones the Microsoft repository, checks out the pinned commit,
 creates `.venv`, selects Rust 1.89 MSVC, and builds the ACS extension with
-Maturin 1.8.7. `run_official_demo.ps1` runs the selected native SDK validation
-and the upstream email example. `run_boundary_demo.ps1` runs the
+Maturin 1.8.7. On Windows, Cargo build artifacts are placed in the shorter
+`%LOCALAPPDATA%\agt-acs-cargo-target` directory to avoid MSVC linker path
+limits. `run_official_demo.ps1` runs the selected native SDK validation and the
+upstream email example. `run_boundary_demo.ps1` runs the
 exploration-owned custom harness. See
 [`evidence/expected-output.md`](evidence/expected-output.md) for the expected
 result shape and the correct evidence interpretation.
