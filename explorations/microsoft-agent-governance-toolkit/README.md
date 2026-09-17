@@ -113,6 +113,10 @@ exploration-owned custom harness. See
 [`evidence/expected-output.md`](evidence/expected-output.md) for the expected
 result shape and the correct evidence interpretation.
 
+The setup script enables Git long-path support for its local AGT checkout. If
+Windows still rejects a checkout because of a path-length policy, enable
+long-path support in Windows or clone the cookbook into a shorter directory.
+
 The result should be interpreted as an exploration baseline, not a production
 deployment recipe.
 

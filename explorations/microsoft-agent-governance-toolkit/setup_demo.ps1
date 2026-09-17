@@ -33,15 +33,26 @@ if (-not $opaPath -or -not (Test-Path -LiteralPath $opaPath)) {
 Write-Host "[1/6] Fetching the pinned AGT source..." -ForegroundColor Cyan
 New-Item -ItemType Directory -Path $upstreamRoot -Force | Out-Null
 if (-not (Test-Path -LiteralPath (Join-Path $repo ".git"))) {
-    & git clone https://github.com/microsoft/agent-governance-toolkit.git $repo
-    if ($LASTEXITCODE -ne 0) {
+    # AGT contains paths that can exceed the legacy Windows path limit when the
+    # cookbook itself is checked out deeply. Apply the setting for the initial
+    # checkout, then persist it locally below for repeat runs.
+    & git -c core.longpaths=true clone https://github.com/microsoft/agent-governance-toolkit.git $repo
+    $cloneExitCode = $LASTEXITCODE
+    if ($cloneExitCode -ne 0 -and -not (Test-Path -LiteralPath (Join-Path $repo ".git"))) {
         throw "Failed to clone the AGT repository."
+    }
+    if ($cloneExitCode -ne 0) {
+        Write-Warning "Git created a partial checkout. Continuing with long-path support enabled."
     }
 }
 
 $origin = (& git -C $repo remote get-url origin).Trim()
 if ($LASTEXITCODE -ne 0 -or $origin -notmatch "microsoft/agent-governance-toolkit(?:\.git)?$") {
     throw "The existing upstream/agent-governance-toolkit folder is not the expected Microsoft AGT checkout."
+}
+& git -C $repo config core.longpaths true
+if ($LASTEXITCODE -ne 0) {
+    throw "Failed to enable Git long-path support for the AGT checkout."
 }
 & git -C $repo fetch origin $AgtCommit
 if ($LASTEXITCODE -ne 0) {
