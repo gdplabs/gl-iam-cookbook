@@ -61,6 +61,7 @@ gl-iam-cookbook/
 │   ├── django-keycloak/           # Django + Keycloak enterprise SSO
 │   ├── django-stackauth/          # Django + Stack Auth
 │   ├── rbac-showcase/             # RBAC with multi-provider support
+│   ├── fastapi-refresh-tokens/    # Refresh tokens, per-login lifetime, device sign-out
 │   ├── rbac-dynamic-roles/       # Multi-tenant custom roles managed at runtime
 │   ├── api-key-hierarchy/         # API key management with SOLID patterns
 │   ├── dpop-keycloak/             # DPoP token binding with Keycloak
@@ -122,6 +123,7 @@ Each Django example demonstrates three view patterns:
 | Example | Description | Features |
 |---------|-------------|----------|
 | [rbac-showcase](traditional-iam/rbac-showcase/) | RBAC with multi-provider support | Role mapping, hierarchy, SIMI pattern |
+| [fastapi-refresh-tokens](traditional-iam/fastapi-refresh-tokens/) | Refresh tokens with the Native provider | Opt-in refresh tokens, per-login access-token lifetime, device list, per-device and per-organization sign-out |
 | [rbac-dynamic-roles](traditional-iam/rbac-dynamic-roles/) | Multi-tenant dynamic role management | Custom role & permission CRUD, per-org scoping, assign/remove, deactivate vs delete |
 | [api-key-hierarchy](traditional-iam/api-key-hierarchy/) | API key management with SOLID patterns | 3-tier API keys, scope-based authorization |
 | [dpop-keycloak](traditional-iam/dpop-keycloak/) | DPoP token binding with Keycloak | Proof-of-possession, replay protection |
