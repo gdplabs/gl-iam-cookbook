@@ -33,6 +33,7 @@ which is replaced on each complete boundary run.
 | ID | Expected observation | Interpretation |
 | --- | --- | --- |
 | 01 | Allowed call executes once. | Governed host path can permit execution. |
+| 01-transform | `TRACK-123` is changed to `[REDACTED]` before the fake tool executes. | The host applies a pre-tool transform to the tool arguments. |
 | 02 | Denied call executes zero times. | Denial blocks the wrapped fake tool. |
 | 03 | Approval resolver can allow, deny, or suspend. | Approval resolution is supplied by the host application. |
 | 04 | Missing policy fails closed; a custom runtime exception propagates. | Failure handling depends on both SDK behavior and the host boundary. |

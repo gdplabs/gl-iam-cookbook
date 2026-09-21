@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+from copy import deepcopy
 import json
 import os
 import sys
@@ -114,6 +115,35 @@ def show_policy_result(mode: str, point: str, mapping: dict[str, Any]) -> None:
         print(f"      Transformed body: {mapping['transform'].get('value')}")
 
 
+def transformed_target(
+    payload: dict[str, Any], verdict: Verdict
+) -> dict[str, Any] | None:
+    """Materialize the single-target transform returned by EmailPolicy.
+
+    The custom harness substitutes the native evaluator, so it must explicitly
+    expose the transformed policy target expected by ``AgentControl.run_tool``.
+    This supports the local email policy's ``$policy_target.body`` transform;
+    it is not evidence that the native evaluator executed.
+    """
+    transform = verdict.transform
+    target = payload["policy_target"]["value"]
+    if transform is None or not isinstance(target, dict):
+        return None
+    prefix = "$policy_target."
+    if not transform.path.startswith(prefix):
+        raise ValueError(f"unsupported transform path: {transform.path}")
+    keys = transform.path.removeprefix(prefix).split(".")
+    output = deepcopy(target)
+    cursor: dict[str, Any] = output
+    for key in keys[:-1]:
+        child = cursor.get(key)
+        if not isinstance(child, dict):
+            raise ValueError(f"transform path does not resolve: {transform.path}")
+        cursor = child
+    cursor[keys[-1]] = transform.value
+    return output
+
+
 def policy_input(request: InterventionPointRequest) -> dict[str, Any]:
     point = (
         request.intervention_point.value
@@ -176,22 +206,33 @@ class HarnessRuntime:
             raise
 
         verdict = Verdict.from_mapping(mapping)
-        identity = action_identity(payload)
+        input_identity = action_identity(payload)
+        transformed = transformed_target(payload, verdict)
+        effective_payload = deepcopy(payload)
+        if transformed is not None:
+            effective_payload["policy_target"]["value"] = transformed
+        enforced_identity = action_identity(effective_payload)
         show_policy_result(self.mode, point, mapping)
-        print(f"[ACS] Action identity: {short_identity(identity)}")
+        if transformed is not None:
+            print("[ACS] Transform applied to the policy target before the tool call.")
+        print(f"[ACS] Action identity: {short_identity(enforced_identity)}")
         emit(
             "policy_evaluated",
             mode=self.mode,
             intervention_point=point,
             policy_input=payload,
             mapping=mapping,
-            action_identity=identity,
+            input_identity=input_identity,
+            action_identity=enforced_identity,
+            transformed_policy_target=transformed,
         )
         return InterventionPointResult(
             verdict=verdict,
+            transformed_policy_target=transformed,
+            transformed_policy_target_applied=transformed is not None,
             policy_input=payload,
-            input_identity=identity,
-            enforced_identity=identity,
+            input_identity=input_identity,
+            enforced_identity=enforced_identity,
         )
 
 
@@ -222,6 +263,31 @@ async def experiment_allow() -> None:
         experiment="01_allow",
         decision=result.pre_tool_call_result.verdict.decision.value,
         executed=len(tool.calls) == 1,
+        output=result.value,
+    )
+
+
+async def experiment_transform() -> None:
+    tool = FakeEmailTool()
+    control = AgentControl(HarnessRuntime("email"))
+    args = {
+        "to": "customer@example.com",
+        "body": "Your case is ready. Tracking token: TRACK-123",
+    }
+    result = await control.run_tool(
+        "send_email", args, tool, tool_call_id="transform-1"
+    )
+    transformed_body = "Your case is ready. Tracking token: [REDACTED]"
+    if len(tool.calls) != 1 or tool.calls[0]["body"] != transformed_body:
+        raise RuntimeError("ACS transform was not applied before fake-tool execution")
+    print("[RESULT] PASS - ACS transformed TRACK-123 before the fake email tool executed.")
+    emit(
+        "experiment_result",
+        experiment="01_transform",
+        decision=result.pre_tool_call_result.verdict.decision.value,
+        executed=True,
+        original_body=args["body"],
+        enforced_body=tool.calls[0]["body"],
         output=result.value,
     )
 
@@ -475,6 +541,7 @@ async def experiment_direct_bypass() -> None:
 async def run_named(name: str) -> None:
     experiments = {
         "01": experiment_allow,
+        "01-transform": experiment_transform,
         "02": experiment_deny,
         "03": experiment_approval,
         "04": experiment_failure,
@@ -489,7 +556,7 @@ async def run_named(name: str) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("experiment", choices=[
-        "01", "02", "03", "04", "05-create", "05-inspect", "06", "07"
+        "01", "01-transform", "02", "03", "04", "05-create", "05-inspect", "06", "07"
     ])
     args = parser.parse_args()
     asyncio.run(run_named(args.experiment))

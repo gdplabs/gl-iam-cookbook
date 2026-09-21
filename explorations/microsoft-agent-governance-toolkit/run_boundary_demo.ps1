@@ -19,6 +19,7 @@ $env:AGT_OUTPUT_LOG = $outputLog
 
 $experiments = [ordered]@{
     "01" = "Governed email allow"
+    "01-transform" = "Governed email transform"
     "02" = "External recipient deny"
     "03" = "Approval resolution boundary"
     "04" = "Policy failure behavior"

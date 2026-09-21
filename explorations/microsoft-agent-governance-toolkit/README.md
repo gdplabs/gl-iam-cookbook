@@ -48,7 +48,7 @@ microsoft-agent-governance-toolkit/
 ├── setup_demo.ps1             # clone/pin AGT and build the native Python extension
 ├── run_official_demo.ps1      # selected SDK validation + curated upstream email example
 ├── run_curated_examples.ps1   # run the local email and support-agent examples
-├── run_boundary_demo.ps1      # run the seven custom host-boundary experiments
+├── run_boundary_demo.ps1      # run the eight custom host-boundary experiments
 ├── examples/
 │   ├── UPSTREAM_NOTICE.md      # upstream source locations and MIT notice
 │   ├── acs-email-tool/         # local copy of AGT's ACS email example
