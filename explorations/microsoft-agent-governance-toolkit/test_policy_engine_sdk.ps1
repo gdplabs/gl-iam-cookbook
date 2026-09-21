@@ -4,7 +4,6 @@ $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $repo = Join-Path $root "upstream\agent-governance-toolkit"
 $sdkPython = Join-Path $repo "policy-engine\sdk\python"
-$example = Join-Path $root "examples\acs-email-tool"
 $python = Join-Path $root ".venv\Scripts\python.exe"
 
 if (-not (Test-Path -LiteralPath $python) -or -not (Test-Path -LiteralPath $repo)) {
@@ -24,7 +23,7 @@ if (-not $opaPath -or -not (Test-Path -LiteralPath $opaPath)) {
 $env:Path = "$(Split-Path -Parent $opaPath);$env:Path"
 $env:ACS_OPA_PATH = $opaPath
 
-Write-Host "Running the selected native SDK validation..." -ForegroundColor Cyan
+Write-Host "Validating the policy-engine dependency (native ACS extension + SDK test suite)..." -ForegroundColor Cyan
 Push-Location $sdkPython
 try {
     & $python -m pytest -q tests -k "not rejects_non_opa_executable" -p no:cacheprovider
@@ -35,19 +34,4 @@ try {
     Pop-Location
 }
 
-Write-Host "Running the curated, commit-pinned ACS email example..." -ForegroundColor Cyan
-Push-Location $example
-try {
-    & $python -m pytest -q -p no:cacheprovider
-    if ($LASTEXITCODE -ne 0) {
-        throw "The curated email example tests failed."
-    }
-    & $python run.py
-    if ($LASTEXITCODE -ne 0) {
-        throw "The curated email example failed."
-    }
-} finally {
-    Pop-Location
-}
-
-Write-Host "Official path complete: allow and transform execute; deny does not execute the fake email tool." -ForegroundColor Green
+Write-Host "Policy-engine dependency validated: native extension imported and SDK tests passed. The one deselected test expects the POSIX executable /bin/true." -ForegroundColor Green

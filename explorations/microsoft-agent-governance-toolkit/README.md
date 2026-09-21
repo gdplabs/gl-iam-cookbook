@@ -45,14 +45,15 @@ not run as one complete runtime stack.
 ```text
 microsoft-agent-governance-toolkit/
 ├── README.md
-├── setup_demo.ps1             # clone/pin AGT and build the native Python extension
-├── run_official_demo.ps1      # selected SDK validation + curated upstream email example
-├── run_curated_examples.ps1   # run the local email and support-agent examples
-├── run_boundary_demo.ps1      # run the eight custom host-boundary experiments
+├── setup_demo.ps1              # clone/pin AGT and build the native Python extension
+├── test_policy_engine_sdk.ps1  # run the native ACS SDK's own test suite (dependency check only)
+├── run_upstream_example.ps1    # run Microsoft's unmodified example straight from the pinned clone
+├── run_official_logging.ps1    # allow / transform / deny, narrated, via AgentControl.run_tool
+├── run_boundary_logging.ps1    # approval, failure, restart, reuse and bypass, narrated
 ├── examples/
 │   ├── UPSTREAM_NOTICE.md      # upstream source locations and MIT notice
 │   ├── acs-email-tool/         # local copy of AGT's ACS email example
-│   └── support_agent/          # local copy of AGT's Rego/OPA support example
+│   └── support_agent/          # local copy of AGT's Rego/OPA support example (no dedicated runner yet)
 ├── harness/
 │   └── run_experiments.py     # exploration-owned custom runtime and fake tool
 └── evidence/
@@ -64,6 +65,22 @@ folder and create an ignored `.venv/`. The selected example source is retained
 locally under `examples/` so it can be run and later instrumented without
 copying the entire AGT repository. The curated copies retain the upstream MIT
 notice and their source locations in `examples/UPSTREAM_NOTICE.md`.
+
+`run_official_logging.ps1` and `run_boundary_logging.ps1` both call the same
+harness (`harness/run_experiments.py`) and both exercise `AgentControl.run_tool`,
+so every case in either script passes through `pre_tool_call` **and**
+`post_tool_call`. The split between the two scripts is which question each
+answers, not which intervention points run: `run_official_logging.ps1`
+reproduces the official allow/transform/deny outcomes with readable console
+output; `run_boundary_logging.ps1` covers the application/host-responsibility
+cases (approval, failure, restart, reuse, bypass) that the official example
+does not demonstrate. `run_upstream_example.ps1` is the odd one out: it runs
+Microsoft's own file unmodified, using the lower-level `HostSession.pre_tool_call()`
+path, so it does not exercise `post_tool_call` at all — it exists to prove the
+official example still behaves as shipped, independent of any later edits to
+the curated copy or the harness. `test_policy_engine_sdk.ps1` runs neither
+example; it only validates that the native extension built and the SDK's own
+tests pass.
 
 ## Upstream source map
 
@@ -87,17 +104,18 @@ any transformed arguments, and invokes the tool only when the decision permits
 it. Therefore, application coverage matters: a direct tool call that does not
 pass through the governed host path is not automatically controlled.
 
-The official email demonstration proves **pre-execution** policy enforcement.
+`run_upstream_example.ps1` proves **pre-execution** policy enforcement only.
 It does not explicitly evaluate the completed result through `post_tool_call`;
 `record_tool_call()` records session context and is not a post-tool policy
-evaluation. The custom boundary harness uses the higher-level `run_tool()` API,
-so allowed executions also pass through `post_tool_call`, but its custom
-post-tool policy is an unconditional `allow`. It therefore verifies the
-orchestration path, not content-based post-tool redaction or denial. Those
+evaluation. Both `run_official_logging.ps1` and `run_boundary_logging.ps1` use
+the higher-level `run_tool()` API instead, so every allowed or transformed
+execution in either script also passes through `post_tool_call` — but the
+harness's post-tool policy is an unconditional `allow`. It therefore verifies
+the orchestration path, not content-based post-tool redaction or denial. Those
 controls are useful when a result must be checked, changed, or withheld before
 reaching an agent or user. The local curated `examples/support_agent` example
 provides a deterministic Rego/OPA path with post-tool policy for PII in a tool
-result.
+result, though it currently has no dedicated runner script in this folder.
 
 ## Reproduction baseline
 
@@ -110,23 +128,30 @@ From this folder, run:
 
 ```powershell
 .\setup_demo.ps1
-.\run_official_demo.ps1
-.\run_curated_examples.ps1
-.\run_boundary_demo.ps1
+.\test_policy_engine_sdk.ps1
+.\run_upstream_example.ps1
+.\run_official_logging.ps1
+.\run_boundary_logging.ps1
 ```
 
 `setup_demo.ps1` clones the Microsoft repository, checks out the pinned commit,
 creates `.venv`, selects Rust 1.89 MSVC, and builds the ACS extension with
 Maturin 1.8.7. On Windows, Cargo build artifacts are placed in the shorter
 `%LOCALAPPDATA%\agt-acs-cargo-target` directory to avoid MSVC linker path
-limits. `run_official_demo.ps1` runs the selected native SDK validation and the
-local curated email example. `run_curated_examples.ps1` runs the local email
-and support-agent examples (`-Example email` or `-Example support` selects one).
-`run_boundary_demo.ps1` runs the exploration-owned custom harness, which now
-loads the local curated email policy. Its console output presents the ACS
-snapshot, policy decision, enforcement outcome, and result for each case; raw
-JSON evidence is written to the ignored
-`evidence/runtime-output/boundary-demo.jsonl` file. See
+limits.
+
+`test_policy_engine_sdk.ps1` runs only the native ACS SDK's own test suite —
+a dependency check, not an example run. `run_upstream_example.ps1` runs
+Microsoft's unmodified `examples/acs-email-tool` straight from the pinned
+clone under `upstream/`. `run_official_logging.ps1` and
+`run_boundary_logging.ps1` both drive the exploration-owned harness
+(`harness/run_experiments.py`), which loads the local curated email policy;
+the first reproduces the allow/transform/deny outcomes, the second covers
+approval, failure, restart, reuse, and direct-call bypass. Both harness
+scripts print a readable ACS snapshot, policy decision, enforcement outcome,
+and result for each case; raw JSON evidence is written to separate files
+under the ignored `evidence/runtime-output/` folder
+(`official-logging.jsonl` and `boundary-logging.jsonl`). See
 [`evidence/expected-output.md`](evidence/expected-output.md) for the expected
 result shape and the correct evidence interpretation.
 

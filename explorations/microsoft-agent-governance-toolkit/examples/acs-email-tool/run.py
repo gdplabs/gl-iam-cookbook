@@ -47,7 +47,9 @@ def enforce_email(
             raise RuntimeError("ACS transform did not produce an argument object")
         enforced_args = applied_value
 
+    # tool call
     output = send_email(enforced_args)
+
     session.builder.record_tool_call()
     return decision, output
 
