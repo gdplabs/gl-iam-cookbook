@@ -72,7 +72,7 @@ Additionally, you need:
 
 ## Test the API
 
-Run these in order; each step uses values from the previous ones.
+Run these Bash commands in order in the same shell; each step uses values from the previous ones. Replace the token placeholders with values from the indicated response. Access tokens last five minutes, so refresh the corresponding device token if you pause between steps.
 
 **1. Register**
 
@@ -131,9 +131,28 @@ curl -X POST http://localhost:8000/token/refresh \
   -d "{\"refresh_token\": \"$REFRESH_TOKEN\"}"
 ```
 
-The response has a new `access_token` and the **same** `refresh_token` and `refresh_expires_at`. Refresh tokens are not rotated, so keep using the one you have. Update `ACCESS_TOKEN` with the new value.
+The response has a new `access_token` and the **same** `refresh_token` and `refresh_expires_at`. Refresh tokens are not rotated, so keep using the one you have. Update `ACCESS_TOKEN` with the new value:
+
+```bash
+export ACCESS_TOKEN="<access_token from the refresh response>"
+```
 
 **5. List signed-in devices** — log in a second time (another "device") first to see two entries:
+
+```bash
+curl -X POST http://localhost:8000/login \
+  -H "Content-Type: application/json" \
+  -d '{"email": "alice@example.com", "password": "SecurePass123!"}'
+```
+
+Save this response separately. Keep `ACCESS_TOKEN`, `REFRESH_TOKEN`, and `DEVICE_ID` pointing to the first device:
+
+```bash
+export SECOND_ACCESS_TOKEN="<access_token from the second login>"
+export SECOND_REFRESH_TOKEN="<refresh_token from the second login>"
+```
+
+Now list both devices (the sample below shows only the first entry):
 
 ```bash
 curl http://localhost:8000/devices -H "Authorization: Bearer $ACCESS_TOKEN"
@@ -162,25 +181,48 @@ curl -X DELETE http://localhost:8000/devices/$DEVICE_ID/sessions \
 # {"revoked_access_tokens": 2}
 ```
 
-Your `ACCESS_TOKEN` was one of them, so `/me` now returns `401`. Get a new one with step 4 — it still works.
+Your `ACCESS_TOKEN` was one of them, so `/me` now returns `401`. The first device's refresh token still works. Exchange it and save the replacement access token before step 7:
+
+```bash
+curl -X POST http://localhost:8000/token/refresh \
+  -H "Content-Type: application/json" \
+  -d "{\"refresh_token\": \"$REFRESH_TOKEN\"}"
+
+export ACCESS_TOKEN="<access_token from this refresh response>"
+```
 
 **7. Sign a device out** — its refresh token and access tokens stop working on the next request. Signing out the device you are using is allowed:
 
 ```bash
 curl -X DELETE http://localhost:8000/devices/$DEVICE_ID \
   -H "Authorization: Bearer $ACCESS_TOKEN"
-# 204; a second call returns 404
+# 204; ACCESS_TOKEN and REFRESH_TOKEN are now revoked
 ```
 
-**8. Sign out everywhere** (with a token from another device that is still signed in):
+A repeat using `ACCESS_TOKEN` now returns `401`. To verify that the device is gone, use the second device's access token:
+
+```bash
+curl -X DELETE http://localhost:8000/devices/$DEVICE_ID \
+  -H "Authorization: Bearer $SECOND_ACCESS_TOKEN"
+# 404
+```
+
+**8. Sign out everywhere** using the second device, which is still signed in. Refresh its token first so it is valid even if the earlier steps took more than five minutes:
+
+```bash
+curl -X POST http://localhost:8000/token/refresh \
+  -H "Content-Type: application/json" \
+  -d "{\"refresh_token\": \"$SECOND_REFRESH_TOKEN\"}"
+
+export SECOND_ACCESS_TOKEN="<access_token from this refresh response>"
+```
 
 ```bash
 curl -X POST http://localhost:8000/logout-everywhere \
-  -H "Authorization: Bearer $ACCESS_TOKEN"
-# {"revoked_sessions": 1}
+  -H "Authorization: Bearer $SECOND_ACCESS_TOKEN"
 ```
 
-Every refresh token and session the user has **in this organization** is revoked; other organizations are untouched.
+The response reports `revoked_sessions`; the count depends on how many access sessions have not already been revoked. Every refresh token and session the user has **in this organization** is revoked; other organizations are untouched.
 
 ## Understanding the Code
 
