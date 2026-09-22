@@ -95,6 +95,7 @@ gl-iam-cookbook/
     ├── agent-iam-dashboard/       # Agent IAM dashboard
     ├── agent-iam-delegation-e2e/  # Agent delegation end-to-end demo
     ├── keycloak-dpop-mtls-lab/    # DPoP + mTLS concepts lab
+    ├── microsoft-agent-governance-toolkit/ # Scoped AGT/ACS policy exploration
     └── token-refresh-for-long-running-agents/
 ```
 
