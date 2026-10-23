@@ -18,15 +18,13 @@ import redis.asyncio as aioredis
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
 from gl_iam import (
     CompositeAuditHandler,
     ConsoleAuditHandler,
     IAMGateway,
 )
 from gl_iam.core.gateway import AuditConfig
-from gl_iam.core.exceptions import AuthenticationError, AuthorizationError
-from gl_iam.fastapi import set_iam_gateway
+from gl_iam.fastapi import add_exception_handlers, set_iam_gateway
 from gl_iam.providers.native import NativeConfig, NativeProvider
 
 from glchat_backend import audit as audit_module
@@ -104,6 +102,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="GLChat Backend — IdP-Initiated SSO (production pattern)", lifespan=lifespan)
+add_exception_handlers(app, error_policy="v1.2")
 
 settings = get_settings()
 app.add_middleware(
@@ -121,18 +120,6 @@ app.add_middleware(
 audit_context.register(app)
 rate_limit.register(app)
 csp.register(app)
-
-
-@app.exception_handler(AuthenticationError)
-async def _auth_err(_r, exc):
-    from fastapi.responses import JSONResponse
-    return JSONResponse(status_code=401, content={"detail": str(exc)})
-
-
-@app.exception_handler(AuthorizationError)
-async def _authz_err(_r, exc):
-    from fastapi.responses import JSONResponse
-    return JSONResponse(status_code=403, content={"detail": str(exc)})
 
 
 app.include_router(auth_router.router)

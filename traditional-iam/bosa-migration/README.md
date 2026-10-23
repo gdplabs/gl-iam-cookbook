@@ -1,5 +1,10 @@
 # BOSA Migration Example
 
+> **Error handling v1.2:** This example pins the unreleased SDK PR #7656 revision
+> and requires Git access to `GDP-ADMIN/gl-sdk`. SDK failures use canonical
+> `error_code`/`message` fields and recovery guidance. Read the
+> [migration and installation notes](../../ERROR_HANDLING.md) before running it.
+
 Migrate from BOSA Core Auth to GL-IAM. This comprehensive example demonstrates all legacy BOSA Core Auth features implemented in GL-IAM's NativeProvider.
 
 ## Prerequisites

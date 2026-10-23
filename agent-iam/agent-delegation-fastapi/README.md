@@ -1,5 +1,10 @@
 # Agent Delegation with FastAPI
 
+> **Error handling v1.2:** This example pins the unreleased SDK PR #7656 revision
+> and requires Git access to `GDP-ADMIN/gl-sdk`. SDK failures use canonical
+> `error_code`/`message` fields and recovery guidance. Read the
+> [migration and installation notes](../../ERROR_HANDLING.md) before running it.
+
 This example demonstrates the core GL-IAM agent delegation system using FastAPI and PostgreSQL. It shows how to register AI agents, delegate authority via tokens, and protect endpoints with agent scope requirements.
 
 ## Prerequisites

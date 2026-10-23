@@ -17,13 +17,11 @@ To switch providers, set PROVIDER_TYPE in .env to "keycloak" or "stackauth".
 from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI
+from gl_iam import IAMGateway
+from gl_iam.fastapi import add_exception_handlers, set_iam_gateway
 
 from config import ProviderType, settings
-from gl_iam import IAMGateway
-from gl_iam.core.exceptions import AuthenticationError, PermissionDeniedError
-from gl_iam.fastapi import set_iam_gateway
 
 # Load environment variables
 load_dotenv()
@@ -34,6 +32,7 @@ def create_keycloak_gateway() -> IAMGateway:
     from gl_iam.providers.keycloak import KeycloakConfig, KeycloakProvider
 
     config = KeycloakConfig(
+        error_policy="typed",
         server_url=settings.keycloak_server_url,
         realm=settings.keycloak_realm,
         client_id=settings.keycloak_client_id,
@@ -48,6 +47,7 @@ def create_stackauth_gateway() -> IAMGateway:
     from gl_iam.providers.stackauth import StackAuthConfig, StackAuthProvider
 
     config = StackAuthConfig(
+        error_policy="typed",
         base_url=settings.stackauth_base_url,
         project_id=settings.stackauth_project_id,
         publishable_client_key=settings.stackauth_publishable_client_key,
@@ -123,31 +123,7 @@ This example demonstrates GL-IAM's Role-Based Access Control (RBAC) features.
     version="1.0.0",
     lifespan=lifespan,
 )
-
-
-# Exception handlers
-@app.exception_handler(AuthenticationError)
-async def authentication_error_handler(request: Request, exc: AuthenticationError):
-    """Handle authentication errors."""
-    return JSONResponse(
-        status_code=401,
-        content={
-            "detail": str(exc),
-            "error_type": "authentication_error",
-        },
-    )
-
-
-@app.exception_handler(PermissionDeniedError)
-async def permission_denied_handler(request: Request, exc: PermissionDeniedError):
-    """Handle permission denied errors."""
-    return JSONResponse(
-        status_code=403,
-        content={
-            "detail": str(exc),
-            "error_type": "permission_denied",
-        },
-    )
+add_exception_handlers(app, error_policy="v1.2")
 
 
 # Include routers

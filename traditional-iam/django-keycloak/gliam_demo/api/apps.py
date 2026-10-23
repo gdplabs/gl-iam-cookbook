@@ -29,10 +29,11 @@ class ApiConfig(AppConfig):
             return
 
         from gl_iam import IAMGateway
-        from gl_iam.django import set_iam_gateway, run_sync
+        from gl_iam.django import run_sync, set_iam_gateway
         from gl_iam.providers.keycloak import KeycloakConfig, KeycloakProvider
 
         config = KeycloakConfig(
+            error_policy="typed",
             server_url=os.getenv("KEYCLOAK_SERVER_URL"),
             realm=os.getenv("KEYCLOAK_REALM"),
             client_id=os.getenv("KEYCLOAK_CLIENT_ID"),

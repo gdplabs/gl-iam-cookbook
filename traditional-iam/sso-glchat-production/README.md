@@ -1,5 +1,10 @@
 # GLChat Production SSO (IdP-Initiated)
 
+> **Error handling v1.2:** This example pins the unreleased SDK PR #7656 revision
+> and requires Git access to `GDP-ADMIN/gl-sdk`. SDK failures use canonical
+> `error_code`/`message` fields and recovery guidance. Read the
+> [migration and installation notes](../../ERROR_HANDLING.md) before running it.
+
 A reference cookbook for **production-grade IdP-Initiated SSO** between GLChat and a Trusted Partner, using the [GL-IAM SDK](https://github.com/GDP-ADMIN/gl-sdk) `PartnerRegistryProvider`. Unlike the simpler [`sso-token-exchange`](https://github.com/gdplabs/gl-iam-cookbook/tree/main/traditional-iam/sso-token-exchange) example, this cookbook demonstrates **every** production concern called out in `§12` of the SDK's [IdP-vs-SP Comparison](https://github.com/GDP-ADMIN/gl-sdk/blob/main/libs/gl-iam/docs/architecture/IDP_VS_SP_INITIATED_SSO_COMPARISON.md).
 
 ## What this simulates

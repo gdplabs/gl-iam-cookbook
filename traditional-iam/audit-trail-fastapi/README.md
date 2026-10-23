@@ -1,5 +1,10 @@
 # Audit Trail with FastAPI — Production Setup
 
+> **Error handling v1.2:** This example pins the unreleased SDK PR #7656 revision
+> and requires Git access to `GDP-ADMIN/gl-sdk`. SDK failures use canonical
+> `error_code`/`message` fields and recovery guidance. Read the
+> [migration and installation notes](../../ERROR_HANDLING.md) before running it.
+
 A production-ready audit trail example demonstrating:
 
 - **Multi-handler composition**: `ConsoleAuditHandler` + `DatabaseAuditHandler` via `CompositeAuditHandler`
@@ -220,8 +225,8 @@ The `DatabaseAuditHandler` writes events asynchronously in batches for zero late
 ### Persisted Event Coverage
 
 The following table describes the audit behavior for this example's supported
-`gl-iam>=0.3.15,<0.4.0` range. Verify behavior against the installed runtime
-when changing that dependency range:
+pinned GL-IAM revision. Verify behavior against the installed runtime
+when changing that dependency:
 
 | Operation | Persisted audit behavior |
 | --- | --- |

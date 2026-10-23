@@ -29,10 +29,11 @@ class ApiConfig(AppConfig):
             return
 
         from gl_iam import IAMGateway
-        from gl_iam.django import set_iam_gateway, run_sync
+        from gl_iam.django import run_sync, set_iam_gateway
         from gl_iam.providers.stackauth import StackAuthConfig, StackAuthProvider
 
         config = StackAuthConfig(
+            error_policy="typed",
             base_url=os.getenv("STACKAUTH_BASE_URL", "http://localhost:8102"),
             project_id=os.getenv("STACKAUTH_PROJECT_ID"),
             publishable_client_key=os.getenv("STACKAUTH_PUBLISHABLE_CLIENT_KEY"),

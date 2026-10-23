@@ -10,5 +10,5 @@ dependencies = [
   "python-dotenv>=1.0.0,<2.0.0",
   "pydantic-settings>=2.0.0,<3.0.0",
   "httpx>=0.28.0,<0.29.0",
-  "gl-iam[fastapi,keycloak,stackauth]>=0.3.10,<0.4.0",
+  "gl-iam[fastapi,keycloak,stackauth] @ git+https://github.com/GDP-ADMIN/gl-sdk.git@d4c2c51ceb94c70686957f1a47adc015ea2b0099#subdirectory=libs/gl-iam",
 ]

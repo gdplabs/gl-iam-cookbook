@@ -16,14 +16,18 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, HTTPException
-from pydantic import BaseModel, Field
-
-from gl_iam import IAMGateway, User, UserAlreadyExistsError
+from fastapi import Depends, FastAPI
+from gl_iam import IAMGateway, User
+from gl_iam.core.error_carrier import raise_for_error
 from gl_iam.core.types import PasswordCredentials, UserCreateInput
-from gl_iam.core.types.result import ErrorCode
-from gl_iam.fastapi import add_exception_handlers, get_current_user, get_iam_gateway, set_iam_gateway
+from gl_iam.fastapi import (
+    add_exception_handlers,
+    get_current_user,
+    get_iam_gateway,
+    set_iam_gateway,
+)
 from gl_iam.providers.native import NativeConfig, NativeProvider
+from pydantic import BaseModel, Field
 
 load_dotenv()
 
@@ -51,7 +55,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Refresh Tokens", lifespan=lifespan)
-add_exception_handlers(app)
+add_exception_handlers(app, error_policy="v1.2")
 
 
 # ============================================================================
@@ -117,10 +121,7 @@ async def health():
 async def register(request: RegisterRequest):
     """Create a user with a password."""
     gateway = get_iam_gateway()
-    try:
-        user = await gateway.user_store.create_user(UserCreateInput(email=request.email), organization_id=ORG_ID)
-    except UserAlreadyExistsError as e:
-        raise HTTPException(status_code=409, detail=str(e)) from e
+    user = await gateway.user_store.create_user(UserCreateInput(email=request.email), organization_id=ORG_ID)
     await gateway.user_store.set_user_password(user.id, request.password, ORG_ID)
     return {"id": user.id, "email": user.email}
 
@@ -139,8 +140,7 @@ async def login(request: LoginRequest):
         access_token_ttl_seconds=request.access_token_ttl_seconds,
     )
     if result.is_err:
-        status = 400 if result.error.code == ErrorCode.INVALID_TOKEN_LIFETIME else 401
-        raise HTTPException(status_code=status, detail=result.error.message)
+        raise_for_error(result.error)
     return _token_response(result.token)
 
 
@@ -155,7 +155,7 @@ async def refresh(request: RefreshRequest):
     result = await get_iam_gateway().refresh_session(request.refresh_token, organization_id=ORG_ID)
     if result.is_err:
         # Revoked, expired, unknown, or the user/organization was deactivated: log in again.
-        raise HTTPException(status_code=401, detail=result.error.message)
+        raise_for_error(result.error)
     return _token_response(result.value)
 
 
@@ -171,7 +171,10 @@ async def me(user: User = Depends(get_current_user)):
 @app.get("/devices")
 async def list_devices(user: User = Depends(get_current_user)):
     """List the user's signed-in devices: one live refresh token each."""
-    tokens = (await get_iam_gateway().list_refresh_tokens(user.id, ORG_ID)).unwrap()
+    result = await get_iam_gateway().list_refresh_tokens(user.id, ORG_ID)
+    if result.is_err:
+        raise_for_error(result.error)
+    tokens = result.value
     return [
         {
             "refresh_token_id": t.id,
@@ -195,21 +198,25 @@ async def sign_out_device(refresh_token_id: str, user: User = Depends(get_curren
     """
     result = await get_iam_gateway().revoke_refresh_token(refresh_token_id, user.id, ORG_ID)
     if result.is_err:
-        raise HTTPException(status_code=404, detail=result.error.message)
+        raise_for_error(result.error)
 
 
 @app.delete("/devices/{refresh_token_id}/sessions")
 async def end_device_sessions(refresh_token_id: str, user: User = Depends(get_current_user)):
     """End a device's current access tokens. Its refresh token keeps working."""
     result = await get_iam_gateway().revoke_refresh_token_sessions(refresh_token_id, user.id, ORG_ID)
-    return {"revoked_access_tokens": result.unwrap()}
+    if result.is_err:
+        raise_for_error(result.error)
+    return {"revoked_access_tokens": result.value}
 
 
 @app.post("/logout-everywhere")
 async def logout_everywhere(user: User = Depends(get_current_user)):
     """Revoke every session and refresh token the user has in this organization."""
     result = await get_iam_gateway().revoke_all_sessions(user.id, ORG_ID)
-    return {"revoked_sessions": result.unwrap()}
+    if result.is_err:
+        raise_for_error(result.error)
+    return {"revoked_sessions": result.value}
 
 
 if __name__ == "__main__":

@@ -9,5 +9,5 @@ dependencies = [
   "uvicorn>=0.34.0,<0.35.0",
   "python-dotenv>=1.0.0,<2.0.0",
   "pydantic-settings>=2.0.0,<3.0.0",
-  "gl-iam[fastapi,keycloak,native]>=0.3.10,<0.4.0",
+  "gl-iam[fastapi,keycloak,native] @ git+https://github.com/GDP-ADMIN/gl-sdk.git@d4c2c51ceb94c70686957f1a47adc015ea2b0099#subdirectory=libs/gl-iam",
 ]

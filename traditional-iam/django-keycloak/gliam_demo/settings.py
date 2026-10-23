@@ -35,6 +35,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    "gl_iam.django.exceptions.GLIAMExceptionMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.middleware.common.CommonMiddleware",
     "gl_iam.django.middleware.GLIAMAuthenticationMiddleware",
@@ -89,6 +90,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Django REST Framework settings
 REST_FRAMEWORK = {
+    "EXCEPTION_HANDLER": "gl_iam.django.exceptions.gl_iam_drf_exception_handler",
     "DEFAULT_AUTHENTICATION_CLASSES": [],
     "DEFAULT_PERMISSION_CLASSES": [],
     "UNAUTHENTICATED_USER": None,
@@ -99,3 +101,6 @@ REST_FRAMEWORK = {
 GL_IAM = {
     "DEFAULT_ORGANIZATION_ID": os.getenv("KEYCLOAK_REALM", "gl-iam-demo"),
 }
+
+# Use the canonical envelope and code-based status mapping across Django and DRF.
+GL_IAM_HTTP_ERROR_POLICY = "v1.2"

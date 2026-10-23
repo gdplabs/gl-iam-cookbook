@@ -14,8 +14,6 @@ from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI
-from pydantic import BaseModel
-
 from gl_iam import IAMGateway, User
 from gl_iam.fastapi import (
     add_exception_handlers,
@@ -25,6 +23,7 @@ from gl_iam.fastapi import (
     set_iam_gateway,
 )
 from gl_iam.providers.stackauth import StackAuthConfig, StackAuthProvider
+from pydantic import BaseModel
 
 load_dotenv()
 
@@ -39,6 +38,7 @@ async def lifespan(app: FastAPI):
     """
     # Configure Stack Auth provider
     config = StackAuthConfig(
+        error_policy="typed",
         base_url=os.getenv("STACKAUTH_BASE_URL", "http://localhost:8102"),
         project_id=os.getenv("STACKAUTH_PROJECT_ID"),
         publishable_client_key=os.getenv("STACKAUTH_PUBLISHABLE_CLIENT_KEY"),
@@ -65,7 +65,7 @@ app = FastAPI(title="GL-IAM Stack Auth Demo", lifespan=lifespan)
 
 # Map GL-IAM errors (AuthenticationError, PermissionDeniedError) to 401/403
 # instead of letting them surface as 500s.
-add_exception_handlers(app)
+add_exception_handlers(app, error_policy="v1.2")
 
 
 class UserResponse(BaseModel):

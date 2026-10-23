@@ -1,5 +1,10 @@
 # Agent Asymmetric Signing (ES256)
 
+> **Error handling v1.2:** This example pins the unreleased SDK PR #7656 revision
+> and requires Git access to `GDP-ADMIN/gl-sdk`. SDK failures use canonical
+> `error_code`/`message` fields and recovery guidance. Read the
+> [migration and installation notes](../../ERROR_HANDLING.md) before running it.
+
 Two services, one key pair. The **issuer** holds the private key and mints delegation tokens. The **verifier** holds only the public key: it can check any token the issuer produced, and it cannot produce one.
 
 ## Overview
@@ -28,7 +33,7 @@ This example demonstrates:
 
 - Python 3.11–3.13
 - [uv](https://docs.astral.sh/uv/)
-- **gl-iam 0.3.16 or newer.** `SigningConfig` merged after the 0.3.15 tag was cut, so 0.3.15 has no `gl_iam.core.signing` and the services fail at import.
+- **Pinned GL-IAM revision** — see the migration note above. `SigningConfig` originally shipped in 0.3.16; 0.3.15 does not include it.
 - No PostgreSQL, no Keycloak, no Stack Auth
 
 ## Quick Start
@@ -127,8 +132,12 @@ curl -s http://localhost:8001/can-i-mint
 ```json
 {
   "can_mint": false,
-  "error_code": "ErrorCode.CONFIGURATION_ERROR",
-  "detail": "This SigningConfig is verification-only: no configured key carries private key material, so it cannot mint tokens. That is the intended posture for a pure verifier."
+  "error_code": "configuration_error",
+  "error": {
+    "code": "configuration_error",
+    "message": "This service is not configured correctly. Contact support and include the reference ID if shown.",
+    "details": {}
+  }
 }
 ```
 
@@ -136,7 +145,7 @@ Under a shared HMAC secret this endpoint would have returned a freshly signed to
 
 ### What the verifier rejects
 
-Each of these is a real request against the running services.
+Each of these is a real request against the running services. SDK error examples below show selected fields; the complete response also includes the canonical `message` and `recovery` guidance. Internal JWT verification text is not returned.
 
 **A token that is authentic but does not carry the scope** — validation and authorization are separate steps, and the second one is always your service's job:
 
@@ -154,19 +163,19 @@ curl -s -X POST http://localhost:8001/tools/send-email \
 **An HS256 token presented to an ES256-pinned verifier.** Verification uses the algorithm recorded on the *configured key*, never the one advertised in the token header, which closes the classic HS/RS confusion downgrade:
 
 ```json
-{ "detail": "ErrorCode.DELEGATION_TOKEN_INVALID: Invalid delegation token: The specified alg value is not allowed" }
+{ "schema_version": "1.2", "error_code": "delegation_token_invalid", "retryable": false }
 ```
 
 **An ES256 token signed with an attacker's own key pair, carrying the right `kid`.** The `kid` only selects which configured key to try — it never stands in for a signature check:
 
 ```json
-{ "detail": "ErrorCode.DELEGATION_TOKEN_INVALID: Invalid delegation token: Signature verification failed" }
+{ "schema_version": "1.2", "error_code": "delegation_token_invalid", "retryable": false }
 ```
 
 **A genuine token from this issuer, minted for a different audience.** Same key, same algorithm, different `aud`:
 
 ```json
-{ "detail": "ErrorCode.DELEGATION_TOKEN_INVALID: Invalid delegation token: Audience doesn't match" }
+{ "schema_version": "1.2", "error_code": "delegation_token_invalid", "retryable": false }
 ```
 
 ## Understanding the Code
@@ -274,7 +283,9 @@ ES256 is the default here: for the same security level the keys and signatures a
 Asymmetric algorithms need `cryptography`, which arrives with the `asymmetric` extra:
 
 ```toml
-dependencies = ["gl-iam[fastapi,native,asymmetric]>=0.3.16,<0.4.0"]
+dependencies = [
+  "gl-iam[fastapi,native,asymmetric] @ git+https://github.com/GDP-ADMIN/gl-sdk.git@d4c2c51ceb94c70686957f1a47adc015ea2b0099#subdirectory=libs/gl-iam",
+]
 ```
 
 Configure one without it and GL-IAM raises a `ConfigurationError` at construction, with the install hint — rather than an opaque PyJWT error at the first mint.

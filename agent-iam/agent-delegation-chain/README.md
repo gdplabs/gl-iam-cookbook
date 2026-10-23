@@ -1,5 +1,10 @@
 # Multi-Hop Delegation Chains
 
+> **Error handling v1.2:** This example pins the unreleased SDK PR #7656 revision
+> and requires Git access to `GDP-ADMIN/gl-sdk`. SDK failures use canonical
+> `error_code`/`message` fields and recovery guidance. Read the
+> [migration and installation notes](../../ERROR_HANDLING.md) before running it.
+
 This example demonstrates how delegation authority flows through multiple hops in GL-IAM. A user delegates to an orchestrator, which sub-delegates to a worker, with scopes narrowing at each hop.
 
 ## Prerequisites

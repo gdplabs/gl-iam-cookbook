@@ -1,5 +1,10 @@
 # RBAC Showcase - Multi-Provider Example
 
+> **Error handling v1.2:** This example pins the unreleased SDK PR #7656 revision
+> and requires Git access to `GDP-ADMIN/gl-sdk`. SDK failures use canonical
+> `error_code`/`message` fields and recovery guidance. Read the
+> [migration and installation notes](../../ERROR_HANDLING.md) before running it.
+
 This example demonstrates GL-IAM's **Role-Based Access Control (RBAC)** features with support for both Keycloak and StackAuth providers. It validates the role mapping behavior and demonstrates the SIMI (Single Interface Multiple Implementation) pattern.
 
 ## What This Example Demonstrates

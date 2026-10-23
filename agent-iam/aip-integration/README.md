@@ -1,5 +1,10 @@
 # AIP Integration
 
+> **Error handling v1.2:** This example pins the unreleased SDK PR #7656 revision
+> and requires Git access to `GDP-ADMIN/gl-sdk`. SDK failures use canonical
+> `error_code`/`message` fields and recovery guidance. Read the
+> [migration and installation notes](../../ERROR_HANDLING.md) before running it.
+
 This example shows how to secure AI Agent APIs using GL-IAM for authentication and authorization when building custom agent APIs with the GL AIP SDK. It uses the Native provider for simplicity.
 
 **When to use this pattern:**

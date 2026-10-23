@@ -1,5 +1,10 @@
 # Dynamic Role Management — Multi-Tenant RBAC
 
+> **Error handling v1.2:** This example pins the unreleased SDK PR #7656 revision
+> and requires Git access to `GDP-ADMIN/gl-sdk`. SDK failures use canonical
+> `error_code`/`message` fields and recovery guidance. Read the
+> [migration and installation notes](../../ERROR_HANDLING.md) before running it.
+
 Roles that are **not known at build time**. Two tenants, each with its own role
 vocabulary, created, granted, assigned, and retired at runtime through
 `IAMGateway` — no migration, no redeploy.
@@ -61,7 +66,7 @@ Additionally, you need:
 
 - PostgreSQL reachable at `DATABASE_URL` (a Docker one-liner is below)
 - UV package manager
-- **`gl-iam` 0.3.15 or newer** — dynamic role management landed there. Earlier
+- **Pinned GL-IAM revision** — see the migration note above. Dynamic role management originally landed in 0.3.15. Earlier
   releases have `assign_role`/`remove_role` but no role-definition API.
 
 ## Quick Start
@@ -238,21 +243,19 @@ minting a `platform_admin` and escalating past their own ceiling.
 
 ### `Result` → HTTP, in one place (`deps.py`)
 
-GL-IAM returns `Result[T]` rather than raising, so something has to map error
-codes to statuses. Doing it once keeps every route two lines long:
+The local `unwrap` helper preserves failed Results with the SDK converter:
 
 ```python
-_STATUS_BY_CODE = {
-    ErrorCode.PERMISSION_DENIED: 403,
-    ErrorCode.ROLE_NOT_FOUND: 404,
-    ErrorCode.ROLE_ALREADY_EXISTS: 409,
-    ErrorCode.NOT_SUPPORTED: 501,   # the backend can't; nothing went wrong
-    ...
-}
+def unwrap(result):
+    if result.is_err:
+        raise_for_error(result.error)
+    return result.value
 ```
 
-`NOT_SUPPORTED` and `PROVIDER_ERROR` map to **501**, not 500 — "this backend
-doesn't do that" is a fact about your deployment, not a server fault.
+`add_exception_handlers(app, error_policy="v1.2")` owns the status mapping and
+safe response. `not_supported` maps to **501**, `provider_error` to **502**,
+`provider_unavailable` to **503**, and `validation_error` to **400**. No local
+status table or message parsing is needed; recovery and references survive.
 
 ### One gateway, many tenants
 
@@ -306,7 +309,8 @@ UPDATE gl_iam.roles
 
 | Symptom | Cause |
 |---|---|
-| `501` with `not_supported` / `provider_error` | You pointed this at Stack Auth or Keycloak. Role definitions need the Native provider. |
+| `501` with `not_supported` | The provider does not support this operation. Role definitions need the Native provider. |
+| `502` with `provider_error`, or `503` with `provider_unavailable` | Follow recovery guidance and investigate the provider; this is not a missing capability. |
 | `403` on `POST /roles` as an org admin | Defining roles is `PLATFORM_ADMIN`-only. Assigning them is not. |
 | `404` on a role you can see in the database | Wrong `organization_id` — role names resolve within one tenant. |
 | `404` assigning a role that plainly exists | It's deactivated. Deactivated roles can't be assigned. |

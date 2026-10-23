@@ -1,5 +1,10 @@
 # Third-Party Integration: Full GitHub OAuth Flow
 
+> **Error handling v1.2:** This example pins the unreleased SDK PR #7656 revision
+> and requires Git access to `GDP-ADMIN/gl-sdk`. SDK failures use canonical
+> `error_code`/`message` fields and recovery guidance. Read the
+> [migration and installation notes](../../ERROR_HANDLING.md) before running it.
+
 This example demonstrates GL-IAM's `ThirdPartyIntegrationProvider` with a **pluggable connector pattern** (modeled after BOSA SDK) for managing third-party OAuth credentials with encrypted storage.
 
 ## What You'll Learn

@@ -1,5 +1,10 @@
 # Resource Constraint Validators
 
+> **Error handling v1.2:** This example pins the unreleased SDK PR #7656 revision
+> and requires Git access to `GDP-ADMIN/gl-sdk`. SDK failures use canonical
+> `error_code`/`message` fields and recovery guidance. Read the
+> [migration and installation notes](../../ERROR_HANDLING.md) before running it.
+
 This example demonstrates GL-IAM's resource constraint system for fine-grained access control beyond scopes. Constraints allow you to restrict agents to specific tenants, regions, budgets, and more.
 
 ## Prerequisites

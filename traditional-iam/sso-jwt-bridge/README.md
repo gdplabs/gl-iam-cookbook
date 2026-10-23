@@ -1,5 +1,10 @@
 # SSO JWT Bridge (Option B — Simpler)
 
+> **Error handling v1.2:** This example pins the unreleased SDK PR #7656 revision
+> and requires Git access to `GDP-ADMIN/gl-sdk`. SDK failures use canonical
+> `error_code`/`message` fields and recovery guidance. Read the
+> [migration and installation notes](../../ERROR_HANDLING.md) before running it.
+
 JWT-signed token SSO using a shared secret between the partner and your application. Simpler than Option A but with fewer security controls.
 
 ## Real-World Context

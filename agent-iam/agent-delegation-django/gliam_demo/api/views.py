@@ -13,17 +13,13 @@ from django.http import JsonResponse
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
-from rest_framework import permissions, status
-from rest_framework.response import Response
-from rest_framework.views import APIView
-
 from gl_iam import (
     AgentRegistration,
     AgentType,
     DelegationScope,
     TaskContext,
 )
-from gl_iam.core.exceptions import InvalidCredentialsError, UserAlreadyExistsError
+from gl_iam.core.error_carrier import raise_for_error
 from gl_iam.core.types import PasswordCredentials, UserCreateInput
 from gl_iam.django import (
     get_iam_gateway,
@@ -42,9 +38,11 @@ from gl_iam.django.drf import (
     HasResourceConstraint,
     IsGLIAMAuthenticated,
 )
+from rest_framework import status
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from .serializers import (
-    AgentRegisterSerializer,
     DelegateSerializer,
     LoginSerializer,
     RegisterSerializer,
@@ -70,22 +68,17 @@ def register_user(request):
     gateway = get_iam_gateway()
     org_id = os.getenv("DEFAULT_ORGANIZATION_ID", "default")
 
-    try:
-        user = run_sync(
-            gateway.user_store.create_user(
-                UserCreateInput(
-                    email=data["email"],
-                    display_name=data.get("display_name", data["email"].split("@")[0]),
-                ),
-                organization_id=org_id,
-            )
+    user = run_sync(
+        gateway.user_store.create_user(
+            UserCreateInput(
+                email=data["email"],
+                display_name=data.get("display_name", data["email"].split("@")[0]),
+            ),
+            organization_id=org_id,
         )
+    )
 
-        run_sync(gateway.user_store.set_user_password(user.id, data["password"], org_id))
-    except UserAlreadyExistsError as e:
-        return JsonResponse({"error": str(e)}, status=409)
-    except InvalidCredentialsError as e:
-        return JsonResponse({"error": str(e)}, status=400)
+    run_sync(gateway.user_store.set_user_password(user.id, data["password"], org_id))
 
     return JsonResponse({"id": user.id, "email": user.email, "display_name": user.display_name})
 
@@ -114,7 +107,7 @@ def login_user(request):
             "token_type": result.token.token_type,
         })
     else:
-        return JsonResponse({"error": result.error.message}, status=401)
+        raise_for_error(result.error)
 
 
 # ============================================================================
@@ -162,7 +155,7 @@ def fbv_register_agent(request):
             "status": agent.status.value,
         })
     else:
-        return JsonResponse({"error": result.error.message}, status=400)
+        raise_for_error(result.error)
 
 
 @csrf_exempt
@@ -197,7 +190,7 @@ def fbv_delegate(request):
             "scopes": delegation.scope.scopes,
         })
     else:
-        return JsonResponse({"error": result.error.message}, status=400)
+        raise_for_error(result.error)
 
 
 @require_agent_scope("docs:read")
@@ -288,27 +281,22 @@ class DRFRegisterView(APIView):
         gateway = get_iam_gateway()
         org_id = os.getenv("DEFAULT_ORGANIZATION_ID", "default")
 
-        try:
-            user = run_sync(
-                gateway.user_store.create_user(
-                    UserCreateInput(
-                        email=serializer.validated_data["email"],
-                        display_name=serializer.validated_data.get("display_name")
-                        or serializer.validated_data["email"].split("@")[0],
-                    ),
-                    organization_id=org_id,
-                )
+        user = run_sync(
+            gateway.user_store.create_user(
+                UserCreateInput(
+                    email=serializer.validated_data["email"],
+                    display_name=serializer.validated_data.get("display_name")
+                    or serializer.validated_data["email"].split("@")[0],
+                ),
+                organization_id=org_id,
             )
+        )
 
-            run_sync(
-                gateway.user_store.set_user_password(
-                    user.id, serializer.validated_data["password"], org_id
-                )
+        run_sync(
+            gateway.user_store.set_user_password(
+                user.id, serializer.validated_data["password"], org_id
             )
-        except UserAlreadyExistsError as e:
-            return Response({"error": str(e)}, status=status.HTTP_409_CONFLICT)
-        except InvalidCredentialsError as e:
-            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        )
 
         return Response(
             {"id": user.id, "email": user.email, "display_name": user.display_name},
@@ -343,7 +331,7 @@ class DRFLoginView(APIView):
                 "token_type": result.token.token_type,
             })
         else:
-            return Response({"error": result.error.message}, status=status.HTTP_401_UNAUTHORIZED)
+            raise_for_error(result.error)
 
 
 class DRFDelegateView(APIView):
@@ -380,7 +368,7 @@ class DRFDelegateView(APIView):
                 "scopes": delegation.scope.scopes,
             })
         else:
-            return Response({"error": result.error.message}, status=status.HTTP_400_BAD_REQUEST)
+            raise_for_error(result.error)
 
 
 class DRFAgentDocuments(APIView):

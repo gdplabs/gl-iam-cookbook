@@ -15,9 +15,7 @@ import os
 from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, Header, HTTPException
-from pydantic import BaseModel
-
+from fastapi import Depends, FastAPI, Header
 from gl_iam import (
     AgentRegistration,
     AgentType,
@@ -26,6 +24,7 @@ from gl_iam import (
     TaskContext,
     User,
 )
+from gl_iam.core.error_carrier import raise_for_error
 from gl_iam.core.types.agent import AgentIdentity
 from gl_iam.core.types.delegation import DelegationChain
 from gl_iam.fastapi import (
@@ -38,6 +37,7 @@ from gl_iam.fastapi import (
     set_iam_gateway,
 )
 from gl_iam.providers.keycloak import KeycloakConfig, KeycloakProvider
+from pydantic import BaseModel
 
 load_dotenv()
 
@@ -56,6 +56,7 @@ async def lifespan(app: FastAPI):
     need SECRET_KEY for signing — Keycloak does not issue them.
     """
     config = KeycloakConfig(
+        error_policy="typed",
         server_url=os.getenv("KEYCLOAK_SERVER_URL"),
         realm=os.getenv("KEYCLOAK_REALM"),
         client_id=os.getenv("KEYCLOAK_CLIENT_ID"),
@@ -93,7 +94,7 @@ app = FastAPI(
 
 # Without this, the SDK's auth/scope dependencies raise domain exceptions that
 # FastAPI cannot render, so every denial surfaces as a 500 instead of 401/403.
-add_exception_handlers(app)
+add_exception_handlers(app, error_policy="v1.2")
 
 
 # ============================================================================
@@ -185,7 +186,7 @@ async def register_agent(
             "allowed_scopes": agent.allowed_scopes,
         }
     else:
-        raise HTTPException(status_code=400, detail=result.error.message)
+        raise_for_error(result.error)
 
 
 @app.post("/agents/delegate")
@@ -226,7 +227,7 @@ async def delegate_to_agent(
             "expires_at": delegation.expires_at.isoformat(),
         }
     else:
-        raise HTTPException(status_code=400, detail=result.error.message)
+        raise_for_error(result.error)
 
 
 @app.get("/agents")

@@ -29,23 +29,31 @@ Welcome to the **GL-IAM Cookbook** — a collection of production-ready examples
 2. **UV** — Please check https://docs.astral.sh/uv/ on how to install it.
 3. **Docker** — Required for running PostgreSQL/Keycloak containers.
 
-GL-IAM is published on [PyPI](https://pypi.org/project/gl-iam/), so there is nothing else
-to set up — no registry access, tokens, or authentication. Each example's `setup.sh` (or a
-plain `uv sync`) installs it directly.
+GL-IAM is published on [PyPI](https://pypi.org/project/gl-iam/). Examples migrating
+to the new error-handling APIs currently pin the unreleased SDK PR
+[#7656](https://github.com/GDP-ADMIN/gl-sdk/pull/7656) at
+`d4c2c51ceb94c70686957f1a47adc015ea2b0099`. Those examples require Git access to
+`GDP-ADMIN/gl-sdk`; their README migration note identifies them. Other examples
+continue to install published packages from PyPI.
 
 ## GL-IAM Versioning
 
-Examples depend on the published GL-IAM release from PyPI:
+The error-handling migration uses an immutable source requirement, preserving
+each example's extras:
 
 ```toml
-dependencies = ["gl-iam[fastapi,native]>=0.3.10,<0.4.0"]
+dependencies = [
+  "gl-iam[fastapi,native] @ git+https://github.com/GDP-ADMIN/gl-sdk.git@d4c2c51ceb94c70686957f1a47adc015ea2b0099#subdirectory=libs/gl-iam",
+]
 ```
 
-The lower bound is the oldest release an example is known to work against; the `<0.4.0`
-ceiling holds the line at the next breaking minor (GL-IAM is pre-1.0, so minor bumps are
-the breaking axis). No `uv.lock` is committed, so every `uv sync` picks up the newest
-compatible release — you get SDK fixes automatically, without the examples drifting onto
-eight different commits of `main` the way they previously did.
+This is a source revision, not a published release. See the
+[error-handling migration guide](ERROR_HANDLING.md) for installation, client
+changes, and switching back to PyPI once a release contains these APIs.
+
+Unmigrated examples retain `>=0.3.x,<0.4.0` requirements. No `uv.lock` is
+committed: `uv sync` resolves those requirements to compatible releases, while
+the migrated examples keep the exact SDK source revision above.
 
 ## Repository Structure
 
@@ -61,6 +69,7 @@ gl-iam-cookbook/
 │   ├── django-keycloak/           # Django + Keycloak enterprise SSO
 │   ├── django-stackauth/          # Django + Stack Auth
 │   ├── rbac-showcase/             # RBAC with multi-provider support
+│   ├── error-handling-fastapi/    # v1.2 errors, recovery and diagnostic references
 │   ├── fastapi-refresh-tokens/    # Refresh tokens, per-login lifetime, device sign-out
 │   ├── rbac-dynamic-roles/       # Multi-tenant custom roles managed at runtime
 │   ├── api-key-hierarchy/         # API key management with SOLID patterns
@@ -124,6 +133,7 @@ Each Django example demonstrates three view patterns:
 | Example | Description | Features |
 |---------|-------------|----------|
 | [rbac-showcase](traditional-iam/rbac-showcase/) | RBAC with multi-provider support | Role mapping, hierarchy, SIMI pattern |
+| [error-handling-fastapi](traditional-iam/error-handling-fastapi/) | Explore the v1.2 error contract without external services | Canonical codes, safe messages, bounded recovery, diagnostic references |
 | [fastapi-refresh-tokens](traditional-iam/fastapi-refresh-tokens/) | Refresh tokens with the Native provider | Opt-in refresh tokens, per-login access-token lifetime, device list, per-device and per-organization sign-out |
 | [rbac-dynamic-roles](traditional-iam/rbac-dynamic-roles/) | Multi-tenant dynamic role management | Custom role & permission CRUD, per-org scoping, assign/remove, deactivate vs delete |
 | [api-key-hierarchy](traditional-iam/api-key-hierarchy/) | API key management with SOLID patterns | 3-tier API keys, scope-based authorization |

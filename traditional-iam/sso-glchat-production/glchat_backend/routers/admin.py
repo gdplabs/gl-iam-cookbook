@@ -4,17 +4,16 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from pydantic import BaseModel
-
+from fastapi import APIRouter, Depends, Query, Request
 from gl_iam import User
+from gl_iam.core.error_carrier import raise_for_error
 from gl_iam.core.types.audit import AuditEventType
 from gl_iam.core.types.sso import SSOMode, SSOPartnerCreate, SSOUserProvisioning
 from gl_iam.fastapi import get_current_user, get_iam_gateway, require_platform_admin
+from pydantic import BaseModel
 
 from glchat_backend import audit
 from glchat_backend.config import get_settings
-
 
 router = APIRouter(prefix="/admin", tags=["admin"], dependencies=[Depends(require_platform_admin())])
 
@@ -80,7 +79,7 @@ async def register_partner(body: PartnerCreateRequest, user: User = Depends(get_
         )
     )
     if result.is_err:
-        raise HTTPException(400, result.error.message)
+        raise_for_error(result.error)
 
     reg = result.value
     audit.emit(
@@ -109,7 +108,7 @@ async def list_partners():
     gateway = get_iam_gateway()
     result = await gateway.partner_registry.list_partners(organization_id=get_settings().default_org_id)
     if result.is_err:
-        raise HTTPException(500, result.error.message)
+        raise_for_error(result.error)
     return [
         PartnerListItem(
             id=p.id,
@@ -135,7 +134,7 @@ async def rotate(partner_id: str, body: RotateRequest | None = None, user: User 
         partner_id, grace_period_seconds=grace
     )
     if result.is_err:
-        raise HTTPException(404, result.error.message)
+        raise_for_error(result.error)
 
     reg = result.value
     audit.emit(
@@ -164,7 +163,7 @@ async def deactivate(partner_id: str, user: User = Depends(get_current_user)):
     gateway = get_iam_gateway()
     result = await gateway.partner_registry.deactivate_partner(partner_id)
     if result.is_err:
-        raise HTTPException(404, result.error.message)
+        raise_for_error(result.error)
     audit.emit(
         event_type=AuditEventType.API_KEY_REVOKED,
         sso_event="partner_deactivated",
@@ -188,10 +187,9 @@ async def get_audit_log(
 ):
     import json as _json
 
+    from gl_iam.providers.native import AuditEventModel
     from sqlalchemy import func, select
     from sqlalchemy.ext.asyncio import AsyncSession
-
-    from gl_iam.providers.native import AuditEventModel
 
     async with AsyncSession(request.app.state.provider.engine) as session:
         q = select(AuditEventModel).order_by(AuditEventModel.timestamp.desc())

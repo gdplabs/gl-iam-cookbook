@@ -1,5 +1,10 @@
 # Cross-Service Agent Delegation
 
+> **Error handling v1.2:** This example pins the unreleased SDK PR #7656 revision
+> and requires Git access to `GDP-ADMIN/gl-sdk`. SDK failures use canonical
+> `error_code`/`message` fields and recovery guidance. Read the
+> [migration and installation notes](../../ERROR_HANDLING.md) before running it.
+
 This example demonstrates how delegation tokens work across service boundaries. Service A handles user auth and creates delegation tokens; Service B validates those tokens and provides protected resources.
 
 ## Prerequisites

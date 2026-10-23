@@ -13,8 +13,6 @@ from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, Header, HTTPException, Query
-from pydantic import BaseModel
-
 from gl_iam import (
     AgentRegistration,
     AgentType,
@@ -23,7 +21,7 @@ from gl_iam import (
     TaskContext,
     User,
 )
-from gl_iam.core.exceptions import InvalidCredentialsError, UserAlreadyExistsError
+from gl_iam.core.error_carrier import raise_for_error
 from gl_iam.core.types import PasswordCredentials, UserCreateInput
 from gl_iam.fastapi import (
     add_exception_handlers,
@@ -32,6 +30,7 @@ from gl_iam.fastapi import (
     set_iam_gateway,
 )
 from gl_iam.providers.native import NativeConfig, NativeProvider
+from pydantic import BaseModel
 
 load_dotenv()
 
@@ -71,7 +70,7 @@ app = FastAPI(
     description="GL-IAM Multi-Hop Delegation Chains",
     lifespan=lifespan,
 )
-add_exception_handlers(app)
+add_exception_handlers(app, error_policy="v1.2")
 
 
 # ============================================================================
@@ -149,7 +148,7 @@ async def get_or_register_demo_agent(gateway: IAMGateway, registration: AgentReg
 
     result = await gateway.register_agent(registration)
     if not result.is_ok:
-        raise HTTPException(status_code=400, detail=result.error.message)
+        raise_for_error(result.error)
     return result.value
 
 
@@ -168,20 +167,15 @@ async def register(request: RegisterRequest):
     gateway = get_iam_gateway()
     org_id = os.getenv("DEFAULT_ORGANIZATION_ID", "default")
 
-    try:
-        user = await gateway.user_store.create_user(
-            UserCreateInput(
-                email=request.email,
-                display_name=request.display_name or request.email.split("@")[0],
-            ),
-            organization_id=org_id,
-        )
+    user = await gateway.user_store.create_user(
+        UserCreateInput(
+            email=request.email,
+            display_name=request.display_name or request.email.split("@")[0],
+        ),
+        organization_id=org_id,
+    )
 
-        await gateway.user_store.set_user_password(user.id, request.password, org_id)
-    except UserAlreadyExistsError as e:
-        raise HTTPException(status_code=409, detail=str(e)) from e
-    except InvalidCredentialsError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
+    await gateway.user_store.set_user_password(user.id, request.password, org_id)
 
     return {"id": user.id, "email": user.email, "display_name": user.display_name}
 
@@ -203,7 +197,7 @@ async def login(request: LoginRequest):
             token_type=result.token.token_type,
         )
     else:
-        raise HTTPException(status_code=401, detail=result.error.message)
+        raise_for_error(result.error)
 
 
 # ============================================================================
@@ -295,7 +289,7 @@ async def delegate_to_orchestrator(
             effective_scopes=list(delegation.chain.effective_scopes()),
         )
     else:
-        raise HTTPException(status_code=400, detail=result.error.message)
+        raise_for_error(result.error)
 
 
 @app.post("/delegate/worker", response_model=DelegateResponse)
@@ -339,7 +333,7 @@ async def delegate_to_worker(
             effective_scopes=list(delegation.chain.effective_scopes()),
         )
     else:
-        raise HTTPException(status_code=400, detail=result.error.message)
+        raise_for_error(result.error)
 
 
 @app.get("/chain/inspect")
@@ -355,7 +349,7 @@ async def inspect_chain(token: str = Query(..., description="Delegation token to
     result = await gateway.validate_delegation_token(token)
 
     if not result.is_ok:
-        raise HTTPException(status_code=401, detail=result.error.message)
+        raise_for_error(result.error)
 
     delegation = result.value
     chain = delegation.chain

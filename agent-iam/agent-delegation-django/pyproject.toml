@@ -8,5 +8,5 @@ dependencies = [
   "django>=5.1.0,<6.0.0",
   "djangorestframework>=3.15.0,<4.0.0",
   "python-dotenv>=1.0.0,<2.0.0",
-  "gl-iam[django,native]>=0.3.10,<0.4.0",
+  "gl-iam[django,native] @ git+https://github.com/GDP-ADMIN/gl-sdk.git@d4c2c51ceb94c70686957f1a47adc015ea2b0099#subdirectory=libs/gl-iam",
 ]

@@ -6,9 +6,12 @@ BOSA Migration Mapping:
 - revoke_token() -> POST /api/auth/logout
 """
 
-from fastapi import APIRouter, HTTPException, status
 
+from fastapi import APIRouter, HTTPException, status
+from gl_iam.core.error_carrier import ResultError
+from gl_iam.core.exceptions import GLIAMError
 from gl_iam.core.types import PasswordCredentials
+from gl_iam.core.types.result import ErrorCode
 
 from config import settings
 from deps import CurrentUserDep, provider
@@ -77,17 +80,10 @@ async def login(request: LoginRequest):
             expires_in=expires_in,
         )
 
-    except Exception as e:
-        error_msg = str(e).lower()
-        if "invalid" in error_msg or "credentials" in error_msg:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid email or password",
-            )
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e),
-        )
+    except (GLIAMError, HTTPException):
+        raise
+    except Exception as error:
+        raise ResultError(ErrorCode.INTERNAL_ERROR, cause=error) from None
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)

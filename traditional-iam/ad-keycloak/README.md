@@ -1,5 +1,10 @@
 # Active Directory Authentication via Keycloak
 
+> **Error handling v1.2:** This example pins the unreleased SDK PR #7656 revision
+> and requires Git access to `GDP-ADMIN/gl-sdk`. SDK failures use canonical
+> `error_code`/`message` fields and recovery guidance. Read the
+> [migration and installation notes](../../ERROR_HANDLING.md) before running it.
+
 Authenticate Active Directory users through Keycloak's User Federation (AD vendor preset), with GL-IAM handling authorization.
 
 ## Overview

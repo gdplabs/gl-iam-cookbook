@@ -1,5 +1,10 @@
 # AIP Server Integration
 
+> **Error handling v1.2:** This example pins the unreleased SDK PR #7656 revision
+> and requires Git access to `GDP-ADMIN/gl-sdk`. SDK failures use canonical
+> `error_code`/`message` fields and recovery guidance. Read the
+> [migration and installation notes](../../ERROR_HANDLING.md) before running it.
+
 This example shows how to integrate GL-IAM into an existing AI Agent Platform (AIP) server, adding user-based authentication alongside the existing API key system while maintaining backward compatibility.
 
 **When to use this pattern:**

@@ -1,5 +1,10 @@
 # Agent Lifecycle Management
 
+> **Error handling v1.2:** This example pins the unreleased SDK PR #7656 revision
+> and requires Git access to `GDP-ADMIN/gl-sdk`. SDK failures use canonical
+> `error_code`/`message` fields and recovery guidance. Read the
+> [migration and installation notes](../../ERROR_HANDLING.md) before running it.
+
 This example demonstrates the full agent lifecycle in GL-IAM: registration, suspension, reactivation, revocation, and audit event capture.
 
 ## Prerequisites
@@ -154,7 +159,7 @@ ACTIVE ──suspend──> SUSPENDED ──reactivate──> ACTIVE
 ### Audit Event Types
 
 The lifecycle flow emits the following audit records across the example's
-supported `gl-iam` 0.3.x range. Verify event names against the installed
+pinned GL-IAM revision. Verify event names against the installed
 runtime when changing that dependency range.
 
 | Event | Fires? | Notes |

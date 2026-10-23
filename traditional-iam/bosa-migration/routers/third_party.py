@@ -14,8 +14,6 @@ BOSA Migration Mapping:
 
 from fastapi import APIRouter, HTTPException, status
 
-from gl_iam.core.exceptions import IntegrationAlreadyExistsError, IntegrationNotFoundError
-
 from config import settings
 from deps import CurrentUserDep, get_third_party_provider
 from schemas import (
@@ -49,21 +47,15 @@ async def store_integration(
     """
     third_party_provider = get_third_party_provider()
 
-    try:
-        integration = await third_party_provider.store_integration(
-            user_id=user.id,
-            connector=request.connector,
-            auth_string=request.auth_string,
-            organization_id=settings.default_organization_id,
-            user_identifier=request.user_identifier,
-            scopes=request.scopes,
-            metadata=request.metadata,
-        )
-    except IntegrationAlreadyExistsError:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"Integration already exists for {request.connector}/{request.user_identifier}",
-        )
+    integration = await third_party_provider.store_integration(
+        user_id=user.id,
+        connector=request.connector,
+        auth_string=request.auth_string,
+        organization_id=settings.default_organization_id,
+        user_identifier=request.user_identifier,
+        scopes=request.scopes,
+        metadata=request.metadata,
+    )
 
     return IntegrationResponse(
         id=integration.id,
@@ -187,18 +179,12 @@ async def set_selected_integration(
             detail="Connector in path and body must match",
         )
 
-    try:
-        await third_party_provider.set_selected_integration(
-            user_id=user.id,
-            connector=connector,
-            user_identifier=request.user_identifier,
-            organization_id=settings.default_organization_id,
-        )
-    except IntegrationNotFoundError:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Integration not found: {connector}/{request.user_identifier}",
-        )
+    await third_party_provider.set_selected_integration(
+        user_id=user.id,
+        connector=connector,
+        user_identifier=request.user_identifier,
+        organization_id=settings.default_organization_id,
+    )
 
 
 @router.get("/{connector}/exists")
@@ -293,13 +279,7 @@ async def delete_integration(
     """
     third_party_provider = get_third_party_provider()
 
-    try:
-        await third_party_provider.delete_integration(
-            integration_id=integration_id,
-            organization_id=settings.default_organization_id,
-        )
-    except IntegrationNotFoundError:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Integration {integration_id} not found",
-        )
+    await third_party_provider.delete_integration(
+        integration_id=integration_id,
+        organization_id=settings.default_organization_id,
+    )

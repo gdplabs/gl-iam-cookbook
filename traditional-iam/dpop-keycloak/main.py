@@ -15,8 +15,6 @@ from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI
-from pydantic import BaseModel
-
 from gl_iam import DPoPConfig, IAMGateway, User
 from gl_iam.fastapi import (
     add_exception_handlers,
@@ -28,8 +26,8 @@ from gl_iam.providers.keycloak import (
     KeycloakConfig,
     KeycloakProvider,
 )
-
 from gl_iam.providers.keycloak.dpop import KeycloakDPoPProvider
+from pydantic import BaseModel
 
 load_dotenv()
 
@@ -51,6 +49,7 @@ client_secret = _require_env("KEYCLOAK_CLIENT_SECRET")
 async def lifespan(_: FastAPI):
     """Initialize GL-IAM gateway with Keycloak and DPoP support."""
     keycloak_config = KeycloakConfig(
+        error_policy="typed",
         server_url=server_url,
         realm=realm,
         client_id=client_id,
@@ -82,7 +81,7 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(title="DPoP Keycloak Demo", lifespan=lifespan)
-add_exception_handlers(app)
+add_exception_handlers(app, error_policy="v1.2")
 
 
 class UserResponse(BaseModel):

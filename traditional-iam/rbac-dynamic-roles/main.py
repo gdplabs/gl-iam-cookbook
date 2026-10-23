@@ -15,11 +15,11 @@ Run:
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
-
-from config import settings
 from gl_iam import IAMGateway
 from gl_iam.fastapi import add_exception_handlers, set_iam_gateway
 from gl_iam.providers.native import NativeConfig, NativeProvider, PasswordPolicy
+
+from config import settings
 from routers import auth_router, permissions_router, roles_router
 
 
@@ -59,7 +59,7 @@ app = FastAPI(
 
 # Maps GL-IAM exceptions onto 401/403/404/409 instead of a blanket 500. The
 # RBAC handlers (RoleNotFoundError, SystemRoleError, ...) come with it.
-add_exception_handlers(app)
+add_exception_handlers(app, error_policy="v1.2")
 
 app.include_router(auth_router)
 app.include_router(roles_router)

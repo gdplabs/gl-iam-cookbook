@@ -1,5 +1,10 @@
 # DPoP Without Keycloak (Standalone)
 
+> **Error handling v1.2:** This example pins the unreleased SDK PR #7656 revision
+> and requires Git access to `GDP-ADMIN/gl-sdk`. SDK failures use canonical
+> `error_code`/`message` fields and recovery guidance. Read the
+> [migration and installation notes](../../ERROR_HANDLING.md) before running it.
+
 This example demonstrates **DPoP (Demonstrating Proof of Possession)** with **no Keycloak and no database**. It proves DPoP in GL-IAM is backend-agnostic: all proof validation, replay protection, and `cnf.jkt` token-binding run locally using GL-IAM's `StandaloneDPoPProvider` (PyJWT + cryptography only).
 
 DPoP binds an access token to a client's cryptographic key pair. Even if someone steals the token, they cannot use it without the matching **private key**.

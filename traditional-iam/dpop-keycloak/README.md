@@ -1,5 +1,10 @@
 # DPoP with Keycloak
 
+> **Error handling v1.2:** This example pins the unreleased SDK PR #7656 revision
+> and requires Git access to `GDP-ADMIN/gl-sdk`. SDK failures use canonical
+> `error_code`/`message` fields and recovery guidance. Read the
+> [migration and installation notes](../../ERROR_HANDLING.md) before running it.
+
 This example demonstrates **DPoP (Demonstrating Proof of Possession)** with Keycloak as the identity provider. DPoP binds access tokens to a specific cryptographic key pair - even if someone steals your token, they can't use it without your private key.
 
 ## What is DPoP?

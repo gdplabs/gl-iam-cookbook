@@ -17,8 +17,6 @@ from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI
-from pydantic import BaseModel
-
 from gl_iam import IAMGateway, User
 from gl_iam.fastapi import (
     add_exception_handlers,
@@ -28,6 +26,7 @@ from gl_iam.fastapi import (
     set_iam_gateway,
 )
 from gl_iam.providers.keycloak import KeycloakConfig, KeycloakProvider
+from pydantic import BaseModel
 
 load_dotenv()
 
@@ -41,6 +40,7 @@ async def lifespan(app: FastAPI):
     code is needed in the application.
     """
     config = KeycloakConfig(
+        error_policy="typed",
         server_url=os.getenv("KEYCLOAK_SERVER_URL"),
         realm=os.getenv("KEYCLOAK_REALM"),
         client_id=os.getenv("KEYCLOAK_CLIENT_ID"),
@@ -59,7 +59,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="GL-IAM SAML via Keycloak", lifespan=lifespan)
-add_exception_handlers(app)
+add_exception_handlers(app, error_policy="v1.2")
 
 
 class UserResponse(BaseModel):

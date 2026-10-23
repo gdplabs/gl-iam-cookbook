@@ -1,5 +1,10 @@
 # Refresh Tokens with FastAPI (Native Provider)
 
+> **Error handling v1.2:** This example pins the unreleased SDK PR #7656 revision
+> and requires Git access to `GDP-ADMIN/gl-sdk`. SDK failures use canonical
+> `error_code`/`message` fields and recovery guidance. Read the
+> [migration and installation notes](../../ERROR_HANDLING.md) before running it.
+
 Keep users signed in with a long-lived **refresh token** while every **access token** stays short-lived. A stolen access token is useless within minutes; the refresh token, sent only to one endpoint, quietly gets the client a new one.
 
 This example covers the whole lifecycle on GL-IAM's Native provider (PostgreSQL-backed):
@@ -13,7 +18,7 @@ This example covers the whole lifecycle on GL-IAM's Native provider (PostgreSQL-
 | End a device's current access tokens only | `DELETE /devices/{id}/sessions` | `gateway.revoke_refresh_token_sessions(id, user_id, org_id)` |
 | Sign out everywhere in this organization | `POST /logout-everywhere` | `gateway.revoke_all_sessions(user_id, org_id)` |
 
-> **Requires `gl-iam` 0.3.19 or later.** Refresh tokens, per-login access-token lifetimes, and organization-scoped revocation were added in that release.
+> Refresh tokens, per-login access-token lifetimes, and organization-scoped revocation originally shipped in `gl-iam` 0.3.19. This example now uses the pinned error-handling revision described above.
 
 ## Prerequisites
 

@@ -12,5 +12,5 @@ dependencies = [
   "redis[hiredis]>=5.0.0,<6.0.0",
   "slowapi>=0.1.9,<0.2.0",
   "itsdangerous>=2.2.0,<3.0.0",
-  "gl-iam[fastapi,native]>=0.3.10,<0.4.0",
+  "gl-iam[fastapi,native] @ git+https://github.com/GDP-ADMIN/gl-sdk.git@d4c2c51ceb94c70686957f1a47adc015ea2b0099#subdirectory=libs/gl-iam",
 ]

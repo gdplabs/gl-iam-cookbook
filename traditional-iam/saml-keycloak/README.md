@@ -1,5 +1,10 @@
 # SAML 2.0 Federation via Keycloak
 
+> **Error handling v1.2:** This example pins the unreleased SDK PR #7656 revision
+> and requires Git access to `GDP-ADMIN/gl-sdk`. SDK failures use canonical
+> `error_code`/`message` fields and recovery guidance. Read the
+> [migration and installation notes](../../ERROR_HANDLING.md) before running it.
+
 Authenticate users from a SAML 2.0 Identity Provider through Keycloak, with GL-IAM handling authorization.
 
 ## Overview
