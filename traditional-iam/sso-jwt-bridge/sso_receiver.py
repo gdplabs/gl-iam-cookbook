@@ -23,13 +23,18 @@ from datetime import datetime, timezone
 import jwt as pyjwt
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException
-from pydantic import BaseModel
-
 from gl_iam import IAMGateway, User
+from gl_iam.core.exceptions import InvalidTokenError
 from gl_iam.core.types import UserCreateInput
 from gl_iam.core.types.auth import ExternalIdentity
-from gl_iam.fastapi import add_exception_handlers, get_current_user, get_iam_gateway, set_iam_gateway
+from gl_iam.fastapi import (
+    add_exception_handlers,
+    get_current_user,
+    get_iam_gateway,
+    set_iam_gateway,
+)
 from gl_iam.providers.native import NativeConfig, NativeProvider
+from pydantic import BaseModel
 
 load_dotenv()
 
@@ -127,7 +132,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="SSO JWT Bridge Receiver", lifespan=lifespan)
-add_exception_handlers(app)  # <-- GL-IAM: map AuthenticationError/PermissionDeniedError to 401/403
+add_exception_handlers(app, error_policy="v1.2")  # Preserve canonical codes and recovery guidance.
 
 
 # ============================================================================
@@ -208,8 +213,8 @@ async def sso_jwt_authenticate(request: SSOJwtAuthenticateRequest):
         log_app("JWT verification FAILED", f"Issuer mismatch (expected: {expected_issuer})")
         raise HTTPException(status_code=401, detail="Invalid JWT issuer")
     except pyjwt.InvalidTokenError as e:
-        log_app("JWT verification FAILED", str(e))
-        raise HTTPException(status_code=401, detail=f"Invalid partner JWT: {e}")
+        log_app("JWT verification FAILED", "invalid_token")
+        raise InvalidTokenError(cause=e) from None
     # --- End application code ---
 
     log_app(

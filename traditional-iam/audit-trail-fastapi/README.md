@@ -1,5 +1,10 @@
 # Audit Trail with FastAPI — Production Setup
 
+> **Error handling v1.2:** This example requires `gl-iam>=0.3.25,<0.4.0`
+> from PyPI and Python 3.12 or 3.13. SDK failures use canonical
+> `error_code`/`message` fields and recovery guidance. Read the
+> [migration and installation notes](../../ERROR_HANDLING.md) before running it.
+
 A production-ready audit trail example demonstrating:
 
 - **Multi-handler composition**: `ConsoleAuditHandler` + `DatabaseAuditHandler` via `CompositeAuditHandler`
@@ -9,7 +14,7 @@ A production-ready audit trail example demonstrating:
 
 ## Prerequisites
 
-- Python 3.11+
+- Python 3.12 or 3.13
 - [UV](https://docs.astral.sh/uv/) (package manager)
 - PostgreSQL 15+ running locally
 
@@ -220,8 +225,8 @@ The `DatabaseAuditHandler` writes events asynchronously in batches for zero late
 ### Persisted Event Coverage
 
 The following table describes the audit behavior for this example's supported
-`gl-iam>=0.3.15,<0.4.0` range. Verify behavior against the installed runtime
-when changing that dependency range:
+installed GL-IAM version. Verify behavior against the installed runtime
+when changing that dependency:
 
 | Operation | Persisted audit behavior |
 | --- | --- |

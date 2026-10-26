@@ -1,5 +1,10 @@
 # Agent Delegation with Django
 
+> **Error handling v1.2:** This example requires `gl-iam>=0.3.25,<0.4.0`
+> from PyPI and Python 3.12 or 3.13. SDK failures use canonical
+> `error_code`/`message` fields and recovery guidance. Read the
+> [migration and installation notes](../../ERROR_HANDLING.md) before running it.
+
 This example demonstrates GL-IAM agent delegation using Django with three integration patterns: Function-Based Views (FBV), Class-Based Views (CBV), and Django REST Framework (DRF).
 
 ## Prerequisites

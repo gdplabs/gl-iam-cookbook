@@ -5,10 +5,12 @@ BOSA Migration Mapping:
 - get_user() -> GET /api/users/{id} or GET /api/users/me
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
 
-from gl_iam.core.exceptions import PermissionDeniedError
+from fastapi import APIRouter, Depends, HTTPException, status
+from gl_iam.core.error_carrier import ResultError
+from gl_iam.core.exceptions import GLIAMError, ValidationError
 from gl_iam.core.types import UserCreateInput
+from gl_iam.core.types.result import ErrorCode
 
 from config import settings
 from deps import (
@@ -56,16 +58,10 @@ async def create_user(
 
     try:
         user = await provider.create_user(user_input, organization_id)
-    except Exception as e:
-        if "already exists" in str(e).lower():
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail=f"User with email {request.email} already exists",
-            )
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e),
-        )
+    except (GLIAMError, HTTPException):
+        raise
+    except Exception as error:
+        raise ResultError(ErrorCode.INTERNAL_ERROR, cause=error) from None
 
     # Set password
     await provider.set_user_password(user.id, request.password, organization_id)
@@ -191,13 +187,10 @@ async def delete_user(
 
     try:
         await provider.delete_user(user_id, organization_id)
-    except Exception as e:
-        if "not found" in str(e).lower():
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"User {user_id} not found",
-            )
+    except (GLIAMError, HTTPException):
         raise
+    except Exception as error:
+        raise ResultError(ErrorCode.INTERNAL_ERROR, cause=error) from None
 
 
 # =============================================================================
@@ -247,23 +240,12 @@ async def assign_role_to_user(
             organization_id=settings.default_organization_id,
             caller_id=current_user.id,
         )
-    except PermissionDeniedError as e:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=str(e),
-        )
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
-        )
-    except Exception as e:
-        if "not found" in str(e).lower():
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"User {user_id} not found",
-            )
+    except (GLIAMError, HTTPException):
         raise
+    except ValueError as error:
+        raise ValidationError(cause=error) from None
+    except Exception as error:
+        raise ResultError(ErrorCode.INTERNAL_ERROR, cause=error) from None
 
     return {"message": f"Role '{role}' assigned to user"}
 
@@ -294,22 +276,11 @@ async def remove_role_from_user(
             organization_id=settings.default_organization_id,
             caller_id=current_user.id,
         )
-    except PermissionDeniedError as e:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=str(e),
-        )
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
-        )
-    except Exception as e:
-        if "not found" in str(e).lower():
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"User {user_id} not found",
-            )
+    except (GLIAMError, HTTPException):
         raise
+    except ValueError as error:
+        raise ValidationError(cause=error) from None
+    except Exception as error:
+        raise ResultError(ErrorCode.INTERNAL_ERROR, cause=error) from None
 
     return {"message": f"Role '{role}' removed from user"}

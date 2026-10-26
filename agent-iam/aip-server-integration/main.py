@@ -11,18 +11,19 @@ from uuid import UUID
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException, Security
 from fastapi.security import APIKeyHeader, HTTPAuthorizationCredentials, HTTPBearer
-from pydantic import BaseModel
-from pydantic_settings import BaseSettings
-from starlette.status import HTTP_401_UNAUTHORIZED
-
 from gl_iam import IAMGateway, StandardRole, User
+from gl_iam.core.error_carrier import raise_for_error
 from gl_iam.core.types import PasswordCredentials, UserCreateInput
 from gl_iam.core.types.api_key import ApiKeyIdentity, ApiKeyTier
 from gl_iam.fastapi import (
+    add_exception_handlers,
     get_iam_gateway,
     set_iam_gateway,
 )
-from gl_iam.providers.native import NativeProvider, NativeConfig
+from gl_iam.providers.native import NativeConfig, NativeProvider
+from pydantic import BaseModel
+from pydantic_settings import BaseSettings
+from starlette.status import HTTP_401_UNAUTHORIZED
 
 load_dotenv()
 
@@ -109,11 +110,7 @@ async def get_unified_identity(
             organization_id=settings.gliam_organization_id,
         )
         if result.is_err:
-            raise HTTPException(
-                status_code=HTTP_401_UNAUTHORIZED,
-                detail="Invalid or expired token",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
+            raise_for_error(result.error)
         return result.value
 
     if api_key:
@@ -244,6 +241,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="AIP Server with GL-IAM", lifespan=lifespan)
+add_exception_handlers(app, error_policy="v1.2")
 
 
 # =============================================================================
@@ -322,7 +320,7 @@ async def login(request: LoginRequest):
             token_type=result.token.token_type,
         )
     else:
-        raise HTTPException(status_code=401, detail=result.error.message)
+        raise_for_error(result.error)
 
 
 # =============================================================================

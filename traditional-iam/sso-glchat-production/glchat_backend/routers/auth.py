@@ -6,15 +6,14 @@ admin UI then uses to call `/admin/*`.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
-
+from fastapi import APIRouter, Depends
 from gl_iam import User
+from gl_iam.core.error_carrier import raise_for_error
 from gl_iam.core.types import PasswordCredentials
 from gl_iam.fastapi import get_current_user, get_iam_gateway
+from pydantic import BaseModel
 
 from glchat_backend.config import get_settings
-
 
 router = APIRouter(tags=["auth"])
 
@@ -44,7 +43,7 @@ async def login(body: LoginRequest):
         organization_id=get_settings().default_org_id,
     )
     if result.is_err:
-        raise HTTPException(401, result.error.message)
+        raise_for_error(result.error)
     return TokenResponse(
         access_token=result.token.access_token,
         token_type=result.token.token_type,

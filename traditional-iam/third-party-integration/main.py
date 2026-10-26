@@ -19,14 +19,8 @@ from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException, Query
-from pydantic import BaseModel
-
-from connectors.base import BaseConnector
-from connectors.github import GitHubConnector
 from gl_iam import IAMGateway, User
-from gl_iam.core.exceptions import (
-    IntegrationNotFoundError,
-)
+from gl_iam.core.error_carrier import raise_for_error
 from gl_iam.core.types import PasswordCredentials, UserCreateInput
 from gl_iam.fastapi import (
     add_exception_handlers,
@@ -36,7 +30,11 @@ from gl_iam.fastapi import (
     require_org_member,
     set_iam_gateway,
 )
-from gl_iam.providers.native import NativeProvider, NativeConfig
+from gl_iam.providers.native import NativeConfig, NativeProvider
+from pydantic import BaseModel
+
+from connectors.base import BaseConnector
+from connectors.github import GitHubConnector
 
 load_dotenv()
 
@@ -82,7 +80,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Third-Party Integration API", lifespan=lifespan)
-add_exception_handlers(app)  # <-- GL-IAM: map AuthenticationError/PermissionDeniedError to 401/403
+add_exception_handlers(app, error_policy="v1.2")  # Preserve canonical codes and recovery guidance.
 
 
 # ============================================================================
@@ -213,7 +211,7 @@ async def login(request: LoginRequest):
             token_type=result.token.token_type,
         )
     else:
-        raise HTTPException(status_code=401, detail=result.error.message)
+        raise_for_error(result.error)
 
 
 # ============================================================================
@@ -338,16 +336,13 @@ async def set_selected(
     gateway = get_iam_gateway()
     org_id = get_org_id()
 
-    try:
-        await gateway.third_party_provider.set_selected_integration(
-            user_id=user.id,
-            connector=connector_name,
-            user_identifier=request.user_identifier,
-            organization_id=org_id,
-        )
-        return {"success": True}
-    except IntegrationNotFoundError as e:
-        raise HTTPException(status_code=404, detail=e.message) from e
+    await gateway.third_party_provider.set_selected_integration(
+        user_id=user.id,
+        connector=connector_name,
+        user_identifier=request.user_identifier,
+        organization_id=org_id,
+    )
+    return {"success": True}
 
 
 @app.get("/integrations/{connector_name}/check")
@@ -377,29 +372,26 @@ async def update_integration(
     gateway = get_iam_gateway()
     org_id = get_org_id()
 
-    try:
-        integration = await gateway.third_party_provider.update_integration(
-            integration_id=integration_id,
-            organization_id=org_id,
-            scopes=request.scopes,
-            metadata=request.metadata,
-            is_active=request.is_active,
-        )
-        return IntegrationResponse(
-            id=integration.id,
-            connector=integration.connector,
-            user_identifier=integration.user_identifier,
-            auth_string_preview=integration.auth_string_preview,
-            scopes=integration.scopes,
-            is_selected=integration.is_selected,
-            is_active=integration.is_active,
-            created_at=integration.created_at.isoformat()
-            if integration.created_at
-            else None,
-            metadata=integration.metadata,
-        )
-    except IntegrationNotFoundError as e:
-        raise HTTPException(status_code=404, detail=e.message) from e
+    integration = await gateway.third_party_provider.update_integration(
+        integration_id=integration_id,
+        organization_id=org_id,
+        scopes=request.scopes,
+        metadata=request.metadata,
+        is_active=request.is_active,
+    )
+    return IntegrationResponse(
+        id=integration.id,
+        connector=integration.connector,
+        user_identifier=integration.user_identifier,
+        auth_string_preview=integration.auth_string_preview,
+        scopes=integration.scopes,
+        is_selected=integration.is_selected,
+        is_active=integration.is_active,
+        created_at=integration.created_at.isoformat()
+        if integration.created_at
+        else None,
+        metadata=integration.metadata,
+    )
 
 
 @app.delete("/integrations/{connector_name}/{user_identifier}")
@@ -437,16 +429,13 @@ async def remove_integration(
         await connector.revoke_token(auth_string)
 
     # Delete from GL-IAM storage
-    try:
-        await gateway.third_party_provider.delete_integration_by_user_identifier(
-            user_id=user.id,
-            connector=connector_name,
-            user_identifier=user_identifier,
-            organization_id=org_id,
-        )
-        return {"success": True, "revoked": True}
-    except IntegrationNotFoundError as e:
-        raise HTTPException(status_code=404, detail=e.message) from e
+    await gateway.third_party_provider.delete_integration_by_user_identifier(
+        user_id=user.id,
+        connector=connector_name,
+        user_identifier=user_identifier,
+        organization_id=org_id,
+    )
+    return {"success": True, "revoked": True}
 
 
 # ============================================================================

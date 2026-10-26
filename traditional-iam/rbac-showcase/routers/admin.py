@@ -5,12 +5,12 @@ Provides role management endpoints for assigning and removing roles.
 """
 
 from fastapi import APIRouter, Depends, HTTPException
-
-from config import ProviderType, settings
-from deps import require_role_management_permission
 from gl_iam import User
 from gl_iam.core.roles.standard import StandardRole
 from gl_iam.fastapi import get_iam_gateway
+
+from config import ProviderType, settings
+from deps import require_role_management_permission
 from schemas import (
     RoleAssignRequest,
     RoleManagementResponse,
@@ -52,15 +52,8 @@ async def assign_role(
 
     # Note: Actual role assignment would require provider-specific implementation
     # This is a demonstration of the authorization pattern
-    try:
-        # In a real implementation, this would call the provider's API
-        # await gateway.assign_role(request.user_id, request.role, organization_id)
-        pass
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to assign role: {str(e)}",
-        )
+    # In a real implementation, call gateway.assign_role(...) and use
+    # raise_for_error(result.error) for a failed Result.
 
     return RoleManagementResponse(
         success=True,
@@ -110,15 +103,8 @@ async def remove_role(
     gateway = get_iam_gateway()
 
     # Note: Actual role removal would require provider-specific implementation
-    try:
-        # In a real implementation, this would call the provider's API
-        # await gateway.remove_role(request.user_id, request.role, organization_id)
-        pass
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to remove role: {str(e)}",
-        )
+    # In a real implementation, call gateway.remove_role(...) and use
+    # raise_for_error(result.error) for a failed Result.
 
     return RoleManagementResponse(
         success=True,

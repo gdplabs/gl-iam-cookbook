@@ -2,7 +2,7 @@
 name = "sso-glchat-production"
 version = "0.0.0"
 description = "Production-grade IdP-Initiated SSO cookbook: GLChat + Trusted Partner with Redis, audit trail, rate limiting, admin auth, CSP, nonce protection"
-requires-python = ">=3.11,<3.14"
+requires-python = ">=3.12,<3.14"
 readme = "README.md"
 dependencies = [
   "fastapi>=0.115.0,<0.116.0",
@@ -12,5 +12,5 @@ dependencies = [
   "redis[hiredis]>=5.0.0,<6.0.0",
   "slowapi>=0.1.9,<0.2.0",
   "itsdangerous>=2.2.0,<3.0.0",
-  "gl-iam[fastapi,native]>=0.3.10,<0.4.0",
+  "gl-iam[fastapi,native]>=0.3.25,<0.4.0",
 ]

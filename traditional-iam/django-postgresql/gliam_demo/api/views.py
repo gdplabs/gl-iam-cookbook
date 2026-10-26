@@ -18,23 +18,19 @@ from django.http import JsonResponse
 from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
-from rest_framework import status
-from rest_framework.response import Response
-from rest_framework.views import APIView
-
-from gl_iam import PasswordPolicyError, UserAlreadyExistsError
+from gl_iam.core.error_carrier import raise_for_error
 from gl_iam.core.types import PasswordCredentials, UserCreateInput
 from gl_iam.django import (
+    GLIAMLoginRequiredMixin,
+    OrgAdminRequiredMixin,
+    OrgMemberRequiredMixin,
+    PlatformAdminRequiredMixin,
     get_iam_gateway,
     gl_iam_login_required,
     require_org_admin,
     require_org_member,
     require_platform_admin,
     run_sync,
-    GLIAMLoginRequiredMixin,
-    OrgAdminRequiredMixin,
-    OrgMemberRequiredMixin,
-    PlatformAdminRequiredMixin,
 )
 from gl_iam.django.drf import (
     GLIAMAuthentication,
@@ -43,6 +39,9 @@ from gl_iam.django.drf import (
     IsOrgMember,
     IsPlatformAdmin,
 )
+from rest_framework import status
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from .serializers import (
     LoginSerializer,
@@ -50,7 +49,6 @@ from .serializers import (
     TokenResponseSerializer,
     UserResponseSerializer,
 )
-
 
 # ============================================================================
 # Public Endpoints
@@ -89,22 +87,17 @@ def register(request):
 
     # create_user_with_password validates the password before writing anything,
     # so a policy failure can't leave an orphan user row behind.
-    try:
-        user = run_sync(
-            gateway.user_store.create_user_with_password(
-                UserCreateInput(
-                    email=serializer.validated_data["email"],
-                    display_name=serializer.validated_data.get("display_name")
-                    or serializer.validated_data["email"].split("@")[0],
-                ),
-                serializer.validated_data["password"],
-                organization_id=org_id,
-            )
+    user = run_sync(
+        gateway.user_store.create_user_with_password(
+            UserCreateInput(
+                email=serializer.validated_data["email"],
+                display_name=serializer.validated_data.get("display_name")
+                or serializer.validated_data["email"].split("@")[0],
+            ),
+            serializer.validated_data["password"],
+            organization_id=org_id,
         )
-    except UserAlreadyExistsError as exc:
-        return JsonResponse({"error": str(exc)}, status=409)
-    except PasswordPolicyError as exc:
-        return JsonResponse({"error": str(exc)}, status=400)
+    )
 
     return JsonResponse(
         {
@@ -158,7 +151,7 @@ def login(request):
             }
         )
     else:
-        return JsonResponse({"error": result.error.message}, status=401)
+        raise_for_error(result.error)
 
 
 # ============================================================================
@@ -448,22 +441,17 @@ class RegisterAPIView(APIView):
 
         # create_user_with_password validates the password before writing
         # anything, so a policy failure can't leave an orphan user row behind.
-        try:
-            user = run_sync(
-                gateway.user_store.create_user_with_password(
-                    UserCreateInput(
-                        email=serializer.validated_data["email"],
-                        display_name=serializer.validated_data.get("display_name")
-                        or serializer.validated_data["email"].split("@")[0],
-                    ),
-                    serializer.validated_data["password"],
-                    organization_id=org_id,
-                )
+        user = run_sync(
+            gateway.user_store.create_user_with_password(
+                UserCreateInput(
+                    email=serializer.validated_data["email"],
+                    display_name=serializer.validated_data.get("display_name")
+                    or serializer.validated_data["email"].split("@")[0],
+                ),
+                serializer.validated_data["password"],
+                organization_id=org_id,
             )
-        except UserAlreadyExistsError as exc:
-            return Response({"error": str(exc)}, status=status.HTTP_409_CONFLICT)
-        except PasswordPolicyError as exc:
-            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        )
 
         response_serializer = UserResponseSerializer(
             {
@@ -512,7 +500,4 @@ class LoginAPIView(APIView):
             )
             return Response(response_serializer.data)
         else:
-            return Response(
-                {"error": result.error.message},
-                status=status.HTTP_401_UNAUTHORIZED,
-            )
+            raise_for_error(result.error)

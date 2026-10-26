@@ -1,5 +1,10 @@
 # Agent Delegation with Stack Auth
 
+> **Error handling v1.2:** This example requires `gl-iam>=0.3.25,<0.4.0`
+> from PyPI and Python 3.12 or 3.13. SDK failures use canonical
+> `error_code`/`message` fields and recovery guidance. Read the
+> [migration and installation notes](../../ERROR_HANDLING.md) before running it.
+
 This example demonstrates GL-IAM agent delegation using Stack Auth for user authentication. It includes a unique feature: bridging Stack Auth opaque tokens to GL-IAM delegation JWTs via `create_delegation_token_from_stackauth()`.
 
 ## Prerequisites

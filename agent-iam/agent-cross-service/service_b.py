@@ -13,7 +13,6 @@ from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI
-
 from gl_iam import IAMGateway
 from gl_iam.core.types.agent import AgentIdentity
 from gl_iam.core.types.delegation import DelegationChain
@@ -66,7 +65,7 @@ app = FastAPI(
     description="Validates delegation tokens and provides protected resources",
     lifespan=lifespan,
 )
-add_exception_handlers(app)
+add_exception_handlers(app, error_policy="v1.2")
 
 
 # ============================================================================

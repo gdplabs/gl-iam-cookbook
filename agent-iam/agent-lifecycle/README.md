@@ -1,5 +1,10 @@
 # Agent Lifecycle Management
 
+> **Error handling v1.2:** This example requires `gl-iam>=0.3.25,<0.4.0`
+> from PyPI and Python 3.12 or 3.13. SDK failures use canonical
+> `error_code`/`message` fields and recovery guidance. Read the
+> [migration and installation notes](../../ERROR_HANDLING.md) before running it.
+
 This example demonstrates the full agent lifecycle in GL-IAM: registration, suspension, reactivation, revocation, and audit event capture.
 
 ## Prerequisites
@@ -154,7 +159,7 @@ ACTIVE ──suspend──> SUSPENDED ──reactivate──> ACTIVE
 ### Audit Event Types
 
 The lifecycle flow emits the following audit records across the example's
-supported `gl-iam` 0.3.x range. Verify event names against the installed
+installed GL-IAM version. Verify event names against the installed
 runtime when changing that dependency range.
 
 | Event | Fires? | Notes |

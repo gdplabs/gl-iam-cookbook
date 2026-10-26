@@ -11,8 +11,6 @@ The flow has two phases:
 Each endpoint is annotated with whether it uses GL-IAM SDK calls or application code.
 """
 
-import hashlib
-import hmac as hmac_mod
 import logging
 import os
 import secrets
@@ -22,14 +20,19 @@ from datetime import datetime, timezone
 
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException
-from pydantic import BaseModel
-
 from gl_iam import IAMGateway, User
+from gl_iam.core.error_carrier import raise_for_error
 from gl_iam.core.types import UserCreateInput
 from gl_iam.core.types.auth import ExternalIdentity
 from gl_iam.core.types.sso import SSOMode, SSOPartnerCreate, SSOUserProvisioning
-from gl_iam.fastapi import add_exception_handlers, get_current_user, get_iam_gateway, set_iam_gateway
+from gl_iam.fastapi import (
+    add_exception_handlers,
+    get_current_user,
+    get_iam_gateway,
+    set_iam_gateway,
+)
 from gl_iam.providers.native import NativeConfig, NativeProvider
+from pydantic import BaseModel
 
 load_dotenv()
 
@@ -158,7 +161,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="SSO Token Exchange Receiver", lifespan=lifespan)
-add_exception_handlers(app)  # <-- GL-IAM: map AuthenticationError/PermissionDeniedError to 401/403
+add_exception_handlers(app, error_policy="v1.2")  # Preserve canonical codes and recovery guidance.
 
 
 # ============================================================================
@@ -305,8 +308,8 @@ async def register_partner(request: PartnerCreateRequest):
     # --- End GL-IAM ---
 
     if result.is_err:
-        log_gliam("Registration FAILED", result.error.message)
-        raise HTTPException(status_code=400, detail=result.error.message)
+        log_gliam("Registration FAILED", result.error.to_public_dict()["message"])
+        raise_for_error(result.error)
 
     reg = result.value
     log_gliam("Registration SUCCESS", f"partner_id={reg.partner.id}, consumer_key={reg.consumer_key}")
@@ -362,7 +365,7 @@ async def list_partners():
     # --- End GL-IAM ---
 
     if result.is_err:
-        raise HTTPException(status_code=500, detail=result.error.message)
+        raise_for_error(result.error)
 
     partners = result.value
     log_gliam("Query result", f"Found {len(partners)} partner(s)")
@@ -429,8 +432,8 @@ async def rotate_secret(partner_id: str, request: RotateSecretRequest | None = N
     # --- End GL-IAM ---
 
     if result.is_err:
-        log_gliam("Rotation FAILED", result.error.message)
-        raise HTTPException(status_code=404, detail=result.error.message)
+        log_gliam("Rotation FAILED", result.error.to_public_dict()["message"])
+        raise_for_error(result.error)
 
     reg = result.value
     log_gliam("Rotation SUCCESS", f"New consumer_key={reg.consumer_key}, grace_period={grace_period}")
@@ -501,8 +504,8 @@ async def sso_generate_token(request: SSOTokenRequest):
     )
 
     if result.is_err:
-        log_gliam("Signature validation FAILED", result.error.message)
-        raise HTTPException(status_code=401, detail=result.error.message)
+        log_gliam("Signature validation FAILED", result.error.to_public_dict()["message"])
+        raise_for_error(result.error)
 
     partner = result.value
     log_gliam(

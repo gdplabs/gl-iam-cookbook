@@ -1,5 +1,10 @@
 # Django with Native Provider (PostgreSQL-backed)
 
+> **Error handling v1.2:** This example requires `gl-iam>=0.3.25,<0.4.0`
+> from PyPI and Python 3.12 or 3.13. SDK failures use canonical
+> `error_code`/`message` fields and recovery guidance. Read the
+> [migration and installation notes](../../ERROR_HANDLING.md) before running it.
+
 Add authentication and authorization to your Django application using GL-IAM with a self-managed PostgreSQL user store.
 
 > **Naming note:** the provider class is `NativeProvider` (from `gl_iam.providers.native`); it was previously `PostgreSQLProvider`. It is still backed by a PostgreSQL database — only the class name changed. The old `PostgreSQL*` names and the `gl_iam.providers.postgresql` import path still work as deprecated aliases.

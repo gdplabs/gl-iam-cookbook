@@ -19,10 +19,12 @@ import os
 import jwt
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
-from pydantic import BaseModel
-
 from gl_iam import DPoPConfig
+from gl_iam.core.error_carrier import raise_for_error
+from gl_iam.core.exceptions import InvalidTokenError
+from gl_iam.fastapi import add_exception_handlers
 from gl_iam.providers.dpop import StandaloneDPoPProvider
+from pydantic import BaseModel
 
 load_dotenv()
 
@@ -36,6 +38,7 @@ if not SECRET_KEY:
 dpop_provider = StandaloneDPoPProvider(DPoPConfig(enabled=True, required=True, nonce_enabled=False))
 
 app = FastAPI(title="DPoP Standalone Demo (no Keycloak)")
+add_exception_handlers(app, error_policy="v1.2")
 
 
 class UserResponse(BaseModel):
@@ -53,7 +56,7 @@ def _verify_access_token(token: str) -> dict:
     try:
         return jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
     except jwt.PyJWTError as e:
-        raise HTTPException(status_code=401, detail=f"Invalid access token: {e}") from e
+        raise InvalidTokenError(cause=e) from None
 
 
 async def require_dpop(
@@ -87,7 +90,7 @@ async def require_dpop(
         access_token=access_token,
     )
     if proof_result.is_err:
-        raise HTTPException(status_code=401, detail=f"DPoP proof rejected: {proof_result.error.message}")
+        raise_for_error(proof_result.error)
 
     # 4. Confirm token binding: proof key thumbprint == token cnf.jkt.
     binding_result = await dpop_provider.validate_token_binding(
@@ -95,7 +98,7 @@ async def require_dpop(
         jwk_thumbprint=proof_result.value.jwk_thumbprint,
     )
     if binding_result.is_err:
-        raise HTTPException(status_code=401, detail=f"Token binding failed: {binding_result.error.message}")
+        raise_for_error(binding_result.error)
 
     return claims
 

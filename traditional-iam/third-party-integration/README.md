@@ -1,5 +1,10 @@
 # Third-Party Integration: Full GitHub OAuth Flow
 
+> **Error handling v1.2:** This example requires `gl-iam>=0.3.25,<0.4.0`
+> from PyPI and Python 3.12 or 3.13. SDK failures use canonical
+> `error_code`/`message` fields and recovery guidance. Read the
+> [migration and installation notes](../../ERROR_HANDLING.md) before running it.
+
 This example demonstrates GL-IAM's `ThirdPartyIntegrationProvider` with a **pluggable connector pattern** (modeled after BOSA SDK) for managing third-party OAuth credentials with encrypted storage.
 
 ## What You'll Learn
@@ -14,7 +19,7 @@ This example demonstrates GL-IAM's `ThirdPartyIntegrationProvider` with a **plug
 
 ## Prerequisites
 
-- **Python 3.11+** and [UV](https://docs.astral.sh/uv/) package manager
+- **Python 3.12 or 3.13** and [UV](https://docs.astral.sh/uv/) package manager
 - **Docker** (for PostgreSQL)
 - **GitHub account** (to create an OAuth App)
 

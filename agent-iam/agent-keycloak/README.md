@@ -1,5 +1,10 @@
 # Agent Delegation with Keycloak
 
+> **Error handling v1.2:** This example requires `gl-iam>=0.3.25,<0.4.0`
+> from PyPI and Python 3.12 or 3.13. SDK failures use canonical
+> `error_code`/`message` fields and recovery guidance. Read the
+> [migration and installation notes](../../ERROR_HANDLING.md) before running it.
+
 This example demonstrates GL-IAM agent delegation using Keycloak for user authentication. Users authenticate via Keycloak's OpenID Connect flow, then register agents and create delegation tokens.
 
 ## Prerequisites

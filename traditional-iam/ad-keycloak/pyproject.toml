@@ -2,13 +2,13 @@
 name = "ad-keycloak"
 version = "0.0.0"
 description = "GL-IAM Active Directory authentication via Keycloak User Federation"
-requires-python = ">=3.11,<3.14"
+requires-python = ">=3.12,<3.14"
 readme = "README.md"
 dependencies = [
   "fastapi>=0.115.0,<0.116.0",
   "uvicorn>=0.34.0,<0.35.0",
   "python-dotenv>=1.0.0,<2.0.0",
   "pydantic-settings>=2.0.0,<3.0.0",
-  "gl-iam[fastapi,keycloak]>=0.3.10,<0.4.0",
+  "gl-iam[fastapi,keycloak]>=0.3.25,<0.4.0",
   "pyjwt>=2.12.0,<3.0.0",
 ]

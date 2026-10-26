@@ -1,5 +1,10 @@
 # Resource Constraint Validators
 
+> **Error handling v1.2:** This example requires `gl-iam>=0.3.25,<0.4.0`
+> from PyPI and Python 3.12 or 3.13. SDK failures use canonical
+> `error_code`/`message` fields and recovery guidance. Read the
+> [migration and installation notes](../../ERROR_HANDLING.md) before running it.
+
 This example demonstrates GL-IAM's resource constraint system for fine-grained access control beyond scopes. Constraints allow you to restrict agents to specific tenants, regions, budgets, and more.
 
 ## Prerequisites

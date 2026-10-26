@@ -12,12 +12,9 @@ This example demonstrates the full agent lifecycle:
 
 import os
 from contextlib import asynccontextmanager
-from datetime import datetime
 
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, Header, HTTPException, Query
-from pydantic import BaseModel
-
 from gl_iam import (
     AgentRegistration,
     AgentType,
@@ -28,7 +25,7 @@ from gl_iam import (
     User,
 )
 from gl_iam.core import AuditConfig
-from gl_iam.core.exceptions import InvalidCredentialsError, UserAlreadyExistsError
+from gl_iam.core.error_carrier import raise_for_error
 from gl_iam.core.roles import StandardRole
 from gl_iam.core.types import PasswordCredentials, UserCreateInput
 from gl_iam.fastapi import (
@@ -38,6 +35,7 @@ from gl_iam.fastapi import (
     set_iam_gateway,
 )
 from gl_iam.providers.native import NativeConfig, NativeProvider
+from pydantic import BaseModel
 
 load_dotenv()
 
@@ -114,7 +112,7 @@ app = FastAPI(
     description="GL-IAM Agent Lifecycle Management",
     lifespan=lifespan,
 )
-add_exception_handlers(app)
+add_exception_handlers(app, error_policy="v1.2")
 
 
 # ============================================================================
@@ -172,20 +170,15 @@ async def register(request: RegisterRequest):
     gateway = get_iam_gateway()
     org_id = os.getenv("DEFAULT_ORGANIZATION_ID", "default")
 
-    try:
-        user = await gateway.user_store.create_user(
-            UserCreateInput(
-                email=request.email,
-                display_name=request.display_name or request.email.split("@")[0],
-            ),
-            organization_id=org_id,
-        )
+    user = await gateway.user_store.create_user(
+        UserCreateInput(
+            email=request.email,
+            display_name=request.display_name or request.email.split("@")[0],
+        ),
+        organization_id=org_id,
+    )
 
-        await gateway.user_store.set_user_password(user.id, request.password, org_id)
-    except UserAlreadyExistsError as e:
-        raise HTTPException(status_code=409, detail=str(e)) from e
-    except InvalidCredentialsError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
+    await gateway.user_store.set_user_password(user.id, request.password, org_id)
 
     return {"id": user.id, "email": user.email, "display_name": user.display_name}
 
@@ -207,7 +200,7 @@ async def login(request: LoginRequest):
             token_type=result.token.token_type,
         )
     else:
-        raise HTTPException(status_code=401, detail=result.error.message)
+        raise_for_error(result.error)
 
 
 # ============================================================================
@@ -248,7 +241,7 @@ async def register_agent(
             "status": agent.status.value,
         }
     else:
-        raise HTTPException(status_code=400, detail=result.error.message)
+        raise_for_error(result.error)
 
 
 @app.post("/agents/{agent_id}/suspend")
@@ -265,7 +258,7 @@ async def suspend_agent(
     if result.is_ok:
         return {"agent_id": agent_id, "status": "suspended", "message": "Agent suspended successfully"}
     else:
-        raise HTTPException(status_code=400, detail=result.error.message)
+        raise_for_error(result.error)
 
 
 @app.post("/agents/{agent_id}/revoke")
@@ -282,7 +275,7 @@ async def revoke_agent(
     if result.is_ok:
         return {"agent_id": agent_id, "status": "revoked", "message": "Agent revoked permanently"}
     else:
-        raise HTTPException(status_code=400, detail=result.error.message)
+        raise_for_error(result.error)
 
 
 @app.post("/agents/{agent_id}/reactivate")
@@ -311,7 +304,7 @@ async def reactivate_agent(
     if result.is_ok:
         return {"agent_id": agent_id, "status": "active", "message": "Agent reactivated successfully"}
     else:
-        raise HTTPException(status_code=400, detail=result.error.message)
+        raise_for_error(result.error)
 
 
 @app.get("/agents")
@@ -389,11 +382,7 @@ async def delegate(
             "delegation_token": result.value.token,
         }
     else:
-        return {
-            "status": "denied",
-            "error": result.error.message,
-            "error_code": result.error.code,
-        }
+        raise_for_error(result.error)
 
 
 # ============================================================================

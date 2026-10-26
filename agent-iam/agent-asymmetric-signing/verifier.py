@@ -23,11 +23,11 @@ import httpx
 from demo_agent import CONNECTOR_AUDIENCE, ORG_ID
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-
 from gl_iam import IAMGateway, SigningConfig
+from gl_iam.core.error_carrier import raise_for_error
 from gl_iam.fastapi import add_exception_handlers
 from gl_iam.providers.native import NativeAgentProvider, NativeConfig
+from pydantic import BaseModel
 
 load_dotenv()
 
@@ -102,7 +102,7 @@ app = FastAPI(
     description="Validates delegation tokens and cannot issue them",
     lifespan=lifespan,
 )
-add_exception_handlers(app)
+add_exception_handlers(app, error_policy="v1.2")
 
 
 class ToolCallRequest(BaseModel):
@@ -134,10 +134,7 @@ async def send_email(request: ToolCallRequest) -> dict:
 
     result = await gateway.validate_delegation_token(token=request.token)
     if result.is_err:
-        raise HTTPException(
-            status_code=401,
-            detail=f"{result.error.code}: {result.error.message}",
-        )
+        raise_for_error(result.error)
 
     delegation = result.unwrap()
 
@@ -175,8 +172,8 @@ async def can_i_mint() -> dict:
 
     return {
         "can_mint": False,
-        "error_code": str(result.error.code),
-        "detail": result.error.message,
+        "error_code": result.error.code.value,
+        "error": result.error.to_public_dict(),
     }
 
 

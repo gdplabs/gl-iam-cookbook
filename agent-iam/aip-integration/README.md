@@ -1,5 +1,10 @@
 # AIP Integration
 
+> **Error handling v1.2:** This example requires `gl-iam>=0.3.25,<0.4.0`
+> from PyPI and Python 3.12 or 3.13. SDK failures use canonical
+> `error_code`/`message` fields and recovery guidance. Read the
+> [migration and installation notes](../../ERROR_HANDLING.md) before running it.
+
 This example shows how to secure AI Agent APIs using GL-IAM for authentication and authorization when building custom agent APIs with the GL AIP SDK. It uses the Native provider for simplicity.
 
 **When to use this pattern:**

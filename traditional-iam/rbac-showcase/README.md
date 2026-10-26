@@ -1,5 +1,10 @@
 # RBAC Showcase - Multi-Provider Example
 
+> **Error handling v1.2:** This example requires `gl-iam>=0.3.25,<0.4.0`
+> from PyPI and Python 3.12 or 3.13. SDK failures use canonical
+> `error_code`/`message` fields and recovery guidance. Read the
+> [migration and installation notes](../../ERROR_HANDLING.md) before running it.
+
 This example demonstrates GL-IAM's **Role-Based Access Control (RBAC)** features with support for both Keycloak and StackAuth providers. It validates the role mapping behavior and demonstrates the SIMI (Single Interface Multiple Implementation) pattern.
 
 ## What This Example Demonstrates

@@ -17,32 +17,32 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, Header, HTTPException, Query
-from pydantic import BaseModel
-from sqlalchemy import select, func
-
+from fastapi import Depends, FastAPI, Header, Query
 from gl_iam import (
-    ConsoleAuditHandler,
     CompositeAuditHandler,
+    ConsoleAuditHandler,
     IAMGateway,
     User,
-    set_audit_context,
     clear_audit_context,
+    set_audit_context,
 )
 from gl_iam.core import AuditConfig
+from gl_iam.core.error_carrier import raise_for_error
 from gl_iam.core.types import PasswordCredentials, UserCreateInput
 from gl_iam.fastapi import (
+    add_exception_handlers,
     get_current_user,
     get_iam_gateway,
     require_org_admin,
     set_iam_gateway,
 )
-from gl_iam.core.exceptions import AuthenticationError, AuthorizationError
 from gl_iam.providers.native import (
     AuditEventModel,
     NativeConfig,
     NativeProvider,
 )
+from pydantic import BaseModel
+from sqlalchemy import func, select
 
 load_dotenv()
 
@@ -114,21 +114,7 @@ app = FastAPI(
     description="GL-IAM Audit Trail — Production Setup",
     lifespan=lifespan,
 )
-
-
-# ============================================================================
-# Exception Handlers
-# ============================================================================
-@app.exception_handler(AuthenticationError)
-async def authentication_error_handler(request, exc):
-    from fastapi.responses import JSONResponse
-    return JSONResponse(status_code=401, content={"detail": str(exc)})
-
-
-@app.exception_handler(AuthorizationError)
-async def authorization_error_handler(request, exc):
-    from fastapi.responses import JSONResponse
-    return JSONResponse(status_code=403, content={"detail": str(exc)})
+add_exception_handlers(app, error_policy="v1.2")
 
 
 # ============================================================================
@@ -206,7 +192,7 @@ async def register(request: RegisterRequest):
     )
 
     if result.is_err:
-        raise HTTPException(status_code=400, detail=result.error.message)
+        raise_for_error(result.error)
 
     user = result.value
     return {"id": user.id, "email": user.email, "display_name": user.display_name}
@@ -229,7 +215,7 @@ async def login(request: LoginRequest):
             token_type=result.token.token_type,
         )
     else:
-        raise HTTPException(status_code=401, detail=result.error.message)
+        raise_for_error(result.error)
 
 
 # ============================================================================
@@ -290,7 +276,7 @@ async def change_password(
         organization_id=org_id,
     )
     if result.is_err:
-        raise HTTPException(status_code=400, detail=result.error.message)
+        raise_for_error(result.error)
 
     return {"message": "Password changed successfully. Please sign in again."}
 

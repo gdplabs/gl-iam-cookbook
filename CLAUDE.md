@@ -274,15 +274,17 @@ STACKAUTH_SECRET_SERVER_KEY=ssk_...
 
 ## GL-IAM SDK
 
-The GL-IAM SDK is installed from PyPI:
+Examples adopting error-handling v1.2 require the published
+`gl-iam>=0.3.25,<0.4.0` package with their existing extras and Python 3.12 or 3.13.
+Other examples retain their existing PyPI ranges. See [ERROR_HANDLING.md](ERROR_HANDLING.md)
+for installation and client migration. Keep the 0.3.25 minimum for these APIs
+and do not reintroduce raw exception text in HTTP responses.
 
-```toml
-# pyproject.toml
-dependencies = ["gl-iam[fastapi,native]>=0.3.10,<0.4.0"]
-```
-
-Examples pin a published release from PyPI — no registry access or authentication needed.
-No `uv.lock` is committed, so `uv sync` always resolves the newest compatible release.
+Use `add_exception_handlers(app, error_policy="v1.2")` in migrated FastAPI apps,
+and `raise_for_error(result.error)` for failed Results. Django requires both the
+SDK exception middleware and DRF handler. Keycloak/Stack Auth configs select
+`error_policy="typed"`. Direct SDK safe mode is a separate context, not enabled
+implicitly by the HTTP policy.
 
 Features used per example:
 - `gl-iam[fastapi,native]` - FastAPI + Native provider

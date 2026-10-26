@@ -1,9 +1,10 @@
 """Login and whoami — the minimum needed to get a token per tenant."""
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
+from gl_iam.core.error_carrier import raise_for_error
+from gl_iam.core.types import PasswordCredentials
 
 from deps import CurrentUser, Gateway
-from gl_iam.core.types import PasswordCredentials
 from schemas import LoginRequest, TokenResponse
 
 router = APIRouter(tags=["auth"])
@@ -24,7 +25,7 @@ async def login(request: LoginRequest, gateway: Gateway) -> TokenResponse:
     if result.is_err:
         # A deactivated account reports ACCOUNT_DISABLED, distinct from a wrong
         # password — worth surfacing separately so the client can say why.
-        raise HTTPException(status_code=401, detail=result.error.message)
+        raise_for_error(result.error)
 
     return TokenResponse(access_token=result.token.access_token, token_type=result.token.token_type)
 
@@ -38,13 +39,17 @@ async def whoami(organization_id: str, user: CurrentUser, gateway: Gateway) -> d
     below shows the raw assignments, so the difference is visible side by side.
     """
     assigned = await gateway.get_user_roles(user.id, organization_id)
+    if assigned.is_err:
+        raise_for_error(assigned.error)
     permissions = await gateway.get_user_permissions(user.id, organization_id)
+    if permissions.is_err:
+        raise_for_error(permissions.error)
 
     return {
         "id": user.id,
         "email": user.email,
         "organization_id": organization_id,
         "effective_roles": user.roles,
-        "assigned_roles": assigned.unwrap() if assigned.is_ok else [],
-        "permissions": sorted(permissions.unwrap() if permissions.is_ok else []),
+        "assigned_roles": assigned.value,
+        "permissions": sorted(permissions.value),
     }

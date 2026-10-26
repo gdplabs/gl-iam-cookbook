@@ -12,15 +12,15 @@ import json
 from datetime import datetime, timezone
 
 from fastapi import HTTPException
-
 from gl_iam import IAMGateway
+from gl_iam.core.error_carrier import raise_for_error
 from gl_iam.core.types import UserCreateInput
-from gl_iam.core.types.auth import ExternalIdentity
 from gl_iam.core.types.audit import AuditEventType, AuditSeverity
+from gl_iam.core.types.auth import ExternalIdentity
 from gl_iam.core.types.sso import SSOPartner
 
 from glchat_backend import audit
-from glchat_backend.pretty_log import C, app, banner, done, err, kv, sdk, warn
+from glchat_backend.pretty_log import C, app, banner, done, err, kv, sdk
 from glchat_backend.services.nonce_store import NonceStore
 from glchat_backend.services.token_store import OneTimeTokenStore
 
@@ -103,17 +103,17 @@ class SSOService:
         )
         if result.is_err:
             sdk("validate_partner_signature FAILED",
-                f"{result.error.code.value}: {result.error.message}", ok=False)
+                f"{result.error.code.value}: {result.error.to_public_dict()['message']}", ok=False)
             audit.emit(
                 event_type=AuditEventType.TOKEN_VALIDATION_FAILED,
                 severity=AuditSeverity.WARNING,
                 sso_event="signature_failed",
-                message=result.error.message,
+                message=result.error.to_public_dict()["message"],
                 error_code=result.error.code.value,
                 consumer_key=consumer_key,
                 source_ip=source_ip,
             )
-            raise HTTPException(401, result.error.message)
+            raise_for_error(result.error)
 
         partner: SSOPartner = result.value
         sdk("Partner identity verified",
@@ -285,10 +285,9 @@ class SSOService:
         persistent counter; in production add a dedicated `partner_users`
         index or a `user.attributes.partner_id` column for O(1) lookup.
         """
+        from gl_iam.providers.native import AuditEventModel
         from sqlalchemy import func, select
         from sqlalchemy.ext.asyncio import AsyncSession
-
-        from gl_iam.providers.native import AuditEventModel
 
         provider = self._gateway.user_store  # NativeProvider is multi-proto
         async with AsyncSession(provider.engine) as session:

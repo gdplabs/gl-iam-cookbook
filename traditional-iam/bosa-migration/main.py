@@ -12,11 +12,12 @@ Run with: uv run main.py
 API docs: http://localhost:8000/docs
 """
 
-import asyncio
 from contextlib import asynccontextmanager
 
 import uvicorn
 from fastapi import FastAPI
+from gl_iam.core.sdk_errors import sdk_error_policy
+from gl_iam.fastapi import add_exception_handlers
 
 from config import settings
 from deps import api_key_provider, ensure_all_tables, provider, third_party_provider
@@ -138,6 +139,14 @@ This example demonstrates how to migrate from BOSA Core Auth to GL-IAM.
     version="1.0.0",
     lifespan=lifespan,
 )
+add_exception_handlers(app, error_policy="v1.2")
+
+@app.middleware("http")
+async def safe_sdk_errors(request, call_next):
+    """Select typed, safe errors for direct provider calls in this example."""
+    with sdk_error_policy("safe"):
+        return await call_next(request)
+
 
 # Include routers
 app.include_router(health_router)

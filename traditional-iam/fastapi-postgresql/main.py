@@ -9,10 +9,9 @@ import os
 from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, HTTPException
-from pydantic import BaseModel
-
-from gl_iam import IAMGateway, User, UserAlreadyExistsError
+from fastapi import Depends, FastAPI
+from gl_iam import IAMGateway, User
+from gl_iam.core.error_carrier import raise_for_error
 from gl_iam.core.types import PasswordCredentials, UserCreateInput
 from gl_iam.fastapi import (
     add_exception_handlers,
@@ -27,6 +26,7 @@ from gl_iam.providers.native import (
     NativeConfig,
     NativeProvider,
 )
+from pydantic import BaseModel
 
 load_dotenv()
 
@@ -61,7 +61,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Secure API", lifespan=lifespan)
-add_exception_handlers(app)
+add_exception_handlers(app, error_policy="v1.2")
 
 
 # ============================================================================
@@ -117,16 +117,13 @@ async def register(request: RegisterRequest):
     gateway = get_iam_gateway()
     org_id = os.getenv("DEFAULT_ORGANIZATION_ID", "default")
 
-    try:
-        user = await gateway.user_store.create_user(
-            UserCreateInput(
-                email=request.email,
-                display_name=request.display_name or request.email.split("@")[0],
-            ),
-            organization_id=org_id,
-        )
-    except UserAlreadyExistsError as e:
-        raise HTTPException(status_code=409, detail=str(e)) from e
+    user = await gateway.user_store.create_user(
+        UserCreateInput(
+            email=request.email,
+            display_name=request.display_name or request.email.split("@")[0],
+        ),
+        organization_id=org_id,
+    )
 
     await gateway.user_store.set_user_password(user.id, request.password, org_id)
 
@@ -154,7 +151,7 @@ async def login(request: LoginRequest):
             token_type=result.token.token_type,
         )
     else:
-        raise HTTPException(status_code=401, detail=result.error.message)
+        raise_for_error(result.error)
 
 
 # ============================================================================

@@ -1,5 +1,10 @@
 # LDAP Authentication via Keycloak
 
+> **Error handling v1.2:** This example requires `gl-iam>=0.3.25,<0.4.0`
+> from PyPI and Python 3.12 or 3.13. SDK failures use canonical
+> `error_code`/`message` fields and recovery guidance. Read the
+> [migration and installation notes](../../ERROR_HANDLING.md) before running it.
+
 Authenticate LDAP/Active Directory users through Keycloak's User Federation, with GL-IAM handling authorization.
 
 ## Overview
@@ -14,7 +19,7 @@ OpenLDAP ←→ Keycloak (User Federation) ←→ FastAPI + GL-IAM
 
 ## Prerequisites
 
-- Python 3.11+
+- Python 3.12 or 3.13
 - [uv](https://docs.astral.sh/uv/) — `curl -LsSf https://astral.sh/uv/install.sh | sh`
 - Docker and Docker Compose
 - Access to GDP Labs Gen AI SDK repository

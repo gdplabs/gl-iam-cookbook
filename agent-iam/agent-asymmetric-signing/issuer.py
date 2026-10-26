@@ -19,11 +19,16 @@ import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from demo_agent import AGENT_ID, CONNECTOR_AUDIENCE, ISSUER_KID, ORG_ID, USER_ID, demo_agent
+from demo_agent import (
+    AGENT_ID,
+    CONNECTOR_AUDIENCE,
+    ISSUER_KID,
+    ORG_ID,
+    USER_ID,
+    demo_agent,
+)
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-
+from fastapi import FastAPI
 from gl_iam import (
     DelegationScope,
     IAMGateway,
@@ -32,8 +37,10 @@ from gl_iam import (
     SigningConfig,
     TaskContext,
 )
+from gl_iam.core.error_carrier import raise_for_error
 from gl_iam.fastapi import add_exception_handlers
 from gl_iam.providers.native import NativeAgentProvider, NativeConfig
+from pydantic import BaseModel
 
 load_dotenv()
 
@@ -110,7 +117,7 @@ app = FastAPI(
     description="Mints delegation tokens and publishes its public key as JWKS",
     lifespan=lifespan,
 )
-add_exception_handlers(app)
+add_exception_handlers(app, error_policy="v1.2")
 
 
 class DelegateRequest(BaseModel):
@@ -154,7 +161,7 @@ async def delegate(request: DelegateRequest) -> dict:
 
     principal = gateway.mint_principal_jwt(sub=USER_ID, ttl_seconds=300)
     if principal.is_err:
-        raise HTTPException(status_code=500, detail=principal.error.message)
+        raise_for_error(principal.error)
 
     result = await gateway.delegate_to_agent(
         principal_token=principal.value,
@@ -167,7 +174,7 @@ async def delegate(request: DelegateRequest) -> dict:
         audience=CONNECTOR_AUDIENCE,
     )
     if result.is_err:
-        raise HTTPException(status_code=403, detail=result.error.message)
+        raise_for_error(result.error)
 
     delegation = result.unwrap()
     return {

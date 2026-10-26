@@ -1,5 +1,10 @@
 # SAML 2.0 Federation via Keycloak
 
+> **Error handling v1.2:** This example requires `gl-iam>=0.3.25,<0.4.0`
+> from PyPI and Python 3.12 or 3.13. SDK failures use canonical
+> `error_code`/`message` fields and recovery guidance. Read the
+> [migration and installation notes](../../ERROR_HANDLING.md) before running it.
+
 Authenticate users from a SAML 2.0 Identity Provider through Keycloak, with GL-IAM handling authorization.
 
 ## Overview
@@ -16,7 +21,7 @@ For testing, we use a second Keycloak instance as the SAML IdP. In production, t
 
 ## Prerequisites
 
-- Python 3.11+
+- Python 3.12 or 3.13
 - [uv](https://docs.astral.sh/uv/) — `curl -LsSf https://astral.sh/uv/install.sh | sh`
 - Docker and Docker Compose
 - Access to GDP Labs Gen AI SDK repository

@@ -13,7 +13,6 @@ BOSA Migration Mapping:
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
-
 from gl_iam.core.types.api_key import ApiKeyTier
 
 from config import settings
@@ -22,7 +21,7 @@ from deps import (
     api_key_provider,
     require_scope,
 )
-from schemas import ApiKeyCreateRequest, ApiKeyCreatedResponse, ApiKeyResponse
+from schemas import ApiKeyCreatedResponse, ApiKeyCreateRequest, ApiKeyResponse
 
 router = APIRouter(prefix="/api/keys", tags=["API Keys"])
 
@@ -253,16 +252,10 @@ async def rotate_api_key(
     """
     organization_id = identity.organization_id or settings.default_organization_id
 
-    try:
-        api_key, plain_key = await api_key_provider.rotate_api_key(
-            key_id=key_id,
-            organization_id=organization_id if identity.tier != ApiKeyTier.PLATFORM else None,
-        )
-    except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e),
-        )
+    api_key, plain_key = await api_key_provider.rotate_api_key(
+        key_id=key_id,
+        organization_id=organization_id if identity.tier != ApiKeyTier.PLATFORM else None,
+    )
 
     return ApiKeyCreatedResponse(
         id=api_key.id,
