@@ -2,7 +2,7 @@
 name = "dpop-standalone"
 version = "0.0.0"
 description = "DPoP without Keycloak - standalone proof validation with GL-IAM"
-requires-python = ">=3.11,<3.14"
+requires-python = ">=3.12,<3.14"
 readme = "README.md"
 dependencies = [
   "fastapi>=0.115.0,<0.116.0",
@@ -10,5 +10,5 @@ dependencies = [
   "python-dotenv>=1.0.0,<2.0.0",
   "pyjwt>=2.8.0,<3.0.0",
   "cryptography>=43.0.0,<47.0.0",
-  "gl-iam[fastapi] @ git+https://github.com/GDP-ADMIN/gl-sdk.git@d4c2c51ceb94c70686957f1a47adc015ea2b0099#subdirectory=libs/gl-iam",
+  "gl-iam[fastapi] @ git+https://github.com/GDP-ADMIN/gl-sdk.git@be886b474658bab818760bef95c684e536805442#subdirectory=libs/gl-iam",
 ]

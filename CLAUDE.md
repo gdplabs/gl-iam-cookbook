@@ -274,8 +274,9 @@ STACKAUTH_SECRET_SERVER_KEY=ssk_...
 
 ## GL-IAM SDK
 
-Examples adopting error-handling v1.2 pin SDK PR #7656 at the exact Git revision
-in their `pyproject.toml`; installing them requires Git access to `GDP-ADMIN/gl-sdk`.
+Examples adopting error-handling v1.2 pin merged SDK PR #7656 at the exact Git
+revision tagged `gl_iam-v0.3.25` in their `pyproject.toml`; they require Python 3.12
+or 3.13 and Git access to `GDP-ADMIN/gl-sdk` until the release is available on PyPI.
 Other examples retain their published PyPI ranges. See [ERROR_HANDLING.md](ERROR_HANDLING.md)
 for the baseline and release transition. Do not replace the pin with an assumed
 release number or reintroduce raw exception text in HTTP responses.

@@ -25,14 +25,14 @@ Welcome to the **GL-IAM Cookbook** — a collection of production-ready examples
 
 ## Prerequisites
 
-1. **Python 3.11+** — Can be [installed via UV](https://docs.astral.sh/uv/guides/install-python/).
+1. **Python 3.12 or 3.13** — Can be [installed via UV](https://docs.astral.sh/uv/guides/install-python/).
 2. **UV** — Please check https://docs.astral.sh/uv/ on how to install it.
 3. **Docker** — Required for running PostgreSQL/Keycloak containers.
 
 GL-IAM is published on [PyPI](https://pypi.org/project/gl-iam/). Examples migrating
-to the new error-handling APIs currently pin the unreleased SDK PR
+to the new error-handling APIs pin merged SDK PR
 [#7656](https://github.com/GDP-ADMIN/gl-sdk/pull/7656) at
-`d4c2c51ceb94c70686957f1a47adc015ea2b0099`. Those examples require Git access to
+`be886b474658bab818760bef95c684e536805442`. Those examples require Git access to
 `GDP-ADMIN/gl-sdk`; their README migration note identifies them. Other examples
 continue to install published packages from PyPI.
 
@@ -43,13 +43,14 @@ each example's extras:
 
 ```toml
 dependencies = [
-  "gl-iam[fastapi,native] @ git+https://github.com/GDP-ADMIN/gl-sdk.git@d4c2c51ceb94c70686957f1a47adc015ea2b0099#subdirectory=libs/gl-iam",
+  "gl-iam[fastapi,native] @ git+https://github.com/GDP-ADMIN/gl-sdk.git@be886b474658bab818760bef95c684e536805442#subdirectory=libs/gl-iam",
 ]
 ```
 
-This is a source revision, not a published release. See the
+This is the source revision tagged as GitHub release `gl_iam-v0.3.25`. As of
+2026-10-26, PyPI does not yet list 0.3.25, so these examples retain the Git pin. See the
 [error-handling migration guide](ERROR_HANDLING.md) for installation, client
-changes, and switching back to PyPI once a release contains these APIs.
+changes, and switching back to PyPI once 0.3.25 is available.
 
 Unmigrated examples retain `>=0.3.x,<0.4.0` requirements. No `uv.lock` is
 committed: `uv sync` resolves those requirements to compatible releases, while

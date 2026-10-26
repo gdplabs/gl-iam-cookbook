@@ -6,10 +6,10 @@ failures; it needs no database, account, token, or running identity provider.
 
 ## Prerequisites
 
-- Python 3.11–3.13 and [UV](https://docs.astral.sh/uv/).
-- Git access to `GDP-ADMIN/gl-sdk`. The example pins SDK PR
+- Python 3.12 or 3.13 and [UV](https://docs.astral.sh/uv/).
+- Git access to `GDP-ADMIN/gl-sdk`. The example pins merged SDK PR
   [#7656](https://github.com/GDP-ADMIN/gl-sdk/pull/7656) at
-  `d4c2c51ceb94c70686957f1a47adc015ea2b0099`, an unreleased revision.
+  `be886b474658bab818760bef95c684e536805442`, the source of GitHub release `gl_iam-v0.3.25`.
   Authenticate Git before installing; do not put credentials in dependency URLs.
 
 ## Quick Start

@@ -1,7 +1,7 @@
 # DPoP Without Keycloak (Standalone)
 
-> **Error handling v1.2:** This example pins the unreleased SDK PR #7656 revision
-> and requires Git access to `GDP-ADMIN/gl-sdk`. SDK failures use canonical
+> **Error handling v1.2:** This example pins the merged SDK PR #7656 revision
+> and requires Python 3.12 or 3.13 and Git access to `GDP-ADMIN/gl-sdk`. SDK failures use canonical
 > `error_code`/`message` fields and recovery guidance. Read the
 > [migration and installation notes](../../ERROR_HANDLING.md) before running it.
 
@@ -54,7 +54,7 @@ dpop-standalone/
 
 ## Prerequisites
 
-- Python 3.11+
+- Python 3.12 or 3.13
 - [uv](https://docs.astral.sh/uv/): `curl -LsSf https://astral.sh/uv/install.sh | sh`
 - **No Keycloak. No PostgreSQL. No Docker.** GL-IAM installs from PyPI — no registry access needed.
 
