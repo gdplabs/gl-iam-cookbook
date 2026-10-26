@@ -29,32 +29,26 @@ Welcome to the **GL-IAM Cookbook** — a collection of production-ready examples
 2. **UV** — Please check https://docs.astral.sh/uv/ on how to install it.
 3. **Docker** — Required for running PostgreSQL/Keycloak containers.
 
-GL-IAM is published on [PyPI](https://pypi.org/project/gl-iam/). Examples migrating
-to the new error-handling APIs pin merged SDK PR
-[#7656](https://github.com/GDP-ADMIN/gl-sdk/pull/7656) at
-`be886b474658bab818760bef95c684e536805442`. Those examples require Git access to
-`GDP-ADMIN/gl-sdk`; their README migration note identifies them. Other examples
-continue to install published packages from PyPI.
+GL-IAM is published on [PyPI](https://pypi.org/project/gl-iam/). Examples adopting
+error-handling v1.2 require `gl-iam>=0.3.25,<0.4.0`, preserving each example's
+extras. Their README migration note identifies them.
 
 ## GL-IAM Versioning
 
-The error-handling migration uses an immutable source requirement, preserving
-each example's extras:
+The error-handling migration uses the published 0.3.25 release as its minimum:
 
 ```toml
 dependencies = [
-  "gl-iam[fastapi,native] @ git+https://github.com/GDP-ADMIN/gl-sdk.git@be886b474658bab818760bef95c684e536805442#subdirectory=libs/gl-iam",
+  "gl-iam[fastapi,native]>=0.3.25,<0.4.0",
 ]
 ```
 
-This is the source revision tagged as GitHub release `gl_iam-v0.3.25`. As of
-2026-10-26, PyPI does not yet list 0.3.25, so these examples retain the Git pin. See the
-[error-handling migration guide](ERROR_HANDLING.md) for installation, client
-changes, and switching back to PyPI once 0.3.25 is available.
+See the [error-handling migration guide](ERROR_HANDLING.md) for installation,
+runtime requirements, and client changes.
 
-Unmigrated examples retain `>=0.3.x,<0.4.0` requirements. No `uv.lock` is
-committed: `uv sync` resolves those requirements to compatible releases, while
-the migrated examples keep the exact SDK source revision above.
+Unmigrated examples retain their existing `>=0.3.x,<0.4.0` requirements. No
+`uv.lock` is committed: `uv sync` resolves each example to compatible published
+releases. The migrated examples require at least 0.3.25 for the new error APIs.
 
 ## Repository Structure
 

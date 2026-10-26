@@ -1,7 +1,7 @@
 # Refresh Tokens with FastAPI (Native Provider)
 
-> **Error handling v1.2:** This example pins the merged SDK PR #7656 revision
-> and requires Python 3.12 or 3.13 and Git access to `GDP-ADMIN/gl-sdk`. SDK failures use canonical
+> **Error handling v1.2:** This example requires `gl-iam>=0.3.25,<0.4.0`
+> from PyPI and Python 3.12 or 3.13. SDK failures use canonical
 > `error_code`/`message` fields and recovery guidance. Read the
 > [migration and installation notes](../../ERROR_HANDLING.md) before running it.
 
@@ -18,7 +18,7 @@ This example covers the whole lifecycle on GL-IAM's Native provider (PostgreSQL-
 | End a device's current access tokens only | `DELETE /devices/{id}/sessions` | `gateway.revoke_refresh_token_sessions(id, user_id, org_id)` |
 | Sign out everywhere in this organization | `POST /logout-everywhere` | `gateway.revoke_all_sessions(user_id, org_id)` |
 
-> Refresh tokens, per-login access-token lifetimes, and organization-scoped revocation originally shipped in `gl-iam` 0.3.19. This example now uses the pinned error-handling revision described above.
+> Refresh tokens, per-login access-token lifetimes, and organization-scoped revocation originally shipped in `gl-iam` 0.3.19. This example now uses GL-IAM 0.3.25 or a later compatible 0.3.x release.
 
 ## Prerequisites
 

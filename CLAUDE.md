@@ -274,12 +274,11 @@ STACKAUTH_SECRET_SERVER_KEY=ssk_...
 
 ## GL-IAM SDK
 
-Examples adopting error-handling v1.2 pin merged SDK PR #7656 at the exact Git
-revision tagged `gl_iam-v0.3.25` in their `pyproject.toml`; they require Python 3.12
-or 3.13 and Git access to `GDP-ADMIN/gl-sdk` until the release is available on PyPI.
-Other examples retain their published PyPI ranges. See [ERROR_HANDLING.md](ERROR_HANDLING.md)
-for the baseline and release transition. Do not replace the pin with an assumed
-release number or reintroduce raw exception text in HTTP responses.
+Examples adopting error-handling v1.2 require the published
+`gl-iam>=0.3.25,<0.4.0` package with their existing extras and Python 3.12 or 3.13.
+Other examples retain their existing PyPI ranges. See [ERROR_HANDLING.md](ERROR_HANDLING.md)
+for installation and client migration. Keep the 0.3.25 minimum for these APIs
+and do not reintroduce raw exception text in HTTP responses.
 
 Use `add_exception_handlers(app, error_policy="v1.2")` in migrated FastAPI apps,
 and `raise_for_error(result.error)` for failed Results. Django requires both the

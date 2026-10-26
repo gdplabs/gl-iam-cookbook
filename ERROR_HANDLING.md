@@ -1,31 +1,28 @@
 # Adopting GL-IAM Error Handling v1.2
 
-The migrated Traditional IAM and Agent IAM web examples follow merged SDK PR
-[#7656](https://github.com/GDP-ADMIN/gl-sdk/pull/7656) at commit
-[`be886b474658bab818760bef95c684e536805442`](https://github.com/GDP-ADMIN/gl-sdk/commit/be886b474658bab818760bef95c684e536805442).
+The migrated Traditional IAM and Agent IAM web examples use
+[GL-IAM 0.3.25](https://pypi.org/project/gl-iam/0.3.25/) or a later compatible
+0.3.x release. Version 0.3.25 includes merged SDK PR
+[#7656](https://github.com/GDP-ADMIN/gl-sdk/pull/7656).
 Start with the [standalone error-handling example](traditional-iam/error-handling-fastapi/)
 to inspect the contract without external services.
 
 ## Dependency baseline
 
-PR #7656 merged on 2026-10-26. GitHub release
-[`gl_iam-v0.3.25`](https://github.com/GDP-ADMIN/gl-sdk/releases/tag/gl_iam-v0.3.25)
-points to the same commit. As of that date, PyPI does not yet list 0.3.25, so
-examples using the new APIs pin this Git revision in `pyproject.toml`, retaining
-their existing extras. Installing them requires Git access to `GDP-ADMIN/gl-sdk`.
-Configure your normal Git credentials first, then run `uv sync`; never embed a
-token in the URL or commit credentials.
+[GL-IAM 0.3.25 is available on PyPI](https://pypi.org/project/gl-iam/0.3.25/).
+Examples using the new APIs declare `gl-iam>=0.3.25,<0.4.0` in `pyproject.toml`,
+retaining their existing extras. Run `uv sync` from an example's directory to
+install the published package. The
+[GitHub release](https://github.com/GDP-ADMIN/gl-sdk/releases/tag/gl_iam-v0.3.25)
+identifies the corresponding SDK source.
 
 These examples require **Python 3.12 or 3.13** (`>=3.12,<3.14`), matching the
-merged SDK. Python 3.11 is no longer supported. Upgrade your runtime and
+released SDK. Python 3.11 is no longer supported. Upgrade your runtime and
 deployment image, recreate any Python 3.11 virtual environment, and run
 `uv sync --python 3.12` (or `--python 3.13`) to resolve dependencies again.
 
-The source package reports `0.0.0`; use the Git commit to identify this baseline.
-Once 0.3.25 is available on PyPI, replace the Git requirement with
-`gl-iam[YOUR_EXTRAS]>=0.3.25,<0.4.0`, keeping each example's actual extras, and
-resolve dependencies and recheck the examples. Examples without this migration
-note, including the explorations, retain their existing dependency and error behavior.
+Examples without this migration note, including the explorations, retain their
+existing dependency and error behavior.
 
 ## FastAPI: preserve the error at the boundary
 
@@ -151,7 +148,7 @@ references, sensitive canary text is absent, and a failing diagnostic sink keeps
 the response usable. Local cookbook probes do not establish live-provider,
 staging, or centralized-exporter acceptance.
 
-For the full contracts, see the pinned SDK's
+For the full contracts, see the 0.3.25 release's
 [HTTP policy](https://github.com/GDP-ADMIN/gl-sdk/blob/be886b474658bab818760bef95c684e536805442/libs/gl-iam/docs/reference/HTTP_ERROR_POLICY_V12.md),
 [provider policy](https://github.com/GDP-ADMIN/gl-sdk/blob/be886b474658bab818760bef95c684e536805442/libs/gl-iam/docs/reference/PROVIDER_ERROR_POLICY.md), and
 [safe SDK errors](https://github.com/GDP-ADMIN/gl-sdk/blob/be886b474658bab818760bef95c684e536805442/libs/gl-iam/docs/reference/SAFE_SDK_ERRORS.md).

@@ -1,7 +1,7 @@
 # Audit Trail with FastAPI — Production Setup
 
-> **Error handling v1.2:** This example pins the merged SDK PR #7656 revision
-> and requires Python 3.12 or 3.13 and Git access to `GDP-ADMIN/gl-sdk`. SDK failures use canonical
+> **Error handling v1.2:** This example requires `gl-iam>=0.3.25,<0.4.0`
+> from PyPI and Python 3.12 or 3.13. SDK failures use canonical
 > `error_code`/`message` fields and recovery guidance. Read the
 > [migration and installation notes](../../ERROR_HANDLING.md) before running it.
 
@@ -225,7 +225,7 @@ The `DatabaseAuditHandler` writes events asynchronously in batches for zero late
 ### Persisted Event Coverage
 
 The following table describes the audit behavior for this example's supported
-pinned GL-IAM revision. Verify behavior against the installed runtime
+installed GL-IAM version. Verify behavior against the installed runtime
 when changing that dependency:
 
 | Operation | Persisted audit behavior |
