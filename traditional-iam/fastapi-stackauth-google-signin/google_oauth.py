@@ -11,8 +11,9 @@ Stack Auth token.
        ▲                                                                 │
        └── /auth/google/callback?code=... ◄── Stack Auth /callback ◄──────┘
 
-This module holds the OAuth plumbing only (PKCE, URL building, code exchange).
-It knows nothing about FastAPI, so you can reuse it in Django or a CLI.
+This module holds the OAuth plumbing only (PKCE, URL building, code exchange,
+and mapping Stack Auth errors to GL-IAM errors). It knows
+nothing about FastAPI, so you can reuse it in Django or a CLI.
 """
 
 from __future__ import annotations
@@ -22,10 +23,17 @@ import hashlib
 import logging
 import secrets
 from dataclasses import dataclass
+from datetime import UTC, datetime
+from email.utils import parsedate_to_datetime
 from urllib.parse import urlencode
 
 import httpx
-from gl_iam.core.exceptions import AuthenticationError, ProviderUnavailableError
+from gl_iam.core.exceptions import (
+    AuthenticationError,
+    GLIAMError,
+    ProviderUnavailableError,
+    RateLimitExceededError,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -105,6 +113,44 @@ class OAuthTokens:
     is_new_user: bool
 
 
+def _retry_after_seconds(response: httpx.Response) -> int | None:
+    """Parse `Retry-After` (delta-seconds or HTTP-date) into whole seconds."""
+    value = response.headers.get("retry-after", "").strip()
+    if value.isdigit():
+        return int(value)
+    try:
+        retry_at = parsedate_to_datetime(value)
+    except (TypeError, ValueError):
+        return None
+    return max(0, int((retry_at - datetime.now(UTC)).total_seconds()))
+
+
+def _upstream_error(response: httpx.Response, operation: str) -> GLIAMError:
+    """Map a non-2xx Stack Auth response to the matching GL-IAM error.
+
+    429 and 5xx are the sign-in service's problem, not the user's, so they map
+    to 429 / 503 (with `Retry-After` when Stack Auth sent one) instead of 401.
+    Log the status only. Never echo upstream error text to the client.
+    """
+    logger.warning("Stack Auth %s failed (status_code=%s)", operation, response.status_code)
+    wait_seconds = _retry_after_seconds(response)
+    if response.status_code == 429:
+        return RateLimitExceededError(wait_seconds=wait_seconds)
+    if response.status_code >= 500:
+        details = {"wait_seconds": wait_seconds} if wait_seconds is not None else {}
+        return ProviderUnavailableError("The sign-in service is unavailable. Try again later.", details=details)
+    return AuthenticationError("Google sign-in could not be completed. Start the sign-in again.")
+
+
+def _tokens_from(body: dict) -> OAuthTokens:
+    """Build OAuthTokens from a Stack Auth token response body."""
+    return OAuthTokens(
+        access_token=body["access_token"],
+        refresh_token=body.get("refresh_token"),
+        is_new_user=bool(body.get("is_new_user", False)),
+    )
+
+
 class StackAuthOAuthClient:
     """Minimal client for Stack Auth's OAuth authorize and token endpoints.
 
@@ -143,7 +189,8 @@ class StackAuthOAuthClient:
 
         Raises:
             AuthenticationError: Stack Auth rejected the code (expired, reused, wrong verifier).
-            ProviderUnavailableError: Stack Auth could not be reached.
+            RateLimitExceededError: Stack Auth rate-limited the request (429).
+            ProviderUnavailableError: Stack Auth could not be reached or failed (5xx).
         """
         form = {
             "grant_type": "authorization_code",
@@ -153,22 +200,19 @@ class StackAuthOAuthClient:
             "client_id": self._project_id,
             "client_secret": self._publishable_client_key,
         }
-        try:
-            response = await self._http.post(f"{self._base_url}/api/v1/auth/oauth/token", data=form)
-        except httpx.RequestError as error:
-            raise ProviderUnavailableError("The sign-in service is unavailable. Try again later.") from error
+        response = await self._post("/api/v1/auth/oauth/token", data=form)
 
         if response.status_code != 200:
-            # Log the status only. Never echo upstream error text to the client.
-            logger.warning("Stack Auth code exchange failed (status_code=%s)", response.status_code)
-            raise AuthenticationError("Google sign-in could not be completed. Start the sign-in again.")
+            raise _upstream_error(response, "code exchange")
 
-        body = response.json()
-        return OAuthTokens(
-            access_token=body["access_token"],
-            refresh_token=body.get("refresh_token"),
-            is_new_user=bool(body.get("is_new_user", False)),
-        )
+        return _tokens_from(response.json())
+
+    async def _post(self, path: str, **kwargs) -> httpx.Response:
+        """POST to Stack Auth, turning network failures into ProviderUnavailableError."""
+        try:
+            return await self._http.post(f"{self._base_url}{path}", **kwargs)
+        except httpx.RequestError as error:
+            raise ProviderUnavailableError("The sign-in service is unavailable. Try again later.") from error
 
     async def close(self) -> None:
         """Release HTTP connections."""
