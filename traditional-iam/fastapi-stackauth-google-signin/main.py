@@ -10,6 +10,7 @@ user signed in does not change your endpoint code.
 Flow:
     1. GET /auth/google/login     -> redirect to Stack Auth -> Google consent screen
     2. GET /auth/google/callback  -> exchange code, validate with GL-IAM, return token
+       (users with TOTP enabled are sent to /auth/google/mfa to enter their code first)
     3. GET /me (Bearer token)     -> normal GL-IAM protected endpoint
 """
 
@@ -32,15 +33,21 @@ from gl_iam.fastapi import (
     set_iam_gateway,
 )
 from gl_iam.providers.stackauth import StackAuthConfig, StackAuthProvider
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
-from google_oauth import PendingLogin, StackAuthOAuthClient
+from google_oauth import MFAChallenge, OAuthTokens, PendingLogin, StackAuthOAuthClient
 
 load_dotenv()
 
 # Short-lived cookie that carries `state` + PKCE verifier from /login to /callback.
 PENDING_LOGIN_COOKIE = "gliam_google_login"
 PENDING_LOGIN_MAX_AGE_SECONDS = 600
+
+# Short-lived cookie that carries Stack Auth's MFA attempt code from /callback to /mfa.
+# Stack Auth expires the attempt code after 5 minutes, so the cookie does too.
+MFA_ATTEMPT_COOKIE = "gliam_google_mfa"
+MFA_ATTEMPT_MAX_AGE_SECONDS = 300
+AUTH_COOKIE_PATH = "/auth/google"
 
 
 @dataclass(frozen=True)
@@ -134,6 +141,12 @@ class UserResponse(BaseModel):
     oauth_providers: list[str]
 
 
+class MFACodeRequest(BaseModel):
+    """The 6-digit code from the user's authenticator app."""
+
+    code: str = Field(pattern=r"^\d{6}$", examples=["123456"])
+
+
 class GoogleSignInResponse(BaseModel):
     """Returned by the callback after a successful Google sign-in."""
 
@@ -200,7 +213,7 @@ async def google_login(oauth: StackAuthOAuthClient = Depends(get_oauth_client)):
         PENDING_LOGIN_COOKIE,
         pending.to_cookie(),
         max_age=PENDING_LOGIN_MAX_AGE_SECONDS,
-        path="/auth/google",
+        path=AUTH_COOKIE_PATH,
         httponly=True,
         secure=settings.secure_cookies,
         samesite="lax",  # "lax" still sends the cookie on the top-level redirect back from Stack Auth
@@ -224,8 +237,76 @@ async def google_callback(
     if pending is None or not pending.matches(state):
         raise AuthenticationError("This sign-in link is invalid or has expired. Start the sign-in again.")
 
-    tokens = await oauth.exchange_code(code, settings.google_redirect_uri, pending.code_verifier)
+    outcome = await oauth.exchange_code(code, settings.google_redirect_uri, pending.code_verifier)
 
+    if isinstance(outcome, MFAChallenge):
+        # The user has TOTP enabled: park the attempt code and ask for their 6-digit code.
+        response = RedirectResponse("/auth/google/mfa", status_code=303)
+        response.set_cookie(
+            MFA_ATTEMPT_COOKIE,
+            outcome.attempt_code,
+            max_age=MFA_ATTEMPT_MAX_AGE_SECONDS,
+            path=AUTH_COOKIE_PATH,
+            httponly=True,
+            secure=settings.secure_cookies,
+            samesite="lax",  # never sent on cross-site POSTs, so the MFA form cannot be driven from another site
+        )
+        response.delete_cookie(PENDING_LOGIN_COOKIE, path=AUTH_COOKIE_PATH)  # one-time use
+        return response
+
+    return await finish_sign_in(outcome, gateway)
+
+
+@app.get("/auth/google/mfa", response_class=HTMLResponse)
+async def google_mfa_form():
+    """Step 2b (TOTP users only): a minimal page that asks for the authenticator code."""
+    return """
+    <!doctype html>
+    <html><head><meta charset="utf-8"><title>Two-factor verification</title></head>
+    <body style="font-family: system-ui, sans-serif; max-width: 32rem; margin: 4rem auto;">
+      <h1>Two-factor verification</h1>
+      <p>Enter the 6-digit code from your authenticator app.</p>
+      <form id="mfa">
+        <input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="\\d{6}" maxlength="6" required>
+        <button type="submit">Verify</button>
+      </form>
+      <pre id="result" style="white-space: pre-wrap;"></pre>
+      <script>
+        document.getElementById("mfa").addEventListener("submit", async (event) => {
+          event.preventDefault();
+          const response = await fetch("/auth/google/mfa", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({code: event.target.code.value}),
+          });
+          document.getElementById("result").textContent = JSON.stringify(await response.json(), null, 2);
+        });
+      </script>
+    </body></html>
+    """
+
+
+@app.post("/auth/google/mfa", response_model=GoogleSignInResponse)
+async def google_mfa_verify(
+    body: MFACodeRequest,
+    attempt_code: str | None = Cookie(default=None, alias=MFA_ATTEMPT_COOKIE),
+    oauth: StackAuthOAuthClient = Depends(get_oauth_client),
+    gateway: IAMGateway = Depends(get_iam_gateway),
+):
+    """Step 2c: send the attempt code + TOTP code to Stack Auth, then validate with GL-IAM.
+
+    A wrong code returns 401 (`mfa_verification_failed`) and keeps the cookie,
+    so the user can try again until the attempt code expires.
+    """
+    if not attempt_code:
+        raise AuthenticationError("This sign-in has expired. Start the sign-in again.")
+
+    tokens = await oauth.complete_mfa(attempt_code, body.code)
+    return await finish_sign_in(tokens, gateway)
+
+
+async def finish_sign_in(tokens: OAuthTokens, gateway: IAMGateway) -> JSONResponse:
+    """Validate the Stack Auth token with GL-IAM and return it with the user profile."""
     # Same validation path the Bearer-token dependencies use.
     result = await gateway.validate_session(tokens.access_token, organization_id=settings.project_id)
     if result.is_err:
@@ -240,7 +321,9 @@ async def google_callback(
         user=to_user_response(result.unwrap()),
     )
     json_response = JSONResponse(response.model_dump())
-    json_response.delete_cookie(PENDING_LOGIN_COOKIE, path="/auth/google")  # one-time use
+    # Both cookies are one-time use.
+    json_response.delete_cookie(PENDING_LOGIN_COOKIE, path=AUTH_COOKIE_PATH)
+    json_response.delete_cookie(MFA_ATTEMPT_COOKIE, path=AUTH_COOKIE_PATH)
     return json_response
 
 

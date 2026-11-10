@@ -11,8 +11,13 @@ Stack Auth token.
        ▲                                                                 │
        └── /auth/google/callback?code=... ◄── Stack Auth /callback ◄──────┘
 
+If the user has TOTP two-factor authentication enabled in Stack Auth, the code
+exchange does not return tokens. It returns an MFA attempt code instead, and
+the backend finishes the sign-in by sending that attempt code together with the
+user's 6-digit TOTP code to Stack Auth's MFA sign-in endpoint.
+
 This module holds the OAuth plumbing only (PKCE, URL building, code exchange,
-and mapping Stack Auth errors to GL-IAM errors). It knows
+MFA completion, and mapping Stack Auth errors to GL-IAM errors). It knows
 nothing about FastAPI, so you can reuse it in Django or a CLI.
 """
 
@@ -31,6 +36,7 @@ import httpx
 from gl_iam.core.exceptions import (
     AuthenticationError,
     GLIAMError,
+    MFAVerificationError,
     ProviderUnavailableError,
     RateLimitExceededError,
 )
@@ -113,6 +119,23 @@ class OAuthTokens:
     is_new_user: bool
 
 
+@dataclass(frozen=True)
+class MFAChallenge:
+    """Returned instead of tokens when the user must enter a TOTP code.
+
+    `attempt_code` is a one-time code from Stack Auth (valid for about 5
+    minutes) that proves the Google step already succeeded. Keep it server-side
+    or in an HttpOnly cookie, and send it to `complete_mfa` with the TOTP code.
+    """
+
+    attempt_code: str
+
+
+# Stack Auth "known error" codes this module reacts to.
+_MFA_REQUIRED = "MULTI_FACTOR_AUTHENTICATION_REQUIRED"
+_INVALID_TOTP = "INVALID_TOTP_CODE"
+
+
 def _retry_after_seconds(response: httpx.Response) -> int | None:
     """Parse `Retry-After` (delta-seconds or HTTP-date) into whole seconds."""
     value = response.headers.get("retry-after", "").strip()
@@ -123,6 +146,18 @@ def _retry_after_seconds(response: httpx.Response) -> int | None:
     except (TypeError, ValueError):
         return None
     return max(0, int((retry_at - datetime.now(UTC)).total_seconds()))
+
+
+def _known_error(response: httpx.Response) -> tuple[str | None, dict]:
+    """Return Stack Auth's error `code` and `details` from an error response."""
+    try:
+        body = response.json()
+    except ValueError:
+        return None, {}
+    if not isinstance(body, dict):
+        return None, {}
+    details = body.get("details")
+    return body.get("code"), details if isinstance(details, dict) else {}
 
 
 def _upstream_error(response: httpx.Response, operation: str) -> GLIAMError:
@@ -143,7 +178,7 @@ def _upstream_error(response: httpx.Response, operation: str) -> GLIAMError:
 
 
 def _tokens_from(body: dict) -> OAuthTokens:
-    """Build OAuthTokens from a Stack Auth token response body."""
+    """Build OAuthTokens from a Stack Auth token / MFA sign-in response body."""
     return OAuthTokens(
         access_token=body["access_token"],
         refresh_token=body.get("refresh_token"),
@@ -182,10 +217,14 @@ class StackAuthOAuthClient:
         }
         return f"{self._base_url}/api/v1/auth/oauth/authorize/{provider}?{urlencode(params)}"
 
-    async def exchange_code(self, code: str, redirect_uri: str, code_verifier: str) -> OAuthTokens:
+    async def exchange_code(self, code: str, redirect_uri: str, code_verifier: str) -> OAuthTokens | MFAChallenge:
         """Swap the authorization code for Stack Auth tokens.
 
         `redirect_uri` must be exactly the value used in `authorization_url`.
+
+        Returns:
+            OAuthTokens on success, or MFAChallenge when the user has TOTP
+            enabled and must finish with `complete_mfa`.
 
         Raises:
             AuthenticationError: Stack Auth rejected the code (expired, reused, wrong verifier).
@@ -203,7 +242,38 @@ class StackAuthOAuthClient:
         response = await self._post("/api/v1/auth/oauth/token", data=form)
 
         if response.status_code != 200:
+            error_code, details = _known_error(response)
+            if error_code == _MFA_REQUIRED and isinstance(details.get("attempt_code"), str):
+                return MFAChallenge(attempt_code=details["attempt_code"])
             raise _upstream_error(response, "code exchange")
+
+        return _tokens_from(response.json())
+
+    async def complete_mfa(self, attempt_code: str, totp_code: str) -> OAuthTokens:
+        """Finish an MFA sign-in with the attempt code and the user's TOTP code.
+
+        Raises:
+            MFAVerificationError: The TOTP code is wrong. The same attempt code can be retried.
+            AuthenticationError: The attempt code expired or was already used. Start the sign-in again.
+            RateLimitExceededError: Stack Auth rate-limited the request (429).
+            ProviderUnavailableError: Stack Auth could not be reached or failed (5xx).
+        """
+        response = await self._post(
+            "/api/v1/auth/mfa/sign-in",
+            json={"type": "totp", "totp": totp_code, "code": attempt_code},
+            headers={
+                "x-stack-access-type": "client",
+                "x-stack-project-id": self._project_id,
+                "x-stack-publishable-client-key": self._publishable_client_key,
+            },
+        )
+
+        if response.status_code != 200:
+            error_code, _ = _known_error(response)
+            if error_code == _INVALID_TOTP:
+                logger.info("Stack Auth rejected the TOTP code")
+                raise MFAVerificationError()
+            raise _upstream_error(response, "MFA sign-in")
 
         return _tokens_from(response.json())
 
