@@ -18,10 +18,7 @@ This example adds **"Sign in with Google"** to a FastAPI backend using GL-IAM wi
 That is the SIMI pattern applied to sign-in methods: **how** the user signed in (Google, password,
 magic link) doesn't change your endpoint code.
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/google-signin-flow-dark.png">
-  <img alt="Sign in with Google sequence: the app redirects the browser to Stack Auth, Stack Auth redirects to Google, the callback exchanges the code for a Stack Auth token, and GL-IAM validates that token the same way it validates every later request." src="docs/google-signin-flow-light.png">
-</picture>
+<img alt="Sign in with Google sequence: the app redirects the browser to Stack Auth, Stack Auth redirects to Google, the callback exchanges the code for a Stack Auth token, and GL-IAM validates that token the same way it validates every later request." src="docs/google-signin-flow-light.png">
 
 Your app never talks to Google directly. It only sees a Stack Auth code, exchanges it for a Stack Auth
 token, and asks GL-IAM who the token belongs to.
