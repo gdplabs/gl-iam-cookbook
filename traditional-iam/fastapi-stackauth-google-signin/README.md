@@ -116,6 +116,10 @@ Additionally, you need:
 
    On first sign-in, Stack Auth creates the user automatically (`is_new_user: true`).
 
+   If the account has **TOTP two-factor authentication** enabled in Stack Auth, the callback
+   redirects to `/auth/google/mfa` instead. Enter the 6-digit code from your authenticator app and
+   the page shows the same JSON.
+
 ## Testing the API
 
 Copy `access_token` from the callback response:
@@ -161,7 +165,24 @@ curl -i "http://localhost:8000/auth/google/callback?code=fake&state=fake"
 
 # User cancelled on the Google consent screen -> 401
 curl -i "http://localhost:8000/auth/google/callback?error=access_denied"
+
+# MFA step without the attempt cookie set by the callback -> 401
+curl -i -X POST http://localhost:8000/auth/google/mfa \
+  -H "Content-Type: application/json" -d '{"code": "123456"}'
+
+# MFA code that is not 6 digits -> 422
+curl -i -X POST http://localhost:8000/auth/google/mfa \
+  -H "Content-Type: application/json" -d '{"code": "abc"}'
 ```
+
+Status codes from the sign-in routes:
+
+| Situation | Status | `error_code` |
+|---|---|---|
+| Bad/expired `state`, cancelled consent, rejected or reused code | `401` | `authentication_failed` |
+| Wrong TOTP code (you can retry with a new code) | `401` | `mfa_verification_failed` |
+| Stack Auth rate-limited the request | `429` + `Retry-After` | `rate_limited` |
+| Stack Auth unreachable or returned 5xx | `503` (+ `Retry-After` if Stack Auth sent one) | `provider_unavailable` |
 
 ## Understanding the Code
 
@@ -169,8 +190,8 @@ The example has two files with separate jobs:
 
 | File | Responsibility |
 |---|---|
-| [google_oauth.py](google_oauth.py) | OAuth plumbing: PKCE, `state`, authorize URL, code exchange. No FastAPI imports, so it can be reused in Django or a CLI. |
-| [main.py](main.py) | FastAPI wiring: GL-IAM gateway, the login and callback routes, protected endpoints. |
+| [google_oauth.py](google_oauth.py) | OAuth plumbing: PKCE, `state`, authorize URL, code exchange, MFA completion, Stack Auth → GL-IAM error mapping. No FastAPI imports, so it can be reused in Django or a CLI. |
+| [main.py](main.py) | FastAPI wiring: GL-IAM gateway, the login, callback and MFA routes, protected endpoints. |
 
 ### The full flow
 
@@ -209,21 +230,47 @@ pending = PendingLogin.from_cookie(pending_cookie)
 if pending is None or not pending.matches(state):
     raise AuthenticationError(...)                      # → 401 via add_exception_handlers
 
-tokens = await oauth.exchange_code(code, settings.google_redirect_uri, pending.code_verifier)
-
-result = await gateway.validate_session(tokens.access_token, organization_id=settings.project_id)
-if result.is_err:
-    raise_for_error(result.error)
+outcome = await oauth.exchange_code(code, settings.google_redirect_uri, pending.code_verifier)
+if isinstance(outcome, MFAChallenge):
+    ...                                                 # → step 2b, see below
+return await finish_sign_in(outcome, gateway)           # validate_session + JSON response
 ```
 
-- `state` is compared in constant time against the cookie, which proves the callback belongs to this browser's login.
+- `state` is compared in constant time against the cookie, which proves the callback belongs to this
+  browser's login. Non-ASCII `state` values are rejected as a mismatch instead of crashing the comparison.
 - `exchange_code` POSTs to Stack Auth's `/api/v1/auth/oauth/token` with the code and PKCE verifier.
   `redirect_uri` must be identical to the one used in step 1.
 - The token is then validated through the **GL-IAM gateway**, the same path `get_current_user`
   uses. The response therefore carries the canonical GL-IAM `User`: roles, permissions, and
   `metadata["oauth_providers"]`.
-- Errors are GL-IAM exceptions (`AuthenticationError`, `ProviderUnavailableError`). `add_exception_handlers(app, error_policy="v1.2")`
-  maps them to 401/503 with safe bodies. Upstream error text is logged by status code only and never returned.
+- Errors are GL-IAM exceptions. `_upstream_error` in `google_oauth.py` maps Stack Auth's `429` to
+  `RateLimitExceededError` (keeping `Retry-After`), `5xx` to `ProviderUnavailableError`, and anything else
+  to `AuthenticationError`. `add_exception_handlers(app, error_policy="v1.2")` turns them into
+  429/503/401 with safe bodies. Upstream error text is logged by status code only and never returned.
+
+### 2b. Two-factor (TOTP) users
+
+When the Google account's Stack Auth user has TOTP enabled, the code exchange doesn't return tokens.
+Stack Auth answers `400 MULTI_FACTOR_AUTHENTICATION_REQUIRED` with a one-time `attempt_code`
+(valid for 5 minutes). `exchange_code` returns that as an `MFAChallenge`, and the app finishes the
+sign-in in two more steps:
+
+```python
+# Callback: park the attempt code in an HttpOnly cookie and ask for the TOTP code
+response = RedirectResponse("/auth/google/mfa", status_code=303)
+response.set_cookie(MFA_ATTEMPT_COOKIE, outcome.attempt_code, max_age=300, httponly=True, samesite="lax", ...)
+
+# POST /auth/google/mfa {"code": "123456"}
+tokens = await oauth.complete_mfa(attempt_code, body.code)
+return await finish_sign_in(tokens, gateway)
+```
+
+- `complete_mfa` POSTs `{"type": "totp", "totp": ..., "code": attempt_code}` to Stack Auth's
+  `/api/v1/auth/mfa/sign-in` and gets the same tokens a non-MFA sign-in returns.
+- A wrong code raises `MFAVerificationError` (401). The cookie is kept, so the user can try again
+  until the attempt code expires.
+- The attempt code never reaches JavaScript or the URL. `SameSite=lax` keeps it off cross-site
+  POSTs, so another site can't submit codes for the user.
 
 ### 3. Protected endpoints are unchanged
 
@@ -241,6 +288,7 @@ This is the same code as the password example. GL-IAM doesn't care that the toke
 |---|---|---|
 | Authorize | `GET /api/v1/auth/oauth/authorize/google` | `client_id`=project ID, `client_secret`=publishable key, `redirect_uri`, `state`, `code_challenge`, `code_challenge_method=S256`, `grant_type=authorization_code`, `response_type=code`, `scope=legacy`, `type=authenticate` |
 | Exchange | `POST /api/v1/auth/oauth/token` (form) | `grant_type=authorization_code`, `code`, `redirect_uri`, `code_verifier`, `client_id`, `client_secret` |
+| MFA (TOTP users) | `POST /api/v1/auth/mfa/sign-in` (JSON, client headers) | `type=totp`, `totp`, `code`=attempt code; headers `x-stack-access-type: client`, `x-stack-project-id`, `x-stack-publishable-client-key` |
 
 ### Production notes
 
@@ -259,6 +307,7 @@ This is the same code as the password example. GL-IAM doesn't care that the toke
 | Stack Auth error page "redirect URL not whitelisted" | Step 4: trust `http://localhost:8000` or allow localhost callbacks |
 | Google `redirect_uri_mismatch` | Custom keys: the Google redirect URI must be Stack Auth's callback, not this app's |
 | Callback returns `401` immediately | The login cookie is missing or expired (10 min), or you opened the callback in a different browser |
+| MFA page says the sign-in expired | The attempt code lasts 5 minutes. Start again from `/auth/google/login` |
 | `/member-area` returns `403` | The Google user has no selected team or role yet (see Testing the API) |
 
 ## Next Steps
