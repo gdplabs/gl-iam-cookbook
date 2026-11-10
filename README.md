@@ -60,6 +60,7 @@ gl-iam-cookbook/
 │   ├── fastapi-postgresql/        # FastAPI + self-managed user store
 │   ├── fastapi-keycloak/          # FastAPI + Keycloak enterprise SSO
 │   ├── fastapi-stackauth/         # FastAPI + Stack Auth
+│   ├── fastapi-stackauth-google-signin/ # Sign in with Google via Stack Auth
 │   ├── django-postgresql/         # Django + self-managed user store
 │   ├── django-keycloak/           # Django + Keycloak enterprise SSO
 │   ├── django-stackauth/          # Django + Stack Auth
@@ -114,6 +115,7 @@ For securing **human users** and **service-to-service** communication.
 | [fastapi-postgresql](traditional-iam/fastapi-postgresql/) | Self-managed user store with PostgreSQL | NativeProvider |
 | [fastapi-keycloak](traditional-iam/fastapi-keycloak/) | Enterprise identity with Keycloak | KeycloakProvider |
 | [fastapi-stackauth](traditional-iam/fastapi-stackauth/) | Modern auth with Stack Auth | StackAuthProvider |
+| [fastapi-stackauth-google-signin](traditional-iam/fastapi-stackauth-google-signin/) | Sign in with Google (OAuth + PKCE) brokered by Stack Auth | StackAuthProvider |
 | [django-postgresql](traditional-iam/django-postgresql/) | Self-managed user store with PostgreSQL | NativeProvider |
 | [django-keycloak](traditional-iam/django-keycloak/) | Enterprise identity with Keycloak | KeycloakProvider |
 | [django-stackauth](traditional-iam/django-stackauth/) | Modern auth with Stack Auth | StackAuthProvider |
