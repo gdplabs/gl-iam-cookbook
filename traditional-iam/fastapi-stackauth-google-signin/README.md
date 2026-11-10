@@ -18,20 +18,22 @@ This example adds **"Sign in with Google"** to a FastAPI backend using GL-IAM wi
 That is the SIMI pattern applied to sign-in methods: **how** the user signed in (Google, password,
 magic link) doesn't change your endpoint code.
 
-```
-Browser ──► GET /auth/google/login ──► Stack Auth /auth/oauth/authorize/google ──► Google consent
-   ▲                                                                                   │
-   │                         Stack Auth /auth/oauth/callback/google ◄──────────────────┘
-   │                                         │
-   └──── GET /auth/google/callback?code&state ◄┘
-              │  1. check state (cookie)       2. POST /auth/oauth/token (code + PKCE verifier)
-              │  3. gateway.validate_session(access_token)  → GL-IAM User
-              ▼
-         { access_token, refresh_token, user }  ──► use as Bearer token on /me, /member-area, ...
-```
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/google-signin-flow-dark.png">
+  <img alt="Sign in with Google sequence: the app redirects the browser to Stack Auth, Stack Auth redirects to Google, the callback exchanges the code for a Stack Auth token, and GL-IAM validates that token the same way it validates every later request." src="docs/google-signin-flow-light.png">
+</picture>
 
-The flow is OAuth 2.0 Authorization Code with **PKCE**. A `state` value bound to the browser through a
-short-lived HttpOnly cookie protects it against CSRF.
+Your app never talks to Google directly. It only sees a Stack Auth code, exchanges it for a Stack Auth
+token, and asks GL-IAM who the token belongs to.
+
+The flow is OAuth 2.0 Authorization Code with **PKCE**:
+
+- **`state` cookie:** the callback is accepted only if `state` matches the short-lived HttpOnly
+  cookie set at login, which ties it to the browser that started it (CSRF protection).
+- **PKCE verifier:** only the challenge leaves the server when the browser is sent to `/authorize/google`. A stolen code is useless
+  without the verifier sent to `/auth/oauth/token`.
+- **`validate_session`:** the callback checks the new token on the same path as `get_current_user`,
+  so protected endpoints don't care how the user signed in.
 
 ## Prerequisites
 
