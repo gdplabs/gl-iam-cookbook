@@ -18,19 +18,10 @@ This example adds **"Sign in with Google"** to a FastAPI backend using GL-IAM wi
 That is the SIMI pattern applied to sign-in methods: **how** the user signed in (Google, password,
 magic link) doesn't change your endpoint code.
 
-<img alt="Sign in with Google sequence: the app redirects the browser to Stack Auth, Stack Auth redirects to Google, the callback exchanges the code for a Stack Auth token, and GL-IAM validates that token the same way it validates every later request." src="docs/google-signin-flow-light.png">
+<img alt="High-level Sign in with Google: the user clicks sign in, the app redirects to Google through Stack Auth, Google returns a one-time code, the app exchanges it with Stack Auth for an access token, GL-IAM validates the token and returns the user with roles, and the user is signed in." src="docs/google-signin-overview.png">
 
 Your app never talks to Google directly. It only sees a Stack Auth code, exchanges it for a Stack Auth
-token, and asks GL-IAM who the token belongs to.
-
-The flow is OAuth 2.0 Authorization Code with **PKCE**:
-
-- **`state` cookie:** the callback is accepted only if `state` matches the short-lived HttpOnly
-  cookie set at login, which ties it to the browser that started it (CSRF protection).
-- **PKCE verifier:** only the challenge leaves the server when the browser is sent to `/authorize/google`. A stolen code is useless
-  without the verifier sent to `/auth/oauth/token`.
-- **`validate_session`:** the callback checks the new token on the same path as `get_current_user`,
-  so protected endpoints don't care how the user signed in.
+token, and asks GL-IAM who the token belongs to. See [The full flow](#the-full-flow) for every request.
 
 ## Prerequisites
 
@@ -180,6 +171,19 @@ The example has two files with separate jobs:
 |---|---|
 | [google_oauth.py](google_oauth.py) | OAuth plumbing: PKCE, `state`, authorize URL, code exchange. No FastAPI imports, so it can be reused in Django or a CLI. |
 | [main.py](main.py) | FastAPI wiring: GL-IAM gateway, the login and callback routes, protected endpoints. |
+
+### The full flow
+
+<img alt="Detailed Sign in with Google sequence: the app redirects the browser to Stack Auth, Stack Auth redirects to Google, the callback exchanges the code for a Stack Auth token, and GL-IAM validates that token the same way it validates every later request." src="docs/google-signin-flow-light.png">
+
+The flow is OAuth 2.0 Authorization Code with **PKCE**:
+
+- **`state` cookie:** the callback is accepted only if `state` matches the short-lived HttpOnly
+  cookie set at login, which ties it to the browser that started it (CSRF protection).
+- **PKCE verifier:** only the challenge leaves the server when the browser is sent to
+  `/authorize/google`. A stolen code is useless without the verifier sent to `/auth/oauth/token`.
+- **`validate_session`:** the callback checks the new token on the same path as `get_current_user`,
+  so protected endpoints don't care how the user signed in.
 
 ### 1. Starting the login
 
