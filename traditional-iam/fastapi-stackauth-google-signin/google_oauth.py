@@ -139,12 +139,16 @@ _INVALID_TOTP = "INVALID_TOTP_CODE"
 def _retry_after_seconds(response: httpx.Response) -> int | None:
     """Parse `Retry-After` (delta-seconds or HTTP-date) into whole seconds."""
     value = response.headers.get("retry-after", "").strip()
-    if value.isdigit():
+    # isascii() too: str.isdigit() accepts characters like "²" that int() rejects.
+    if value.isascii() and value.isdigit():
         return int(value)
     try:
         retry_at = parsedate_to_datetime(value)
     except (TypeError, ValueError):
         return None
+    # The asctime HTTP-date form ("Sun Nov  6 08:49:37 1994") has no zone. HTTP dates are always GMT.
+    if retry_at.tzinfo is None:
+        retry_at = retry_at.replace(tzinfo=UTC)
     return max(0, int((retry_at - datetime.now(UTC)).total_seconds()))
 
 
