@@ -66,6 +66,7 @@ gl-iam-cookbook/
 │   ├── fastapi-postgresql/            # FastAPI + self-managed PostgreSQL
 │   ├── fastapi-keycloak/              # FastAPI + Keycloak enterprise SSO
 │   ├── fastapi-stackauth/             # FastAPI + Stack Auth
+│   ├── fastapi-stackauth-google-signin/ # Sign in with Google via Stack Auth
 │   ├── django-postgresql/             # Django + self-managed PostgreSQL
 │   ├── django-keycloak/               # Django + Keycloak enterprise SSO
 │   ├── django-stackauth/              # Django + Stack Auth
