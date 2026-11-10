@@ -87,7 +87,13 @@ class PendingLogin:
 
     def matches(self, returned_state: str | None) -> bool:
         """Constant-time check that the callback's state is the one we issued."""
-        return bool(returned_state) and secrets.compare_digest(self.state, returned_state)
+        # compare_digest raises TypeError for non-ASCII str, so reject those first.
+        return (
+            bool(returned_state)
+            and self.state.isascii()
+            and returned_state.isascii()
+            and secrets.compare_digest(self.state, returned_state)
+        )
 
 
 @dataclass(frozen=True)
