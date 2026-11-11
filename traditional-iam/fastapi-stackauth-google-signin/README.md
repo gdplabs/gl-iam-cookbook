@@ -18,10 +18,10 @@ This example adds **"Sign in with Google"** to a FastAPI backend using GL-IAM wi
 That is the SIMI pattern applied to sign-in methods: **how** the user signed in (Google, password,
 magic link) doesn't change your endpoint code.
 
-<img alt="High-level Sign in with Google: the user clicks sign in, the app redirects to Google through Stack Auth, Google returns a one-time code, the app exchanges it with Stack Auth for an access token, GL-IAM validates the token and returns the user with roles, and the user is signed in." src="docs/google-signin-overview.png">
+<img alt="Sign in with Google sequence between Browser, Your app, GL IAM, Stack Auth, and Google: the browser calls GET /auth/google/login, the app returns a 302 to Stack Auth with state and a PKCE challenge, the browser calls Stack Auth's /authorize/google, Stack Auth redirects to Google consent and receives the sign-in result, Stack Auth returns a 302 to /auth/google/callback with a code, the app exchanges the code and PKCE verifier with Stack Auth for an access token, calls gateway.validate_session(token) on GL IAM to get the user with roles, and returns tokens and the user to the browser." src="docs/google-signin-overview.png">
 
 Your app never talks to Google directly. It only sees a Stack Auth code, exchanges it for a Stack Auth
-token, and asks GL-IAM who the token belongs to. See [The full flow](#the-full-flow) for every request.
+token, and asks GL-IAM who the token belongs to. See [The full flow](#the-full-flow) for how `state` and PKCE protect each step.
 
 ## Prerequisites
 
@@ -195,9 +195,7 @@ The example has two files with separate jobs:
 
 ### The full flow
 
-<img alt="Detailed Sign in with Google sequence: the app redirects the browser to Stack Auth, Stack Auth redirects to Google, the callback exchanges the code for a Stack Auth token, and GL-IAM validates that token the same way it validates every later request." src="docs/google-signin-flow-light.png">
-
-The flow is OAuth 2.0 Authorization Code with **PKCE**:
+The flow (see the [diagram above](#overview)) is OAuth 2.0 Authorization Code with **PKCE**:
 
 - **`state` cookie:** the callback is accepted only if `state` matches the short-lived HttpOnly
   cookie set at login, which ties it to the browser that started it (CSRF protection).
