@@ -1,26 +1,14 @@
 #!/bin/bash
-
-# Setup script for Unix-based systems
-# This script installs dependencies and configures environment
-
+# Installs the FastAPI backend (uv) and the Next.js web app (npm), and creates .env.
 set -e
-echo "Installing dependencies via UV..."
+
 uv sync
-
-# Copy .env.example to .env if it doesn't exist
-if [ ! -f .env ]; then
-    echo "Creating .env from .env.example..."
-    cp .env.example .env
-    echo "Created .env file. You can customize it if needed."
-else
-    echo ".env file already exists, skipping..."
-fi
+(cd web && npm install)
+[ -f .env ] || cp .env.example .env
 
 echo ""
-echo "Setup completed successfully!"
-echo ""
-echo "Next steps:"
+echo "Done. Next:"
 echo "1. Put your Hexclave project ID and publishable key in .env"
-echo "2. Enable Google sign-in in the Hexclave dashboard (Auth Methods -> Google)"
-echo "3. Run the server: uv run main.py"
-echo "4. Open http://localhost:8000/ and click 'Sign in with Google'"
+echo "2. Terminal 1: uv run main.py"
+echo "3. Terminal 2: cd web && npm run dev"
+echo "4. Open http://localhost:3000/"

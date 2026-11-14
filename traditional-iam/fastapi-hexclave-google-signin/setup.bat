@@ -1,22 +1,15 @@
 @echo off
+REM Installs the FastAPI backend (uv) and the Next.js web app (npm), and creates .env.
 
-REM Setup script for Windows systems
-REM This script installs dependencies and configures environment
+call uv sync
+pushd web
+call npm install
+popd
+if not exist .env copy .env.example .env
 
-echo Installing dependencies via UV...
-uv sync
-
-if not exist .env (
-    echo Creating .env from .env.example...
-    copy .env.example .env
-) else (
-    echo .env file already exists, skipping...
-)
-
-echo Setup completed successfully!
 echo.
-echo Next steps:
+echo Done. Next:
 echo 1. Put your Hexclave project ID and publishable key in .env
-echo 2. Enable Google sign-in in the Hexclave dashboard (Auth Methods - Google)
-echo 3. Run the server: uv run main.py
-echo 4. Open http://localhost:8000/ and click 'Sign in with Google'
+echo 2. Terminal 1: uv run main.py
+echo 3. Terminal 2: cd web, then npm run dev
+echo 4. Open http://localhost:3000/
