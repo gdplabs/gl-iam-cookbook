@@ -1,0 +1,13 @@
+{
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build"
+  },
+  "dependencies": {
+    "@hexclave/next": "1.0.137",
+    "next": "16.4.2",
+    "react": "19.2.9",
+    "react-dom": "19.2.9"
+  }
+}
