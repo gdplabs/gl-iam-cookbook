@@ -79,24 +79,6 @@ Additionally, you need:
    }
    ```
 
-## Testing the API
-
-```bash
-# Without a token -> 401 (authentication_failed)
-curl -i http://localhost:8000/me
-
-# With an invalid or expired token -> 401 (session_not_found)
-curl -i http://localhost:8000/me -H "Authorization: Bearer invalid"
-
-# With a real token -> 200
-curl http://localhost:8000/me -H "Authorization: Bearer $TOKEN"
-```
-
-To get `$TOKEN`: on the signed-in page, open DevTools → **Network**, click the `/me` request, and copy
-the `Authorization` header value after `Bearer `.
-
-Access tokens are short-lived. If a copied token stops working, reload the page to get a fresh one.
-
 ## Understanding the Code
 
 ### index.html: signing in
@@ -138,31 +120,3 @@ async def me(user: Annotated[User, Depends(get_current_user)]):
 - Add roles with `Depends(require_org_member())` or `Depends(require_org_admin())`, exactly as in that example.
 - `GET /` serves `index.html` and replaces `HEXCLAVE_SETTINGS` with the three values from `.env`.
   All three are public. Never put a secret server key in the page.
-
-### Why `getAccessToken()` and a Bearer header?
-
-GL-IAM expects a plain `Authorization: Bearer <JWT>`. `user.getAccessToken()` gives exactly that and
-refreshes it when it expires. (The SDK's `getAuthorizationHeader()` uses a Hexclave-only
-`Bearer stackauth_...` format, so don't use it with GL-IAM.)
-
-### Going to production
-
-- Use your own Google keys: in Google Cloud, create an OAuth client (Web application) with redirect URI
-  `https://api.hexclave.com/api/v1/auth/oauth/callback/google`, and paste its ID and secret into Hexclave.
-- Turn off "Allow all localhost callbacks" and trust only your real HTTPS domain.
-- Install the SDK with npm (`@hexclave/js`, or `@hexclave/next` / `@hexclave/react`) instead of loading it from a CDN.
-
-### Troubleshooting
-
-| Symptom | Fix |
-|---|---|
-| "Redirect URL not whitelisted" | Quick Start step 2: allow localhost callbacks or add `http://localhost:8000` |
-| Page stays on "Loading..." | The browser couldn't load `esm.sh`, or `.env` is wrong. Check the browser console |
-| `PUBLISHABLE_CLIENT_KEY_REQUIRED_FOR_PROJECT` | `HEXCLAVE_PUBLISHABLE_CLIENT_KEY` is missing or wrong |
-
-## Next Steps
-
-- [fastapi-stackauth](../fastapi-stackauth/): password sign-in and role-protected endpoints with the same provider
-- [django-stackauth](../django-stackauth/): Stack Auth with Django
-- [rbac-showcase](../rbac-showcase/): switch between Keycloak and Stack Auth with configuration only
-- [GL-IAM GitBook](https://gdplabs.gitbook.io/sdk/gl-iam) · [Hexclave docs](https://docs.hexclave.com/)
