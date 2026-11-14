@@ -16,20 +16,13 @@ The smallest possible "Sign in with Google" for a FastAPI app: **two files, and 
 > **Stack Auth is now [Hexclave](https://docs.hexclave.com/)** (`api.hexclave.com`, `@hexclave/*` packages).
 > GL-IAM's `StackAuthProvider` works with it unchanged.
 
-```mermaid
-sequenceDiagram
-    participant B as Browser (index.html)
-    participant H as Hexclave
-    participant G as Google
-    participant A as FastAPI (main.py)
+The block diagram below shows the components and how they connect: the browser signs in through Hexclave, and FastAPI uses GL IAM to verify the resulting token.
 
-    B->>H: signInWithOAuth("google")
-    H->>G: Google sign-in
-    G-->>H: OK
-    H-->>B: back to the page, signed in
-    B->>A: GET /me   Authorization: Bearer <access token>
-    A-->>B: the user (GL-IAM validated the token)
-```
+![Architecture: browser signs in with Google via Hexclave, then calls FastAPI, which verifies the token through GL IAM](images/architecture.png)
+
+The sequence diagram below walks through one sign-in step by step, from the Google sign-in to the `GET /me` response.
+
+![Sequence: Google sign-in via Hexclave, then GET /me validated by GL IAM](images/sign-in-sequence.png)
 
 Hexclave handles everything about Google (redirects, callback, creating the user, two-factor).
 Your backend only receives a Bearer token, and GL-IAM checks it.
