@@ -1,9 +1,9 @@
 import { HexclaveClientApp, HexclaveProvider, HexclaveTheme } from "@hexclave/next";
+import { Suspense } from "react";
 
-// Reads HEXCLAVE_PROJECT_ID and HEXCLAVE_PUBLISHABLE_CLIENT_KEY from ../.env.
 const hexclave = new HexclaveClientApp({
   tokenStore: "nextjs-cookie",
-  urls: { default: { type: "hosted" }, signIn: "/sign-in" },
+  urls: { default: { type: "hosted" } },
 });
 
 export default function RootLayout({ children }) {
@@ -11,7 +11,10 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body>
         <HexclaveProvider app={hexclave}>
-          <HexclaveTheme>{children}</HexclaveTheme>
+          <HexclaveTheme>
+            {/* Shown while Hexclave loads the user. */}
+            <Suspense fallback="Loading...">{children}</Suspense>
+          </HexclaveTheme>
         </HexclaveProvider>
       </body>
     </html>

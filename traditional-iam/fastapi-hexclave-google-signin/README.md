@@ -1,24 +1,20 @@
-# Sign in with Google — Next.js + FastAPI + Hexclave (Stack Auth)
+# Sign in with Google — Next.js + FastAPI + Hexclave
 
-> **Error handling v1.2:** This example requires `gl-iam>=0.3.25,<0.4.0`
-> from PyPI and Python 3.12 or 3.13. Read the
-> [migration and installation notes](../../ERROR_HANDLING.md) before running it.
+Low-code "Sign in with Google": use Hexclave's prebuilt authentication UI for Google sign-in, and keep
+GL-IAM responsible for application identity and authorization.
 
 ## Overview
 
-"Sign in with Google" with **no OAuth code and no sign-in UI to build**:
-
-- **Next.js ([web/](web/))** shows Hexclave's prebuilt `<SignIn />` component.
-- **FastAPI ([main.py](main.py))** uses GL-IAM to check the user's token on every protected endpoint.
-
-> **Stack Auth is now [Hexclave](https://docs.hexclave.com/)**. GL-IAM's `StackAuthProvider` works with it unchanged.
+- **Hexclave ([web/](web/), Next.js)** owns sign-in: its prebuilt `<SignIn />` component handles the
+  Google flow, so there is no OAuth code and no sign-in UI to build.
+- **GL-IAM ([main.py](main.py), FastAPI)** owns your API: it validates the token on every protected
+  endpoint and resolves the user's identity and roles.
 
 ![Architecture: the Next.js app signs in with Google via Hexclave, then calls FastAPI, which verifies the token through GL IAM](images/architecture.png)
 
 ![Sequence: Google sign-in via Hexclave's SignIn component, then GET /me validated by GL IAM](images/sign-in-sequence.png)
 
-The prebuilt component makes sign-in easy, but it does **not** replace checking the token on the backend.
-`get_current_user` does that check.
+> GL-IAM talks to [Hexclave](https://docs.hexclave.com/) through `StackAuthProvider` (Hexclave was formerly Stack Auth).
 
 ## Prerequisites
 
@@ -49,14 +45,10 @@ Please refer to prerequisites [here](../../README.md). Additionally, you need:
    HEXCLAVE_PUBLISHABLE_CLIENT_KEY=pck_your_publishable_key
    ```
 
-4. **Run** both, in two terminals
+4. **Run** the FastAPI backend (:8000) and the Next.js web app (:3000) together. `Ctrl+C` stops both.
 
    ```bash
-   uv run main.py            # FastAPI on :8000
-   ```
-
-   ```bash
-   cd web && npm run dev     # Next.js on :3000
+   npx --yes concurrently@9.2.5 "uv run main.py" "npm --prefix web run dev"
    ```
 
 5. **Sign in**: open <http://localhost:3000/>, click **Sign in with Google**. You land back on the home page:
@@ -77,39 +69,29 @@ Please refer to prerequisites [here](../../README.md). Additionally, you need:
 | File | What it does |
 |---|---|
 | [app/layout.jsx](web/app/layout.jsx) | Creates the Hexclave app and wraps every page in `HexclaveProvider`. |
-| [app/sign-in/page.jsx](web/app/sign-in/page.jsx) | The sign-in page: just `<SignIn />`. |
-| [app/page.jsx](web/app/page.jsx) | Home page. Signed out → `/sign-in`. Signed in → calls `GET /me`. |
-| [app/loading.jsx](web/app/loading.jsx) | Shown while Hexclave loads the user. |
+| [app/page.jsx](web/app/page.jsx) | Signed out → `<SignIn />`. Signed in → calls `GET /me`. |
 | [next.config.mjs](web/next.config.mjs) | Reads `../.env`, and forwards `/api/*` to FastAPI (no CORS needed). |
-
-**Sign-in page**: the whole thing.
-
-```jsx
-import { SignIn } from "@hexclave/next";
-
-export default function SignInPage() {
-  return <SignIn />;
-}
-```
-
-`<SignIn />` shows every method enabled in the dashboard and handles the return from Google itself.
 
 **Hexclave app** ([app/layout.jsx](web/app/layout.jsx)):
 
 ```jsx
 const hexclave = new HexclaveClientApp({
-  tokenStore: "nextjs-cookie",                                 // session lives in a cookie
-  urls: { default: { type: "hosted" }, signIn: "/sign-in" },  // our page for sign-in, Hexclave-hosted for the rest
+  tokenStore: "nextjs-cookie",            // session lives in a cookie
+  urls: { default: { type: "hosted" } },  // Hexclave hosts the pages we don't build
 });
 ```
 
-**Calling the backend** ([app/page.jsx](web/app/page.jsx)):
+**Signing in and calling the backend** ([app/page.jsx](web/app/page.jsx)):
 
 ```jsx
-const user = useUser({ or: "redirect" });   // signed out -> /sign-in
-const token = await user.getAccessToken();  // Hexclave access token (a JWT)
+const user = useUser();                      // null when signed out
+if (!user) return <SignIn />;                // Hexclave's prebuilt sign-in form
+
+const token = await user.getAccessToken();   // Hexclave access token (a JWT)
 fetch("/api/me", { headers: { Authorization: `Bearer ${token}` } });
 ```
+
+`<SignIn />` shows every method enabled in the dashboard and handles the return from Google itself.
 
 Use `getAccessToken()`, not `getAuthorizationHeader()`: the latter returns a Hexclave-only
 `Bearer stackauth_...` value that GL-IAM does not accept.
@@ -123,6 +105,4 @@ async def me(user: Annotated[User, Depends(get_current_user)]):
 ```
 
 `get_current_user` reads `Authorization: Bearer <token>` and asks Hexclave who it belongs to (through
-`StackAuthProvider`). No token or a bad token returns `401`. This is the same code as
-[fastapi-stackauth](../fastapi-stackauth/): GL-IAM doesn't care how the user signed in. Add roles with
-`Depends(require_org_member())` or `Depends(require_org_admin())`, as in that example.
+`StackAuthProvider`). No token or a bad token returns `401`.

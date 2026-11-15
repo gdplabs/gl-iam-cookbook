@@ -1,20 +1,22 @@
 "use client";
 
-import { UserButton, useUser } from "@hexclave/next";
+import { SignIn, UserButton, useUser } from "@hexclave/next";
 import { useEffect, useState } from "react";
 
 export default function Home() {
-  const user = useUser({ or: "redirect" }); // signed out -> /sign-in
+  const user = useUser();
   const [me, setMe] = useState(null);
 
   useEffect(() => {
-    // Call FastAPI with the Hexclave access token. GL-IAM checks it there.
+    if (!user) return;
     user.getAccessToken()
       .then((token) => fetch("/api/me", { headers: { Authorization: `Bearer ${token}` } }))
       .then((response) => response.json())
       .then(setMe)
       .catch((error) => setMe({ error: error.message }));
-  }, [user.id]);
+  }, [user?.id]);
+
+  if (!user) return <SignIn />;
 
   return (
     <>

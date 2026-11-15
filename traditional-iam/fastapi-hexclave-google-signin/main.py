@@ -15,7 +15,6 @@ load_dotenv()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Hexclave was formerly Stack Auth, so GL-IAM's StackAuthProvider works with it unchanged.
     provider = StackAuthProvider(
         StackAuthConfig(
             error_policy="typed",
@@ -30,7 +29,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
-add_exception_handlers(app, error_policy="v1.2")  # GL-IAM errors -> safe 401/403 JSON
+add_exception_handlers(app, error_policy="v1.2")
 
 
 @app.get("/me")
