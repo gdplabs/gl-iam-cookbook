@@ -182,7 +182,7 @@ Only the provider configuration changes:
 |---------|----------|---------------|
 | django-postgresql | NativeProvider | `NativeConfig` |
 | **django-keycloak** | KeycloakProvider | `KeycloakConfig` |
-| django-stackauth | StackAuthProvider | `StackAuthConfig` |
+| django-hexclave | StackAuthProvider | `StackAuthConfig` |
 
 ### Standard Role Mapping
 

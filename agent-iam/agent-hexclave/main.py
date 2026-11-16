@@ -138,7 +138,7 @@ class StackAuthBridgeRequest(BaseModel):
 @app.get("/health")
 async def health():
     """Public health check endpoint."""
-    return {"status": "healthy", "provider": "stackauth", "service": "agent-stackauth"}
+    return {"status": "healthy", "provider": "stackauth", "service": "agent-hexclave"}
 
 
 # ============================================================================

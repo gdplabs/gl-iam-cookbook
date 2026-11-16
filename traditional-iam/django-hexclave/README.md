@@ -1,17 +1,27 @@
-# FastAPI with Stack Auth Provider
+# Django with Stack Auth Provider
 
 > **Error handling v1.2:** This example requires `gl-iam>=0.3.25,<0.4.0`
 > from PyPI and Python 3.12 or 3.13. SDK failures use canonical
 > `error_code`/`message` fields and recovery guidance. Read the
 > [migration and installation notes](../../ERROR_HANDLING.md) before running it.
 
-This example shows how to use GL-IAM with [Stack Auth](https://stack-auth.com/) as your identity provider. It demonstrates the SIMI (Single Interface Multiple Implementation) pattern - the same GL-IAM FastAPI dependencies work regardless of which provider you use.
+This example shows how to use GL-IAM with Stack Auth as your identity provider. It demonstrates the SIMI (Single Interface Multiple Implementation) pattern - the same GL-IAM Django views work regardless of which provider you use.
 
 **When to use Stack Auth:**
-- Modern applications with straightforward auth requirements
-- Quick setup with managed authentication
-- Projects needing user-friendly authentication UI out of the box
-- Teams wanting minimal infrastructure to manage
+- Modern SaaS applications needing quick authentication setup
+- Projects that want a managed authentication solution
+- Applications requiring social login providers (Google, GitHub, etc.)
+- Startups and teams preferring simplicity over self-hosting
+
+This example demonstrates **three different Django view patterns** with GL-IAM:
+
+| Pattern | Auth | RBAC |
+|---------|------|------|
+| FBV + Decorators | `@gl_iam_login_required` | `@require_org_member()` |
+| CBV + Mixins | `GLIAMLoginRequiredMixin` | `OrgMemberRequiredMixin` |
+| DRF APIView | `GLIAMAuthentication` | `IsOrgMember` permission |
+
+All three patterns work identically with Stack Auth and other GL-IAM providers.
 
 ## Prerequisites
 
@@ -27,7 +37,7 @@ Additionally, you need:
 
    ```bash
    git clone https://github.com/gdplabs/gl-iam-cookbook.git
-   cd gl-iam-cookbook/traditional-iam/fastapi-stackauth/
+   cd gl-iam-cookbook/traditional-iam/django-hexclave/
    ```
 
 2. **Install dependencies**
@@ -105,38 +115,6 @@ Additionally, you need:
    3. **Assign Role**: Assign the user a role in the team:
       - `$admin` (self-hosted) or `team_admin` (cloud) - Administrator role (maps to GL-IAM ORG_ADMIN)
       - `$member` (self-hosted) or `team_member` (cloud) - Member role (maps to GL-IAM ORG_MEMBER)
-
-5. **Configure environment**
-
-   The setup script already creates `.env` from `.env.example`. Edit it with your Stack Auth settings:
-
-   **For Stack Auth Cloud:**
-   ```bash
-   STACKAUTH_BASE_URL=https://api.stack-auth.com
-   STACKAUTH_PROJECT_ID=your-project-id
-   STACKAUTH_PUBLISHABLE_CLIENT_KEY=pck_your_publishable_key
-   STACKAUTH_SECRET_SERVER_KEY=ssk_your_secret_key
-   ```
-
-   **For Self-Hosted (development):**
-   ```bash
-   STACKAUTH_BASE_URL=http://localhost:8102
-   STACKAUTH_PROJECT_ID=internal
-   STACKAUTH_PUBLISHABLE_CLIENT_KEY=this-publishable-client-key-is-for-local-development-only
-   STACKAUTH_SECRET_SERVER_KEY=this-secret-server-key-is-for-local-development-only
-   ```
-
-6. **Run the server**
-
-   ```bash
-   uv run main.py
-   ```
-
-   Output:
-   ```
-   Connected to Stack Auth at http://localhost:8102
-   INFO:     Uvicorn running on http://0.0.0.0:8000
-   ```
 
 ## Important: Team Selection Required for Role Mapping
 
@@ -222,6 +200,38 @@ Look for:
 
 If `selected_team_id` is `null`, the user has no role context and GL-IAM will return empty roles.
 
+5. **Configure environment**
+
+   The setup script already creates `.env` from `.env.example`. Edit it with your Stack Auth settings:
+
+   **For Stack Auth Cloud:**
+   ```bash
+   STACKAUTH_BASE_URL=https://api.stack-auth.com
+   STACKAUTH_PROJECT_ID=your-project-id
+   STACKAUTH_PUBLISHABLE_CLIENT_KEY=pck_your_publishable_key
+   STACKAUTH_SECRET_SERVER_KEY=ssk_your_secret_key
+   ```
+
+   **For Self-Hosted (development):**
+   ```bash
+   STACKAUTH_BASE_URL=http://localhost:8102
+   STACKAUTH_PROJECT_ID=internal
+   STACKAUTH_PUBLISHABLE_CLIENT_KEY=this-publishable-client-key-is-for-local-development-only
+   STACKAUTH_SECRET_SERVER_KEY=this-secret-server-key-is-for-local-development-only
+   ```
+
+6. **Run the server**
+
+   ```bash
+   uv run python manage.py runserver
+   ```
+
+   Output:
+   ```
+   GL-IAM gateway connected to Stack Auth at http://localhost:8102
+   Starting development server at http://127.0.0.1:8000/
+   ```
+
 ## Getting Access Tokens
 
 Stack Auth tokens are typically obtained through the frontend SDK. For testing:
@@ -257,7 +267,7 @@ eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9...
 
 Usage:
   export TOKEN="eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9..."
-  curl http://localhost:8000/me -H "Authorization: Bearer $TOKEN"
+  curl http://localhost:8000/api/drf/me/ -H "Authorization: Bearer $TOKEN"
 ```
 
 **Option B: Use Stack Auth Dashboard**
@@ -288,41 +298,74 @@ function MyComponent() {
 TOKEN="your-stack-auth-access-token"
 
 # Health check (public)
-curl http://localhost:8000/health
+curl http://localhost:8000/health/
 
-# Get user profile (authenticated)
-curl http://localhost:8000/me \
-  -H "Authorization: Bearer $TOKEN"
+# Get user profile (DRF pattern - recommended)
+curl http://localhost:8000/api/drf/me/ -H "Authorization: Bearer $TOKEN"
+
+# Get user profile (CBV pattern)
+curl http://localhost:8000/api/cbv/me/ -H "Authorization: Bearer $TOKEN"
 
 # Access member area (requires team_member permission)
-curl http://localhost:8000/member-area \
-  -H "Authorization: Bearer $TOKEN"
+curl http://localhost:8000/api/drf/member-area/ -H "Authorization: Bearer $TOKEN"
 
 # Access admin area (requires team_admin permission)
-curl http://localhost:8000/admin-area \
-  -H "Authorization: Bearer $TOKEN"
+curl http://localhost:8000/api/drf/admin-area/ -H "Authorization: Bearer $TOKEN"
 ```
+
+Expected output for `/api/drf/me/`:
+
+```json
+{
+  "id": "user-123",
+  "email": "user@example.com",
+  "display_name": "Test User",
+  "roles": ["admin", "member"],
+  "pattern": "DRF APIView"
+}
+```
+
+> **Note**: The `roles` array depends on the permissions assigned to the user in their selected team. Users with `team_admin` permission will have `["admin", "member"]`, while users with only `team_member` will have `["member"]`.
 
 ## Understanding the Code
 
-### SIMI Pattern (Single Interface Multiple Implementation)
+### Gateway Initialization (apps.py)
 
-The FastAPI dependencies are identical to other GL-IAM examples:
+Unlike FastAPI's lifespan context manager, Django uses `AppConfig.ready()`:
 
 ```python
-# Same dependencies - works with any provider
-user: User = Depends(get_current_user)
-_: None = Depends(require_org_member())
-_: None = Depends(require_org_admin())
+class ApiConfig(AppConfig):
+    def ready(self):
+        config = StackAuthConfig(
+            base_url=os.getenv("STACKAUTH_BASE_URL"),
+            project_id=os.getenv("STACKAUTH_PROJECT_ID"),
+            publishable_client_key=os.getenv("STACKAUTH_PUBLISHABLE_CLIENT_KEY"),
+            secret_server_key=os.getenv("STACKAUTH_SECRET_SERVER_KEY"),
+        )
+        provider = StackAuthProvider(config)
+        gateway = IAMGateway.from_fullstack_provider(provider)
+        set_iam_gateway(gateway)
+```
+
+### SIMI Pattern (Single Interface Multiple Implementation)
+
+The Django views are identical to other GL-IAM examples:
+
+```python
+# Same decorators/mixins - works with any provider
+@gl_iam_login_required
+@require_org_member()
+def member_area_fbv(request):
+    return JsonResponse({"message": f"Welcome {request.gl_iam_user.email}!"})
 ```
 
 Only the provider configuration changes:
 
 | Example | Provider | Configuration |
 |---------|----------|---------------|
-| fastapi-postgresql | NativeProvider | `NativeConfig` |
-| fastapi-keycloak | KeycloakProvider | `KeycloakConfig` |
-| **fastapi-stackauth** | StackAuthProvider | `StackAuthConfig` |
+| django-postgresql | NativeProvider | `NativeConfig` |
+| django-keycloak | KeycloakProvider | `KeycloakConfig` |
+| **django-hexclave** | StackAuthProvider | `StackAuthConfig` |
 
 ### Token Flow
 
@@ -331,7 +374,7 @@ Frontend -> Stack Auth SDK -> Access Token
                               |
 Backend -> StackAuthProvider validates token -> GL-IAM User object
                                                 |
-                                         Role/Permission checks
+                                          Role/Permission checks
 ```
 
 ### Standard Role Mapping
@@ -340,22 +383,10 @@ Stack Auth permissions are mapped to GL-IAM standard roles:
 
 | Stack Auth Permission | GL-IAM Role | GL-IAM Standard Role |
 |-----------------------|-------------|---------------------|
-| `$admin` / `team_admin` | `admin` | ORG_ADMIN |
-| `$member` / `team_member` | `member` | ORG_MEMBER |
+| `team_admin` | `admin` | ORG_ADMIN |
+| `team_member` | `member` | ORG_MEMBER |
 
-> **Important**: Self-hosted Stack Auth uses `$admin` and `$member` permission IDs, while Stack Auth Cloud uses `team_admin` and `team_member`. GL-IAM handles both formats.
-
-### Configuration Reference
-
-| Parameter | Required | Description |
-|-----------|----------|-------------|
-| `base_url` | No | Stack Auth API URL (default: `http://localhost:8102`) |
-| `project_id` | Yes | Your Stack Auth project identifier |
-| `publishable_client_key` | Yes | Public key for client-side access |
-| `secret_server_key` | No* | Secret key for server-side token validation |
-| `timeout` | No | HTTP request timeout in seconds (default: 30) |
-
-*`secret_server_key` is required for server-side token validation in production.
+> Both Stack Auth Cloud and self-hosted use the same permission names (`team_admin`, `team_member`).
 
 ### Stack Auth Concepts to GL-IAM Mapping
 
@@ -363,6 +394,32 @@ Stack Auth permissions are mapped to GL-IAM standard roles:
 |------------|--------|
 | Team | Organization |
 | Selected Team | User's active organization context |
-| Permission (`$admin`, `$member`) | Role |
+| Permission (`team_admin`, `team_member`) | Role |
 | User | User |
 | Access Token | Auth Token |
+
+### Available Endpoints
+
+| Pattern | Endpoint | Access |
+|---------|----------|--------|
+| Public | `/health/` | Public |
+| FBV | `/api/fbv/me/` | Authenticated |
+| FBV | `/api/fbv/member-area/` | ORG_MEMBER+ |
+| FBV | `/api/fbv/admin-area/` | ORG_ADMIN+ |
+| FBV | `/api/fbv/platform-admin/` | PLATFORM_ADMIN |
+| CBV | `/api/cbv/me/` | Authenticated |
+| CBV | `/api/cbv/member-area/` | ORG_MEMBER+ |
+| CBV | `/api/cbv/admin-area/` | ORG_ADMIN+ |
+| CBV | `/api/cbv/platform-admin/` | PLATFORM_ADMIN |
+| DRF | `/api/drf/me/` | Authenticated |
+| DRF | `/api/drf/member-area/` | ORG_MEMBER+ |
+| DRF | `/api/drf/admin-area/` | ORG_ADMIN+ |
+| DRF | `/api/drf/platform-admin/` | PLATFORM_ADMIN |
+| Alias | `/api/me/` | Authenticated |
+| Alias | `/api/member-area/` | ORG_MEMBER+ |
+| Alias | `/api/admin-area/` | ORG_ADMIN+ |
+| Alias | `/api/platform-admin/` | PLATFORM_ADMIN |
+
+## Reference
+
+This example is based on the [GL-IAM Django with Stack Auth Provider tutorial](https://gdplabs.gitbook.io/sdk/tutorials/gl-iam/django-with-stackauth-provider).

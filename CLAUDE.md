@@ -65,11 +65,11 @@ gl-iam-cookbook/
 ├── traditional-iam/                   # Human users & services
 │   ├── fastapi-postgresql/            # FastAPI + self-managed PostgreSQL
 │   ├── fastapi-keycloak/              # FastAPI + Keycloak enterprise SSO
-│   ├── fastapi-stackauth/             # FastAPI + Stack Auth
+│   ├── fastapi-hexclave/             # FastAPI + Stack Auth
 │   ├── fastapi-hexclave-google-signin/  # Sign in with Google via Hexclave (Stack Auth)
 │   ├── django-postgresql/             # Django + self-managed PostgreSQL
 │   ├── django-keycloak/               # Django + Keycloak enterprise SSO
-│   ├── django-stackauth/              # Django + Stack Auth
+│   ├── django-hexclave/              # Django + Stack Auth
 │   ├── rbac-showcase/                 # RBAC demo with multi-provider support
 │   ├── fastapi-refresh-tokens/        # Refresh tokens + device sign-out (Native)
 │   ├── rbac-dynamic-roles/            # Multi-tenant dynamic role management (Native)
@@ -92,7 +92,7 @@ gl-iam-cookbook/
 │   ├── agent-cross-service/           # Agent cross-service authentication
 │   ├── agent-asymmetric-signing/      # ES256 issuer + public-key-only verifier (no DB)
 │   ├── agent-keycloak/                # Agent authentication with Keycloak
-│   ├── agent-stackauth/               # Agent authentication with Stack Auth
+│   ├── agent-hexclave/               # Agent authentication with Stack Auth
 │   ├── aip-integration/               # AI Agent Platform basic setup
 │   ├── aip-integration-advanced/      # AI Agent Platform advanced patterns
 │   ├── aip-server-integration/        # Add GL-IAM to existing AIP server

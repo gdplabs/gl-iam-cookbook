@@ -1,12 +1,14 @@
 """
-Secure FastAPI application with GL-IAM Stack Auth authentication.
+Secure FastAPI application with GL-IAM Hexclave authentication.
 
-This example demonstrates how to use GL-IAM with Stack Auth as your identity
+This example demonstrates how to use GL-IAM with Hexclave (formerly Stack Auth)
+as your identity
 provider. It shows the SIMI (Single Interface Multiple Implementation) pattern
 where the same GL-IAM dependencies work regardless of which provider you use.
 
-Note: User registration and authentication is handled by Stack Auth.
-Users must be created in Stack Auth and obtain tokens via Stack Auth frontend SDK.
+Note: User registration and authentication is handled by Hexclave.
+Users must be created in Hexclave and obtain tokens via the Hexclave frontend SDK.
+The GL-IAM provider keeps its Stack Auth name (StackAuthProvider / StackAuthConfig).
 """
 
 import os
@@ -33,10 +35,10 @@ async def lifespan(app: FastAPI):
     """
     Application lifespan context manager.
 
-    Initializes the GL-IAM gateway with Stack Auth provider on startup
+    Initializes the GL-IAM gateway with the Hexclave provider on startup
     and cleans up resources on shutdown.
     """
-    # Configure Stack Auth provider
+    # Configure the Hexclave provider (the SDK provider keeps its Stack Auth name)
     config = StackAuthConfig(
         error_policy="typed",
         base_url=os.getenv("STACKAUTH_BASE_URL", "http://localhost:8102"),
@@ -53,7 +55,7 @@ async def lifespan(app: FastAPI):
     # Verify connection
     is_healthy = await provider.health_check()
     if is_healthy:
-        print(f"Connected to Stack Auth at {os.getenv('STACKAUTH_BASE_URL')}")
+        print(f"Connected to Hexclave at {os.getenv('STACKAUTH_BASE_URL')}")
 
     yield
 
@@ -61,7 +63,7 @@ async def lifespan(app: FastAPI):
     await provider.close()
 
 
-app = FastAPI(title="GL-IAM Stack Auth Demo", lifespan=lifespan)
+app = FastAPI(title="GL-IAM Hexclave Demo", lifespan=lifespan)
 
 # Map GL-IAM errors (AuthenticationError, PermissionDeniedError) to 401/403
 # instead of letting them surface as 500s.
@@ -80,7 +82,7 @@ class UserResponse(BaseModel):
 @app.get("/health")
 async def health():
     """Public health check endpoint."""
-    return {"status": "healthy", "provider": "stackauth"}
+    return {"status": "healthy", "provider": "hexclave"}
 
 
 @app.get("/me", response_model=UserResponse)
