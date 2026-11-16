@@ -209,7 +209,7 @@ GL-IAM reads roles from the user's **selected team** (`user.selected_team_id →
 
 If `/me` returns `"roles": []` and `/member-area` returns 403, your user has no team. This happens when "Create a personal team for each user on sign-up" is not enabled in your Hexclave project.
 
-**Fix — Option A:** Enable it in the Hexclave dashboard → **Team Settings**.
+**Fix — Option A:** Enable it in the Hexclave dashboard → **Team Settings**, then sign up a new user. This setting only affects new sign-ups, so use Option B for an existing user.
 
 **Fix — Option B:** Create a team manually:
 
