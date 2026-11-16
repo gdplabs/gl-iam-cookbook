@@ -31,10 +31,10 @@ def get_token(email: str, password: str) -> dict | None:
     Returns:
         dict with access_token and refresh_token, or None on failure.
     """
-    base_url = os.getenv("HEXCLAVE_API_URL", "http://localhost:8102").rstrip("/")
-    project_id = os.getenv("HEXCLAVE_PROJECT_ID", "internal")
+    base_url = os.getenv("STACKAUTH_BASE_URL", "http://localhost:8102").rstrip("/")
+    project_id = os.getenv("STACKAUTH_PROJECT_ID", "internal")
     publishable_key = os.getenv(
-        "HEXCLAVE_PUBLISHABLE_CLIENT_KEY",
+        "STACKAUTH_PUBLISHABLE_CLIENT_KEY",
         "this-publishable-client-key-is-for-local-development-only",
     )
 

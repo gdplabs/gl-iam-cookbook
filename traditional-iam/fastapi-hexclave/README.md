@@ -7,7 +7,7 @@
 
 This example shows how to use GL-IAM with [Hexclave](https://hexclave.com/) (formerly Stack Auth) as your identity provider. It demonstrates the SIMI (Single Interface Multiple Implementation) pattern - the same GL-IAM FastAPI dependencies work regardless of which provider you use.
 
-> **Naming note:** Hexclave is the new name of Stack Auth. The GL-IAM provider keeps its Stack Auth name: install `gl-iam[fastapi,stackauth]` and use `StackAuthProvider` / `StackAuthConfig`.
+> **Naming note:** Hexclave is the new name of Stack Auth. The GL-IAM provider keeps its Stack Auth name: install `gl-iam[fastapi,stackauth]`, use `StackAuthProvider` / `StackAuthConfig`, and configure it with `STACKAUTH_*` environment variables.
 
 **When to use Hexclave:**
 - Modern applications with straightforward auth requirements
@@ -87,18 +87,18 @@ Additionally, you need:
 
    **For Hexclave Cloud:**
    ```bash
-   HEXCLAVE_API_URL=https://api.hexclave.com
-   HEXCLAVE_PROJECT_ID=your-project-id
-   HEXCLAVE_PUBLISHABLE_CLIENT_KEY=pck_your_key
-   HEXCLAVE_SECRET_SERVER_KEY=ssk_your_key
+   STACKAUTH_BASE_URL=https://api.hexclave.com
+   STACKAUTH_PROJECT_ID=your-project-id
+   STACKAUTH_PUBLISHABLE_CLIENT_KEY=pck_your_key
+   STACKAUTH_SECRET_SERVER_KEY=ssk_your_key
    ```
 
    **For Self-Hosted (development):**
    ```bash
-   HEXCLAVE_API_URL=http://localhost:8102
-   HEXCLAVE_PROJECT_ID=internal
-   HEXCLAVE_PUBLISHABLE_CLIENT_KEY=this-publishable-client-key-is-for-local-development-only
-   HEXCLAVE_SECRET_SERVER_KEY=this-secret-server-key-is-for-local-development-only
+   STACKAUTH_BASE_URL=http://localhost:8102
+   STACKAUTH_PROJECT_ID=internal
+   STACKAUTH_PUBLISHABLE_CLIENT_KEY=this-publishable-client-key-is-for-local-development-only
+   STACKAUTH_SECRET_SERVER_KEY=this-secret-server-key-is-for-local-development-only
    ```
 
 5. **Run the server**
@@ -121,11 +121,11 @@ Additionally, you need:
 # Load your .env values into the shell
 export $(grep -v '^#' .env | xargs)
 
-curl -s -X POST $HEXCLAVE_API_URL/api/v1/auth/password/sign-up \
+curl -s -X POST $STACKAUTH_BASE_URL/api/v1/auth/password/sign-up \
   -H "Content-Type: application/json" \
   -H "x-stack-access-type: client" \
-  -H "x-stack-project-id: $HEXCLAVE_PROJECT_ID" \
-  -H "x-stack-publishable-client-key: $HEXCLAVE_PUBLISHABLE_CLIENT_KEY" \
+  -H "x-stack-project-id: $STACKAUTH_PROJECT_ID" \
+  -H "x-stack-publishable-client-key: $STACKAUTH_PUBLISHABLE_CLIENT_KEY" \
   -d '{"email": "test@example.com", "password": "SecurePass123", "verification_callback_url": "http://localhost:3000/verify"}'
 ```
 
@@ -144,11 +144,11 @@ uv run get_token.py --email test@example.com --password SecurePass123
 Or call the sign-in endpoint directly:
 
 ```bash
-curl -s -X POST $HEXCLAVE_API_URL/api/v1/auth/password/sign-in \
+curl -s -X POST $STACKAUTH_BASE_URL/api/v1/auth/password/sign-in \
   -H "Content-Type: application/json" \
   -H "x-stack-access-type: client" \
-  -H "x-stack-project-id: $HEXCLAVE_PROJECT_ID" \
-  -H "x-stack-publishable-client-key: $HEXCLAVE_PUBLISHABLE_CLIENT_KEY" \
+  -H "x-stack-project-id: $STACKAUTH_PROJECT_ID" \
+  -H "x-stack-publishable-client-key: $STACKAUTH_PUBLISHABLE_CLIENT_KEY" \
   -d '{"email": "test@example.com", "password": "SecurePass123"}'
 ```
 
@@ -220,20 +220,20 @@ export $(grep -v '^#' .env | xargs)
 USER_ID="<user_id from sign-up response>"
 
 # Create team with user as creator (auto-grants team_admin)
-TEAM_ID=$(curl -s -X POST $HEXCLAVE_API_URL/api/v1/teams \
+TEAM_ID=$(curl -s -X POST $STACKAUTH_BASE_URL/api/v1/teams \
   -H "Content-Type: application/json" \
   -H "x-stack-access-type: server" \
-  -H "x-stack-project-id: $HEXCLAVE_PROJECT_ID" \
-  -H "x-stack-secret-server-key: $HEXCLAVE_SECRET_SERVER_KEY" \
+  -H "x-stack-project-id: $STACKAUTH_PROJECT_ID" \
+  -H "x-stack-secret-server-key: $STACKAUTH_SECRET_SERVER_KEY" \
   -d "{\"display_name\": \"Default Team\", \"creator_user_id\": \"$USER_ID\"}" \
   | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
 
 # Set user's active team
-curl -s -X PATCH "$HEXCLAVE_API_URL/api/v1/users/$USER_ID" \
+curl -s -X PATCH "$STACKAUTH_BASE_URL/api/v1/users/$USER_ID" \
   -H "Content-Type: application/json" \
   -H "x-stack-access-type: server" \
-  -H "x-stack-project-id: $HEXCLAVE_PROJECT_ID" \
-  -H "x-stack-secret-server-key: $HEXCLAVE_SECRET_SERVER_KEY" \
+  -H "x-stack-project-id: $STACKAUTH_PROJECT_ID" \
+  -H "x-stack-secret-server-key: $STACKAUTH_SECRET_SERVER_KEY" \
   -d "{\"selected_team_id\": \"$TEAM_ID\"}"
 ```
 
@@ -265,14 +265,14 @@ Only the provider configuration changes:
 ```python
 config = StackAuthConfig(
     error_policy="typed",
-    base_url=os.getenv("HEXCLAVE_API_URL", "http://localhost:8102"),
-    project_id=os.getenv("HEXCLAVE_PROJECT_ID"),
-    publishable_client_key=os.getenv("HEXCLAVE_PUBLISHABLE_CLIENT_KEY"),
-    secret_server_key=os.getenv("HEXCLAVE_SECRET_SERVER_KEY"),
+    base_url=os.getenv("STACKAUTH_BASE_URL", "http://localhost:8102"),
+    project_id=os.getenv("STACKAUTH_PROJECT_ID"),
+    publishable_client_key=os.getenv("STACKAUTH_PUBLISHABLE_CLIENT_KEY"),
+    secret_server_key=os.getenv("STACKAUTH_SECRET_SERVER_KEY"),
 )
 provider = StackAuthProvider(config)
 gateway = IAMGateway.from_fullstack_provider(provider)
-set_iam_gateway(gateway, default_organization_id=os.getenv("HEXCLAVE_PROJECT_ID"))
+set_iam_gateway(gateway, default_organization_id=os.getenv("STACKAUTH_PROJECT_ID"))
 ```
 
 1. `StackAuthProvider` connects GL-IAM to your Hexclave project (the provider keeps its Stack Auth name)
@@ -294,10 +294,10 @@ Backend -> StackAuthProvider validates token -> GL-IAM User object
 
 | Parameter | Env var | Required | Description |
 |-----------|---------|----------|-------------|
-| `base_url` | `HEXCLAVE_API_URL` | No | Hexclave API URL (default: `http://localhost:8102`) |
-| `project_id` | `HEXCLAVE_PROJECT_ID` | Yes | Your Hexclave project identifier |
-| `publishable_client_key` | `HEXCLAVE_PUBLISHABLE_CLIENT_KEY` | Yes | Public key for client-side access |
-| `secret_server_key` | `HEXCLAVE_SECRET_SERVER_KEY` | No* | Secret key for server-side token validation |
+| `base_url` | `STACKAUTH_BASE_URL` | No | Hexclave API URL (default: `http://localhost:8102`) |
+| `project_id` | `STACKAUTH_PROJECT_ID` | Yes | Your Hexclave project identifier |
+| `publishable_client_key` | `STACKAUTH_PUBLISHABLE_CLIENT_KEY` | Yes | Public key for client-side access |
+| `secret_server_key` | `STACKAUTH_SECRET_SERVER_KEY` | No* | Secret key for server-side token validation |
 | `timeout` | — | No | HTTP request timeout in seconds (default: 30) |
 
 *`secret_server_key` is required for server-side token validation in production.

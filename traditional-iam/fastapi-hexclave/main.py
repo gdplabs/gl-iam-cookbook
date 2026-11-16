@@ -41,21 +41,21 @@ async def lifespan(app: FastAPI):
     # Configure the Hexclave provider (the SDK provider keeps its Stack Auth name)
     config = StackAuthConfig(
         error_policy="typed",
-        base_url=os.getenv("HEXCLAVE_API_URL", "http://localhost:8102"),
-        project_id=os.getenv("HEXCLAVE_PROJECT_ID"),
-        publishable_client_key=os.getenv("HEXCLAVE_PUBLISHABLE_CLIENT_KEY"),
-        secret_server_key=os.getenv("HEXCLAVE_SECRET_SERVER_KEY"),
+        base_url=os.getenv("STACKAUTH_BASE_URL", "http://localhost:8102"),
+        project_id=os.getenv("STACKAUTH_PROJECT_ID"),
+        publishable_client_key=os.getenv("STACKAUTH_PUBLISHABLE_CLIENT_KEY"),
+        secret_server_key=os.getenv("STACKAUTH_SECRET_SERVER_KEY"),
     )
     provider = StackAuthProvider(config)
     gateway = IAMGateway.from_fullstack_provider(provider)
 
     # Set gateway with project ID as default organization
-    set_iam_gateway(gateway, default_organization_id=os.getenv("HEXCLAVE_PROJECT_ID"))
+    set_iam_gateway(gateway, default_organization_id=os.getenv("STACKAUTH_PROJECT_ID"))
 
     # Verify connection
     is_healthy = await provider.health_check()
     if is_healthy:
-        print(f"Connected to Hexclave at {os.getenv('HEXCLAVE_API_URL')}")
+        print(f"Connected to Hexclave at {os.getenv('STACKAUTH_BASE_URL')}")
 
     yield
 
