@@ -9,6 +9,6 @@ uv sync
 echo Setup completed successfully!
 echo.
 echo Next steps:
-echo 1. Copy .env.example to .env and configure your Stack Auth settings
-echo 2. Ensure Stack Auth is running (cloud or self-hosted)
+echo 1. Copy .env.example to .env and configure your Hexclave settings
+echo 2. Ensure Hexclave is running (cloud or self-hosted)
 echo 3. Run the server: uv run main.py

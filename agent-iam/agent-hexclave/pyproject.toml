@@ -1,5 +1,5 @@
 [project]
-name = "agent-stackauth"
+name = "agent-hexclave"
 version = "0.0.0"
 description = "GL-IAM Agent Delegation with Stack Auth"
 requires-python = ">=3.12,<3.14"

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Get Stack Auth access token for testing.
+"""Get Hexclave access token for testing.
 
-This script authenticates with Stack Auth using email/password and prints
+This script authenticates with Hexclave using email/password and prints
 the access token for use with curl commands.
 
 Usage:
@@ -22,7 +22,7 @@ load_dotenv()
 
 
 def get_token(email: str, password: str) -> dict | None:
-    """Authenticate with Stack Auth and get access token.
+    """Authenticate with Hexclave and get access token.
 
     Args:
         email: User's email address.
@@ -63,7 +63,7 @@ def get_token(email: str, password: str) -> dict | None:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Get Stack Auth access token")
+    parser = argparse.ArgumentParser(description="Get Hexclave access token")
     parser.add_argument("--email", "-e", help="Email address")
     parser.add_argument("--password", "-p", help="Password")
     args = parser.parse_args()

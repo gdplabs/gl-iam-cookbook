@@ -1,5 +1,5 @@
 [project]
-name = "django-stackauth"
+name = "django-hexclave"
 version = "0.0.0"
 description = "GL-IAM Django with Stack Auth provider example"
 requires-python = ">=3.12,<3.14"

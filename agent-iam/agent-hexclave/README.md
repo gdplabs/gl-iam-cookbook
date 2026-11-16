@@ -17,7 +17,7 @@ This example demonstrates GL-IAM agent delegation using Stack Auth for user auth
 
 1. **Clone and navigate**:
    ```bash
-   cd gl-iam-cookbook/agent-iam/agent-stackauth
+   cd gl-iam-cookbook/agent-iam/agent-hexclave
    ```
 
 2. **Run setup**:

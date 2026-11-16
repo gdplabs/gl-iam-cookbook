@@ -157,7 +157,7 @@ Only the provider configuration changes:
 |---------|----------|---------------|
 | fastapi-postgresql | NativeProvider | `NativeConfig` |
 | **fastapi-keycloak** | KeycloakProvider | `KeycloakConfig` |
-| fastapi-stackauth | StackAuthProvider | `StackAuthConfig` |
+| fastapi-hexclave | StackAuthProvider | `StackAuthConfig` |
 
 ### Token Flow
 

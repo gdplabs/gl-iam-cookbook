@@ -59,11 +59,11 @@ gl-iam-cookbook/
 ├── traditional-iam/               # Human users & services
 │   ├── fastapi-postgresql/        # FastAPI + self-managed user store
 │   ├── fastapi-keycloak/          # FastAPI + Keycloak enterprise SSO
-│   ├── fastapi-stackauth/         # FastAPI + Stack Auth
-│   ├── fastapi-stackauth-google-signin/ # Sign in with Google via Stack Auth
+│   ├── fastapi-hexclave/         # FastAPI + Stack Auth
+│   ├── fastapi-hexclave-google-signin/  # Next.js <SignIn /> (Hexclave) + FastAPI GL-IAM backend
 │   ├── django-postgresql/         # Django + self-managed user store
 │   ├── django-keycloak/           # Django + Keycloak enterprise SSO
-│   ├── django-stackauth/          # Django + Stack Auth
+│   ├── django-hexclave/          # Django + Stack Auth
 │   ├── rbac-showcase/             # RBAC with multi-provider support
 │   ├── error-handling-fastapi/    # v1.2 errors, recovery and diagnostic references
 │   ├── fastapi-refresh-tokens/    # Refresh tokens, per-login lifetime, device sign-out
@@ -90,7 +90,7 @@ gl-iam-cookbook/
 │   ├── agent-cross-service/       # Cross-service delegation
 │   ├── agent-asymmetric-signing/  # ES256 issuer + public-key-only verifier
 │   ├── agent-keycloak/            # Agent delegation with Keycloak
-│   ├── agent-stackauth/           # Agent delegation with Stack Auth
+│   ├── agent-hexclave/           # Agent delegation with Stack Auth
 │   ├── aip-integration/           # Secure agent APIs (basic)
 │   ├── aip-integration-advanced/  # Secure agent APIs (advanced)
 │   ├── aip-server-integration/    # Add GL-IAM to existing AIP server
@@ -114,11 +114,11 @@ For securing **human users** and **service-to-service** communication.
 |---------|-------------|----------|
 | [fastapi-postgresql](traditional-iam/fastapi-postgresql/) | Self-managed user store with PostgreSQL | NativeProvider |
 | [fastapi-keycloak](traditional-iam/fastapi-keycloak/) | Enterprise identity with Keycloak | KeycloakProvider |
-| [fastapi-stackauth](traditional-iam/fastapi-stackauth/) | Modern auth with Stack Auth | StackAuthProvider |
-| [fastapi-stackauth-google-signin](traditional-iam/fastapi-stackauth-google-signin/) | Sign in with Google (OAuth + PKCE) brokered by Stack Auth | StackAuthProvider |
+| [fastapi-hexclave](traditional-iam/fastapi-hexclave/) | Modern auth with Stack Auth | StackAuthProvider |
+| [fastapi-hexclave-google-signin](traditional-iam/fastapi-hexclave-google-signin/) | Sign in with Google using Hexclave's prebuilt Next.js `<SignIn />`, with a FastAPI + GL-IAM backend | StackAuthProvider |
 | [django-postgresql](traditional-iam/django-postgresql/) | Self-managed user store with PostgreSQL | NativeProvider |
 | [django-keycloak](traditional-iam/django-keycloak/) | Enterprise identity with Keycloak | KeycloakProvider |
-| [django-stackauth](traditional-iam/django-stackauth/) | Modern auth with Stack Auth | StackAuthProvider |
+| [django-hexclave](traditional-iam/django-hexclave/) | Modern auth with Stack Auth | StackAuthProvider |
 
 Each Django example demonstrates three view patterns:
 - **FBV + Decorators**: `@gl_iam_login_required`, `@require_org_member()`
@@ -181,7 +181,7 @@ For securing **AI agents** with delegation-based authentication.
 | Example | Description | Features |
 |---------|-------------|----------|
 | [agent-keycloak](agent-iam/agent-keycloak/) | Agent delegation with Keycloak | Keycloak OIDC + GL-IAM agent delegation |
-| [agent-stackauth](agent-iam/agent-stackauth/) | Agent delegation with Stack Auth | StackAuth token bridge, delegation JWT conversion |
+| [agent-hexclave](agent-iam/agent-hexclave/) | Agent delegation with Stack Auth | StackAuth token bridge, delegation JWT conversion |
 
 ### AIP (AI Agent Platform) Integration
 
