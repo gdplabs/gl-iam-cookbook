@@ -18,12 +18,12 @@ async def lifespan(app: FastAPI):
     provider = StackAuthProvider(
         StackAuthConfig(
             error_policy="typed",
-            base_url=os.getenv("HEXCLAVE_API_URL", "https://api.hexclave.com"),
-            project_id=os.environ["HEXCLAVE_PROJECT_ID"],
-            publishable_client_key=os.environ["HEXCLAVE_PUBLISHABLE_CLIENT_KEY"],
+            base_url=os.getenv("STACKAUTH_BASE_URL", "https://api.hexclave.com"),
+            project_id=os.environ["STACKAUTH_PROJECT_ID"],
+            publishable_client_key=os.environ["STACKAUTH_PUBLISHABLE_CLIENT_KEY"],
         )
     )
-    set_iam_gateway(IAMGateway.from_fullstack_provider(provider), default_organization_id=os.environ["HEXCLAVE_PROJECT_ID"])
+    set_iam_gateway(IAMGateway.from_fullstack_provider(provider), default_organization_id=os.environ["STACKAUTH_PROJECT_ID"])
     yield
     await provider.close()
 

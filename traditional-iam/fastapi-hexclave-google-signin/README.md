@@ -41,8 +41,8 @@ Please refer to prerequisites [here](../../README.md). Additionally, you need:
 3. **Fill in `.env`**. Both apps read this one file.
 
    ```bash
-   HEXCLAVE_PROJECT_ID=your-project-id
-   HEXCLAVE_PUBLISHABLE_CLIENT_KEY=pck_your_publishable_key
+   STACKAUTH_PROJECT_ID=your-project-id
+   STACKAUTH_PUBLISHABLE_CLIENT_KEY=pck_your_publishable_key
    ```
 
 4. **Run** the FastAPI backend (:8000) and the Next.js web app (:3000) together. `Ctrl+C` stops both.
