@@ -12,8 +12,6 @@ GL-IAM responsible for application identity and authorization.
 
 ![Architecture: the Next.js app signs in with Google via Hexclave, then calls FastAPI, which verifies the token through GL IAM](images/architecture.png)
 
-![Sequence: Google sign-in via Hexclave's SignIn component, then GET /me validated by GL IAM](images/sign-in-sequence.png)
-
 > GL-IAM talks to [Hexclave](https://docs.hexclave.com/) through `StackAuthProvider` (Hexclave was formerly Stack Auth).
 
 ## Prerequisites
