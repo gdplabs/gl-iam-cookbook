@@ -37,7 +37,7 @@ Additionally, you need:
 
    ```bash
    git clone https://github.com/gdplabs/gl-iam-cookbook.git
-   cd gl-iam-cookbook/traditional-iam/django-stackauth/
+   cd gl-iam-cookbook/traditional-iam/django-hexclave/
    ```
 
 2. **Install dependencies**
@@ -365,7 +365,7 @@ Only the provider configuration changes:
 |---------|----------|---------------|
 | django-postgresql | NativeProvider | `NativeConfig` |
 | django-keycloak | KeycloakProvider | `KeycloakConfig` |
-| **django-stackauth** | StackAuthProvider | `StackAuthConfig` |
+| **django-hexclave** | StackAuthProvider | `StackAuthConfig` |
 
 ### Token Flow
 
