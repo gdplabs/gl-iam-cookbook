@@ -1,7 +1,7 @@
 [project]
 name = "fastapi-stackauth"
 version = "0.0.0"
-description = "GL-IAM FastAPI with Stack Auth provider example"
+description = "GL-IAM FastAPI with Hexclave (formerly Stack Auth) provider example"
 requires-python = ">=3.12,<3.14"
 readme = "README.md"
 dependencies = [

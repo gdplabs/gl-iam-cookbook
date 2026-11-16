@@ -1,13 +1,15 @@
-# FastAPI with Stack Auth Provider
+# FastAPI with Hexclave Provider
 
 > **Error handling v1.2:** This example requires `gl-iam>=0.3.25,<0.4.0`
 > from PyPI and Python 3.12 or 3.13. SDK failures use canonical
 > `error_code`/`message` fields and recovery guidance. Read the
 > [migration and installation notes](../../ERROR_HANDLING.md) before running it.
 
-This example shows how to use GL-IAM with [Stack Auth](https://stack-auth.com/) as your identity provider. It demonstrates the SIMI (Single Interface Multiple Implementation) pattern - the same GL-IAM FastAPI dependencies work regardless of which provider you use.
+This example shows how to use GL-IAM with [Hexclave](https://hexclave.com/) (formerly Stack Auth) as your identity provider. It demonstrates the SIMI (Single Interface Multiple Implementation) pattern - the same GL-IAM FastAPI dependencies work regardless of which provider you use.
 
-**When to use Stack Auth:**
+> **Naming note:** Hexclave is the new name of Stack Auth. The GL-IAM provider keeps its Stack Auth name: install `gl-iam[fastapi,stackauth]` and use `StackAuthProvider` / `StackAuthConfig`.
+
+**When to use Hexclave:**
 - Modern applications with straightforward auth requirements
 - Quick setup with managed authentication
 - Projects needing user-friendly authentication UI out of the box
@@ -18,8 +20,8 @@ This example shows how to use GL-IAM with [Stack Auth](https://stack-auth.com/) 
 Please refer to prerequisites [here](../../README.md).
 
 Additionally, you need:
-- A Stack Auth project (cloud or self-hosted instance)
-- Stack Auth API keys (project ID, publishable key, secret server key)
+- A Hexclave project ([Cloud](https://app.hexclave.com/) or [self-hosted](https://docs.hexclave.com))
+- Hexclave API keys (Project ID, Publishable Client Key, Secret Server Key)
 
 ## Getting Started
 
@@ -44,17 +46,15 @@ Additionally, you need:
 
    Or manually: `uv sync`
 
-3. **Set up Stack Auth**
+3. **Set up Hexclave**
 
-   **Option A: Stack Auth Cloud**
+   **Option A: Hexclave Cloud**
 
-   1. Go to [Stack Auth Dashboard](https://app.stack-auth.com/)
-   2. Create a new project
-   3. Note your Project ID, Publishable Key, and Secret Server Key
+   1. Go to the [Hexclave Dashboard](https://app.hexclave.com/) and create a new project
+   2. Note your **Project ID**, **Publishable Client Key**, and **Secret Server Key**
+   3. Go to **Team Settings** → turn on **"Create a personal team for each user on sign-up"**
 
    **Option B: Self-Hosted**
-
-   If using a self-hosted Stack Auth instance:
 
    **Prerequisites for self-hosting:**
    - Node.js v20+
@@ -62,71 +62,46 @@ Additionally, you need:
    - Docker
    - 24GB+ RAM recommended for development
 
-   **Setup steps:**
-
    ```bash
-   # Clone the Stack Auth repository
-   git clone https://github.com/stack-auth/stack-auth.git
-   cd stack-auth
-
-   # Install dependencies
-   pnpm install
-
-   # Build packages and generate code
-   pnpm build:packages
-   pnpm codegen
-
-   # Start Docker containers (PostgreSQL, Inbucket, etc.)
-   pnpm restart-deps
-
-   # Start the development server
-   pnpm dev
+   git clone https://github.com/hexclave/hexclave.git && cd hexclave
+   pnpm install && pnpm build:packages && pnpm codegen
+   pnpm restart-deps && pnpm dev
    ```
 
    Once running:
    - Dashboard: `http://localhost:8100`
    - API: `http://localhost:8102`
 
-   **Default development API keys** (created by `pnpm restart-deps`):
-   ```bash
-   STACKAUTH_PROJECT_ID=internal
-   STACKAUTH_PUBLISHABLE_CLIENT_KEY=this-publishable-client-key-is-for-local-development-only
-   STACKAUTH_SECRET_SERVER_KEY=this-secret-server-key-is-for-local-development-only
+   The `internal` project has team auto-creation pre-enabled. Use these credentials:
+   ```
+   Project ID: internal
+   Publishable Client Key: this-publishable-client-key-is-for-local-development-only
+   Secret Server Key: this-secret-server-key-is-for-local-development-only
    ```
 
-   > For production deployment, see the [Stack Auth documentation](https://docs.stack-auth.com).
+   > For production deployment, see the [Hexclave documentation](https://docs.hexclave.com).
 
-4. **Configure Team and User**
+4. **Configure environment**
 
-   In the Stack Auth dashboard:
+   The setup script already creates `.env` from `.env.example`. Edit it with your Hexclave settings:
 
-   1. **Create a Team**: Navigate to **Teams** and create a new team (e.g., "Test Team")
-   2. **Add User to Team**: Add your user to the team
-   3. **Assign Role**: Assign the user a role in the team:
-      - `$admin` (self-hosted) or `team_admin` (cloud) - Administrator role (maps to GL-IAM ORG_ADMIN)
-      - `$member` (self-hosted) or `team_member` (cloud) - Member role (maps to GL-IAM ORG_MEMBER)
-
-5. **Configure environment**
-
-   The setup script already creates `.env` from `.env.example`. Edit it with your Stack Auth settings:
-
-   **For Stack Auth Cloud:**
+   **For Hexclave Cloud:**
    ```bash
-   STACKAUTH_BASE_URL=https://api.stack-auth.com
-   STACKAUTH_PROJECT_ID=your-project-id
-   STACKAUTH_PUBLISHABLE_CLIENT_KEY=pck_your_publishable_key
-   STACKAUTH_SECRET_SERVER_KEY=ssk_your_secret_key
+   HEXCLAVE_API_URL=https://api.hexclave.com
+   HEXCLAVE_PROJECT_ID=your-project-id
+   HEXCLAVE_PUBLISHABLE_CLIENT_KEY=pck_your_key
+   HEXCLAVE_SECRET_SERVER_KEY=ssk_your_key
    ```
 
    **For Self-Hosted (development):**
    ```bash
-   STACKAUTH_BASE_URL=http://localhost:8102
-   STACKAUTH_PROJECT_ID=internal
-   STACKAUTH_PUBLISHABLE_CLIENT_KEY=this-publishable-client-key-is-for-local-development-only
-   STACKAUTH_SECRET_SERVER_KEY=this-secret-server-key-is-for-local-development-only
+   HEXCLAVE_API_URL=http://localhost:8102
+   HEXCLAVE_PROJECT_ID=internal
+   HEXCLAVE_PUBLISHABLE_CLIENT_KEY=this-publishable-client-key-is-for-local-development-only
+   HEXCLAVE_SECRET_SERVER_KEY=this-secret-server-key-is-for-local-development-only
    ```
 
-6. **Run the server**
+5. **Run the server**
 
    ```bash
    uv run main.py
@@ -134,174 +109,135 @@ Additionally, you need:
 
    Output:
    ```
-   Connected to Stack Auth at http://localhost:8102
+   Connected to Hexclave at http://localhost:8102
    INFO:     Uvicorn running on http://0.0.0.0:8000
    ```
 
-## Important: Team Selection Required for Role Mapping
-
-**Users must have a selected team for GL-IAM to read their roles.**
-
-This is the most common issue when working with Stack Auth and GL-IAM. See the flow below:
-
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                     How GL-IAM Reads Stack Auth Roles                       │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│  1. User authenticates with Stack Auth (via frontend SDK)                  │
-│     ↓                                                                       │
-│  2. User gets access token                                                  │
-│     ↓                                                                       │
-│  3. User calls /me with Bearer token                                        │
-│     ↓                                                                       │
-│  4. GL-IAM validates token with Stack Auth                                  │
-│     ↓                                                                       │
-│  5. GL-IAM reads: user.selected_team_id → team → permissions               │
-│     ↓                                                                       │
-│  6. Permissions mapped to roles: $admin → ORG_ADMIN, $member → ORG_MEMBER  │
-│                                                                             │
-│  ⚠️ If user.selected_team_id is NULL, NO roles will be returned!            │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
-
-### How to Ensure Users Have a Selected Team
-
-**Option A: Enable Auto-Create Team on Signup (Recommended)**
-
-In Stack Auth Dashboard → Project Settings, enable:
-- **"Auto-create team when user signs up"**
-
-This automatically:
-1. Creates a personal team for each new user
-2. Adds the user to their team
-3. Sets the team as `selected_team`
-4. Grants `$admin` permission to the user
-
-**Option B: Manual Team Selection After Adding to Team**
-
-If you manually add a user to a team via the Stack Auth dashboard:
-
-1. Admin creates a team in Stack Auth dashboard
-2. Admin adds user to the team
-3. Admin assigns permissions (`$admin` or `$member`)
-4. **User must select the team** - This is the critical step!
-
-The user can select a team via:
-- Stack Auth frontend SDK: User chooses team from team switcher
-- Stack Auth API: Call `PATCH /api/v1/users/{user_id}` with `{ "selected_team_id": "team-id" }`
-
-**Option C: Auto-Select Team via Server API During Registration**
-
-If you're creating users via Stack Auth Server API, automatically set their selected team:
-
-```bash
-# After creating user and adding to team:
-curl -X PATCH "https://your-stack-auth.com/api/v1/users/{user_id}" \
-  -H "x-stack-access-type: server" \
-  -H "x-stack-project-id: your-project-id" \
-  -H "x-stack-secret-server-key: your-secret-key" \
-  -H "Content-Type: application/json" \
-  -d '{"selected_team_id": "your-team-id"}'
-```
-
-### Verifying User Has Selected Team
-
-Check the user's data in Stack Auth:
-
-```bash
-# Get user info
-curl -H "Authorization: Bearer $TOKEN" \
-  "$STACKAUTH_BASE_URL/api/v1/users/me"
-```
-
-Look for:
-- `selected_team_id`: Should be a valid team UUID (not `null`)
-- `selected_team`: Should contain team object (not `null`)
-
-If `selected_team_id` is `null`, the user has no role context and GL-IAM will return empty roles.
-
 ## Getting Access Tokens
 
-Stack Auth tokens are typically obtained through the frontend SDK. For testing:
+**Sign up a user** (replace the URL with `https://api.hexclave.com` for Hexclave Cloud):
 
-**Option A: CLI Script (Recommended for Testing)**
+```bash
+# Load your .env values into the shell
+export $(grep -v '^#' .env | xargs)
 
-> **Note**: You must first create a user in the Stack Auth dashboard (Users → Add User) with password authentication enabled.
+curl -s -X POST $HEXCLAVE_API_URL/api/v1/auth/password/sign-up \
+  -H "Content-Type: application/json" \
+  -H "x-stack-access-type: client" \
+  -H "x-stack-project-id: $HEXCLAVE_PROJECT_ID" \
+  -H "x-stack-publishable-client-key: $HEXCLAVE_PUBLISHABLE_CLIENT_KEY" \
+  -d '{"email": "test@example.com", "password": "SecurePass123", "verification_callback_url": "http://localhost:3000/verify"}'
+```
 
-Use the included `get_token.py` script to quickly get an access token:
+Copy the `access_token` from the response.
+
+**Token expired?** Access tokens are short-lived. Sign in again with the included `get_token.py` script:
 
 ```bash
 # Interactive mode (prompts for email/password)
 uv run get_token.py
 
 # With arguments
-uv run get_token.py --email user@example.com --password yourpassword
-
-# Or set environment variables
-export TEST_USER_EMAIL=user@example.com
-export TEST_USER_PASSWORD=yourpassword
-uv run get_token.py
+uv run get_token.py --email test@example.com --password SecurePass123
 ```
 
-Output:
-```
-Authenticating user@example.com...
+Or call the sign-in endpoint directly:
 
-============================================================
-ACCESS TOKEN (copy this for curl commands):
-============================================================
-eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9...
-============================================================
-
-Usage:
-  export TOKEN="eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9..."
-  curl http://localhost:8000/me -H "Authorization: Bearer $TOKEN"
+```bash
+curl -s -X POST $HEXCLAVE_API_URL/api/v1/auth/password/sign-in \
+  -H "Content-Type: application/json" \
+  -H "x-stack-access-type: client" \
+  -H "x-stack-project-id: $HEXCLAVE_PROJECT_ID" \
+  -H "x-stack-publishable-client-key: $HEXCLAVE_PUBLISHABLE_CLIENT_KEY" \
+  -d '{"email": "test@example.com", "password": "SecurePass123"}'
 ```
 
-**Option B: Use Stack Auth Dashboard**
-
-1. Navigate to your user in the Stack Auth dashboard
-2. Generate a test access token
-
-**Option C: Use Stack Auth Frontend SDK**
-
-In your frontend application:
+**From a React/Next.js frontend:**
 
 ```typescript
-import { useUser } from "@stackframe/stack";
+import { useUser } from "@hexclave/next";
 
 function MyComponent() {
   const user = useUser();
 
-  // Get access token for API calls
-  const token = await user.getAuthJson();
-  console.log(token.accessToken);
+  async function callAPI() {
+    const token = await user.getAccessToken();
+    const res = await fetch("http://localhost:8000/me", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return res.json();
+  }
 }
 ```
 
 ## Test the API
 
 ```bash
-# Set your access token
-TOKEN="your-stack-auth-access-token"
+TOKEN="<paste access_token here>"
 
 # Health check (public)
 curl http://localhost:8000/health
+# {"status":"healthy","provider":"hexclave"}
 
 # Get user profile (authenticated)
-curl http://localhost:8000/me \
-  -H "Authorization: Bearer $TOKEN"
+curl http://localhost:8000/me -H "Authorization: Bearer $TOKEN"
+# {"id":"...","email":"test@example.com","display_name":null,"roles":["admin"]}
 
-# Access member area (requires team_member permission)
-curl http://localhost:8000/member-area \
-  -H "Authorization: Bearer $TOKEN"
+# Member area (requires team_member or team_admin)
+curl http://localhost:8000/member-area -H "Authorization: Bearer $TOKEN"
+# {"message":"Welcome test@example.com!","access_level":"member"}
 
-# Access admin area (requires team_admin permission)
-curl http://localhost:8000/admin-area \
-  -H "Authorization: Bearer $TOKEN"
+# Admin area (requires team_admin)
+curl http://localhost:8000/admin-area -H "Authorization: Bearer $TOKEN"
+# {"message":"Welcome Admin test@example.com!","access_level":"admin"}
 ```
+
+## How Roles Work
+
+GL-IAM maps Hexclave **team permissions** to standard roles:
+
+| Hexclave      | GL-IAM       | Passes                                        |
+| ------------- | ------------ | --------------------------------------------- |
+| `team_admin`  | `ORG_ADMIN`  | `require_org_member()`, `require_org_admin()` |
+| `team_member` | `ORG_MEMBER` | `require_org_member()`                        |
+
+When "Create a personal team for each user on sign-up" is enabled, each user gets a personal team with `team_admin` on sign-up — so roles work automatically.
+
+GL-IAM reads roles from the user's **selected team** (`user.selected_team_id → team → permissions`). If the user has no selected team, no roles are returned.
+
+### Troubleshooting: `/me` returns empty roles
+
+If `/me` returns `"roles": []` and `/member-area` returns 403, your user has no team. This happens when "Create a personal team for each user on sign-up" is not enabled in your Hexclave project.
+
+**Fix — Option A:** Enable it in the Hexclave dashboard → **Team Settings**.
+
+**Fix — Option B:** Create a team manually:
+
+```bash
+# Load your .env values into the shell
+export $(grep -v '^#' .env | xargs)
+
+USER_ID="<user_id from sign-up response>"
+
+# Create team with user as creator (auto-grants team_admin)
+TEAM_ID=$(curl -s -X POST $HEXCLAVE_API_URL/api/v1/teams \
+  -H "Content-Type: application/json" \
+  -H "x-stack-access-type: server" \
+  -H "x-stack-project-id: $HEXCLAVE_PROJECT_ID" \
+  -H "x-stack-secret-server-key: $HEXCLAVE_SECRET_SERVER_KEY" \
+  -d "{\"display_name\": \"Default Team\", \"creator_user_id\": \"$USER_ID\"}" \
+  | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
+
+# Set user's active team
+curl -s -X PATCH "$HEXCLAVE_API_URL/api/v1/users/$USER_ID" \
+  -H "Content-Type: application/json" \
+  -H "x-stack-access-type: server" \
+  -H "x-stack-project-id: $HEXCLAVE_PROJECT_ID" \
+  -H "x-stack-secret-server-key: $HEXCLAVE_SECRET_SERVER_KEY" \
+  -d "{\"selected_team_id\": \"$TEAM_ID\"}"
+```
+
+Then sign in again to get a fresh token.
 
 ## Understanding the Code
 
@@ -322,47 +258,62 @@ Only the provider configuration changes:
 |---------|----------|---------------|
 | fastapi-postgresql | NativeProvider | `NativeConfig` |
 | fastapi-keycloak | KeycloakProvider | `KeycloakConfig` |
-| **fastapi-stackauth** | StackAuthProvider | `StackAuthConfig` |
+| **fastapi-stackauth** (Hexclave) | StackAuthProvider | `StackAuthConfig` |
+
+### Provider Setup
+
+```python
+config = StackAuthConfig(
+    error_policy="typed",
+    base_url=os.getenv("HEXCLAVE_API_URL", "http://localhost:8102"),
+    project_id=os.getenv("HEXCLAVE_PROJECT_ID"),
+    publishable_client_key=os.getenv("HEXCLAVE_PUBLISHABLE_CLIENT_KEY"),
+    secret_server_key=os.getenv("HEXCLAVE_SECRET_SERVER_KEY"),
+)
+provider = StackAuthProvider(config)
+gateway = IAMGateway.from_fullstack_provider(provider)
+set_iam_gateway(gateway, default_organization_id=os.getenv("HEXCLAVE_PROJECT_ID"))
+```
+
+1. `StackAuthProvider` connects GL-IAM to your Hexclave project (the provider keeps its Stack Auth name)
+2. `IAMGateway.from_fullstack_provider()` creates a unified auth gateway
+3. `get_current_user` validates the Hexclave token and returns a `User`
+4. `require_org_member()` enforces that the user has the `ORG_MEMBER` role (or higher)
 
 ### Token Flow
 
 ```
-Frontend -> Stack Auth SDK -> Access Token
-                              |
+Frontend -> Hexclave SDK -> Access Token
+                            |
 Backend -> StackAuthProvider validates token -> GL-IAM User object
                                                 |
                                          Role/Permission checks
 ```
 
-### Standard Role Mapping
-
-Stack Auth permissions are mapped to GL-IAM standard roles:
-
-| Stack Auth Permission | GL-IAM Role | GL-IAM Standard Role |
-|-----------------------|-------------|---------------------|
-| `$admin` / `team_admin` | `admin` | ORG_ADMIN |
-| `$member` / `team_member` | `member` | ORG_MEMBER |
-
-> **Important**: Self-hosted Stack Auth uses `$admin` and `$member` permission IDs, while Stack Auth Cloud uses `team_admin` and `team_member`. GL-IAM handles both formats.
-
 ### Configuration Reference
 
-| Parameter | Required | Description |
-|-----------|----------|-------------|
-| `base_url` | No | Stack Auth API URL (default: `http://localhost:8102`) |
-| `project_id` | Yes | Your Stack Auth project identifier |
-| `publishable_client_key` | Yes | Public key for client-side access |
-| `secret_server_key` | No* | Secret key for server-side token validation |
-| `timeout` | No | HTTP request timeout in seconds (default: 30) |
+| Parameter | Env var | Required | Description |
+|-----------|---------|----------|-------------|
+| `base_url` | `HEXCLAVE_API_URL` | No | Hexclave API URL (default: `http://localhost:8102`) |
+| `project_id` | `HEXCLAVE_PROJECT_ID` | Yes | Your Hexclave project identifier |
+| `publishable_client_key` | `HEXCLAVE_PUBLISHABLE_CLIENT_KEY` | Yes | Public key for client-side access |
+| `secret_server_key` | `HEXCLAVE_SECRET_SERVER_KEY` | No* | Secret key for server-side token validation |
+| `timeout` | — | No | HTTP request timeout in seconds (default: 30) |
 
 *`secret_server_key` is required for server-side token validation in production.
 
-### Stack Auth Concepts to GL-IAM Mapping
+### Hexclave Concepts to GL-IAM Mapping
 
-| Stack Auth | GL-IAM |
-|------------|--------|
+| Hexclave | GL-IAM |
+|----------|--------|
 | Team | Organization |
 | Selected Team | User's active organization context |
-| Permission (`$admin`, `$member`) | Role |
+| Permission (`team_admin`, `team_member`) | Role |
 | User | User |
 | Access Token | Auth Token |
+
+## Next Steps
+
+- [fastapi-hexclave-google-signin](../fastapi-hexclave-google-signin/) - Sign in with Google via Hexclave
+- [rbac-showcase](../rbac-showcase/) - RBAC demo with multi-provider support
+- [GL-IAM GitBook](https://gdplabs.gitbook.io/sdk/gl-iam)

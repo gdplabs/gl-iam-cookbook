@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Get Stack Auth access token for testing.
+"""Get Hexclave access token for testing.
 
-This script authenticates with Stack Auth using email/password and prints
+This script authenticates with Hexclave using email/password and prints
 the access token for use with curl commands.
 
 Usage:
@@ -22,7 +22,7 @@ load_dotenv()
 
 
 def get_token(email: str, password: str) -> dict | None:
-    """Authenticate with Stack Auth and get access token.
+    """Authenticate with Hexclave and get access token.
 
     Args:
         email: User's email address.
@@ -31,10 +31,10 @@ def get_token(email: str, password: str) -> dict | None:
     Returns:
         dict with access_token and refresh_token, or None on failure.
     """
-    base_url = os.getenv("STACKAUTH_BASE_URL", "http://localhost:8102").rstrip("/")
-    project_id = os.getenv("STACKAUTH_PROJECT_ID", "internal")
+    base_url = os.getenv("HEXCLAVE_API_URL", "http://localhost:8102").rstrip("/")
+    project_id = os.getenv("HEXCLAVE_PROJECT_ID", "internal")
     publishable_key = os.getenv(
-        "STACKAUTH_PUBLISHABLE_CLIENT_KEY",
+        "HEXCLAVE_PUBLISHABLE_CLIENT_KEY",
         "this-publishable-client-key-is-for-local-development-only",
     )
 
@@ -63,7 +63,7 @@ def get_token(email: str, password: str) -> dict | None:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Get Stack Auth access token")
+    parser = argparse.ArgumentParser(description="Get Hexclave access token")
     parser.add_argument("--email", "-e", help="Email address")
     parser.add_argument("--password", "-p", help="Password")
     args = parser.parse_args()
